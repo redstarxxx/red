@@ -2344,10 +2344,10 @@ case $choice in
                         echo -e "以下为[ ${MA}PEER $choice${NC} ]配置文件信息:"
                         echo
                         ##################### 用于验证
-                        echo
-                        ls /etc/wireguard
-                        cat /etc/wireguard/client*.key
-                        echo
+                        # echo
+                        # ls /etc/wireguard
+                        # cat /etc/wireguard/client*.key
+                        # echo
                         #####################
                         echo "[Interface]"
                         # echo -e "PrivateKey = ${public_keys_array[$((choice-1))]} ${GR}# 此处为client的私钥${NC}"  ####此处错误，留着备用
