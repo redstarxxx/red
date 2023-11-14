@@ -2082,8 +2082,31 @@ case $choice in
         onlyone=0
         ;;
     5|55)
-        while true; do
         config_file="/etc/wireguard/wg0.conf"
+        extract_allowed_ips() {
+            local config_file="$1"
+            local allowed_ips_array=()
+            while IFS= read -r line; do
+                if [[ "$line" =~ ^AllowedIPs[[:space:]]*=[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) ]]; then
+                    ip_only=$(echo "${BASH_REMATCH[1]}" | cut -d'/' -f1)
+                    allowed_ips_array+=("$ip_only")
+                fi
+            done < "$config_file"
+            echo "${allowed_ips_array[@]}"
+        }
+        # allowed_ips_array=($(awk -F= '/^AllowedIPs/ {gsub(/[ \t\/]+/, "", $2); print $2}' $config_file)) 第二种方法读取数组(上面是系统内置法，此条是采用外部工具)
+        extract_public_keys() {
+            local config_file="$1"
+            local public_keys_array=()
+            while IFS= read -r line; do
+                if [[ "$line" =~ ^PublicKey[[:space:]]*=[[:space:]]*(.+) ]]; then
+                    public_key=$(echo "${BASH_REMATCH[1]}")
+                    public_keys_array+=("$public_key")
+                fi
+            done < "$config_file"
+            echo "${public_keys_array[@]}"
+        }
+        while true; do
         wgtag=""
         if command -v wg &>/dev/null; then
             wgver=$(wg -v | head -n 1 | awk '{print $2}')
@@ -2129,8 +2152,8 @@ case $choice in
                 if [[ $loop -eq 0 ]]; then
                     echo -e "${colored_text1}${NC}"
                     remind1p
-                    read -e -p "请输入 Wireguard 服务IP地址 (回车默认: 10.0.8.1): " server_address
-                    wgserver_ip="10.0.8.1"
+                    read -e -p "请输入 Wireguard 服务IP地址 (回车默认: 10.0.8.1,fe00::1): " server_address
+                    wgserver_ip="10.0.8.1,fe80::1"
                     if [ -n "$server_address" ]; then
                         wgserver_ip="$server_address"
                     fi
@@ -2212,7 +2235,7 @@ case $choice in
 
                             [Peer]
                             PublicKey =  $(cat client11.key.pub)
-                            AllowedIPs = ${wgserver_ip_prefix}11/32
+                            AllowedIPs = ${wgserver_ip_prefix}11/32,fe80::11/128
                             " > wg0.conf
                             sed -i 's/^[ \t]*//;s/[ \t]*$//' wg0.conf
 
@@ -2249,31 +2272,8 @@ case $choice in
                     waitfor
                     continue
                 fi
-                extract_allowed_ips() {
-                    local config_file="$1"
-                    local allowed_ips_array=()
-                    while IFS= read -r line; do
-                        if [[ "$line" =~ ^AllowedIPs[[:space:]]*=[[:space:]]*(.+) ]]; then
-                            ip_only=$(echo "${BASH_REMATCH[1]}" | cut -d'/' -f1)
-                            allowed_ips_array+=("$ip_only")
-                        fi
-                    done < "$config_file"
-                    echo "${allowed_ips_array[@]}"
-                }
                 allowed_ips_array=($(extract_allowed_ips "$config_file"))
-                # allowed_ips_array=($(awk -F= '/^AllowedIPs/ {gsub(/[ \t\/]+/, "", $2); print $2}' $config_file)) 第二种方法读取数组(上面是系统内置法，此条是采用外部工具)
-                extract_public_keys() {
-                    local config_file="$1"
-                    local public_keys_array=()
-                    while IFS= read -r line; do
-                        if [[ "$line" =~ ^PublicKey[[:space:]]*=[[:space:]]*(.+) ]]; then
-                            public_key=$(echo "${BASH_REMATCH[1]}")
-                            public_keys_array+=("$public_key")
-                        fi
-                    done < "$config_file"
-                    echo "${public_keys_array[@]}"
-                }
-                public_keys_array=($(extract_public_keys "$config_file"))
+                # public_keys_array=($(extract_public_keys "$config_file"))
                 ############## 用于验证
                 # allowed_ips_array=($(extract_allowed_ips "$config_file"))
                 # public_keys_array=($(extract_public_keys "$config_file"))
@@ -2330,8 +2330,10 @@ case $choice in
                         else
                             private_key="未检测到, 请手动查阅文件(/etc/wireguard/...)..."
                         fi
-                        wgserver_ip=$(awk '/^Address/{gsub(/[ \t]+/, "", $3); print $3}' $config_file)
-                        wgserver_ip_prefix0=$(awk '/^Address/{gsub(/[ \t]+/, "", $3); sub(/[0-9]+$/, "0", $3); print $3}' $config_file)
+                        wgserver_ip=$(grep "Address" $config_file | awk '{print $3}')
+                        wgserver_ip_prefix0=$(echo $wgserver_ip | cut -d ',' -f 1 | cut -d '.' -f 1-3)
+                        # fourth_octet=$(echo $wgserver_ip | cut -d ',' -f 1 | cut -d '.' -f 4) # 取IP第四位
+
                         # address=$(awk -v ip="$selected_ip" -v RS= '/\[Peer\]/ && $0 ~ ip {getline; print $2}' $config_file)
                         wg_dns=$(awk '/^DNS/{gsub(/[ \t]+/, "", $3); print $3}' $config_file)
                         # wg_mtu=$(awk '/^MTU/{gsub(/[ \t]+/, "", $3); print $3}' $config_file)
@@ -2341,17 +2343,23 @@ case $choice in
                         echo -e "${colored_text1}${NC}"
                         echo -e "以下为[ ${MA}PEER $choice${NC} ]配置文件信息:"
                         echo
+                        ##################### 用于验证
+                        echo
+                        ls /etc/wireguard
+                        cat /etc/wireguard/client*.key
+                        echo
+                        #####################
                         echo "[Interface]"
                         # echo -e "PrivateKey = ${public_keys_array[$((choice-1))]} ${GR}# 此处为client的私钥${NC}"  ####此处错误，留着备用
                         echo -e "PrivateKey = $private_key ${GR}# 此处为client的私钥${NC}"
-                        echo -e "Address = ${allowed_ips_array[$((choice-1))]}/32  ${GR}# 此处为peer的客户端IP${NC}"
+                        echo -e "Address = ${allowed_ips_array[$((choice-1))]}/32,fe80::$((choice+10))/128 ${GR}# 此处为peer的客户端IP${NC}"
                         echo -e "DNS = $wg_dns"
                         echo -e "MTU = 1500"
                         # echo -e "MTU = $wg_mtu" # 默认让它 1500
                         echo
                         echo "[Peer]"
                         echo -e "PublicKey = $server_public_key ${GR}# 此处为server的公钥${NC}"
-                        echo -e "AllowedIPs = $wgserver_ip_prefix0/24,::/0 ${GR}# 此处为允许访问的IP或IP段 (如禁止IPv6把",::/0"去除)${NC}"
+                        echo -e "AllowedIPs = ${wgserver_ip_prefix0}.0/24,fe80::0/112 ${GR}# 此处为允许访问的IP或IP段${NC}"
                         if [[ ! $selected_ip_inall == "" ]]; then
                             echo "Endpoint = $selected_ip_inall:$server_port"
                         else
@@ -2376,12 +2384,17 @@ case $choice in
                 if [[ ! ($choice = "y" || $choice = "Y") ]]; then
                     continue
                 fi
+
+                allowed_ips=$(extract_allowed_ips "$config_file")
+                allowed_ips_array=($allowed_ips)
                 wgserver_ip_add="${allowed_ips_array[-1]}"
                 while [[ " ${allowed_ips_array[@]} " =~ " ${wgserver_ip_add} " ]]; do
-                  IFS='.' read -r -a ip_parts <<< "$wgserver_ip_add"
-                  ((ip_parts[3]++))
-                  wgserver_ip_add="${ip_parts[0]}.${ip_parts[1]}.${ip_parts[2]}.${ip_parts[3]}"
+                    IFS='.' read -r -a ip_parts <<< "$wgserver_ip_add"
+                    ((ip_parts[3]++))
+                    wgserver_ip_add="${ip_parts[0]}.${ip_parts[1]}.${ip_parts[2]}.${ip_parts[3]}"
+                    wgserver_ip6_add="fe80::${ip_parts[3]}"
                 done
+
                 last_octet=$(echo "$wgserver_ip_add" | awk -F'.' '{print $NF}')
                 # echo "$last_octet"
                 # echo "AllowedIPs values: ${allowed_ips_array[@]}" ####用于验证数组
@@ -2391,7 +2404,7 @@ case $choice in
                 wg pubkey < client${last_octet}.key > client${last_octet}.key.pub
                 echo "[Peer]
                 PublicKey =  $(cat client${last_octet}.key.pub)
-                AllowedIPs = ${wgserver_ip_add}/32
+                AllowedIPs = ${wgserver_ip_add}/32,${wgserver_ip6_add}/128
                 " >> wg0.conf
                 sed -i 's/^[ \t]*//;s/[ \t]*$//' wg0.conf
                 cat wg0.conf
@@ -2435,6 +2448,15 @@ case $choice in
                     echo -e "${MA}WIREGUARD 卸载失败${NC}！"
                 fi
                 echo -e "${GR}WIREGUARD 卸载成功${NC}！"
+                waitfor
+                ;;
+            t)
+                clear_screen
+                allowed_ips_array=($(extract_allowed_ips "$config_file"))
+                echo "Allowed IPs:"
+                for ip in "${allowed_ips_array[@]}"; do
+                    echo "  $ip"
+                done
                 waitfor
                 ;;
             r|R|rr|RR)
