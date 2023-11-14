@@ -51,7 +51,7 @@ done
 
 clear_screen
 if [ "$EUID" -eq 0 ]; then
-    grep -q "curl -sS -o ~/.tse/tse.sh https://raw.githubusercontent.com/ieiian/shell/main/tse.sh && chmod +x ~/.tse/tse.sh && ~/.tse/tse.sh" /root/.bashrc
+    grep -q "curl -sS -o ~/.tse/tse.sh https://raw.githubusercontent.com/redstarxxx/shell/main/tse.sh && chmod +x ~/.tse/tse.sh && ~/.tse/tse.sh" /root/.bashrc
     if [ $? -eq 0 ]; then
         :
     else
@@ -64,12 +64,12 @@ if [ "$EUID" -eq 0 ]; then
             :
         elif [[ -z "$shortcut" || "$shortcut" == "" ]]; then
             shortcut="tse"
-            tsecom="alias $shortcut='curl -sS -o ~/.tse/tse.sh https://raw.githubusercontent.com/ieiian/shell/main/tse.sh && chmod +x ~/.tse/tse.sh && ~/.tse/tse.sh'"
+            tsecom="alias $shortcut='curl -sS -o ~/.tse/tse.sh https://raw.githubusercontent.com/redstarxxx/shell/main/tse.sh && chmod +x ~/.tse/tse.sh && ~/.tse/tse.sh'"
             echo "$tsecom" >> /root/.bashrc
             source ~/.bashrc
             echo "快捷指令 ${MA}$shortcut${NC} 已经设置并添加到/root/.bashrc中。"
         else
-            tsecom="alias $shortcut='curl -sS -o ~/.tse/tse.sh https://raw.githubusercontent.com/ieiian/shell/main/tse.sh && chmod +x ~/.tse/tse.sh && ~/.tse/tse.sh'"
+            tsecom="alias $shortcut='curl -sS -o ~/.tse/tse.sh https://raw.githubusercontent.com/redstarxxx/shell/main/tse.sh && chmod +x ~/.tse/tse.sh && ~/.tse/tse.sh'"
             echo "$tsecom" >> /root/.bashrc
             source ~/.bashrc
             echo "快捷指令 ${MA}$shortcut${NC} 已经设置并添加到/root/.bashrc中。"
@@ -354,7 +354,7 @@ case $choice in
                     elif [ -z "$shortcuts" ]; then
                         echo "错误：快捷指令不能为空，请重新输入。"
                     else
-                        echo "alias $shortcuts='curl -sS -o ~/.tse/tse.sh https://raw.githubusercontent.com/ieiian/shell/main/tse.sh && chmod +x ~/.tse/tse.sh && ~/.tse/tse.sh'" >> ~/.bashrc
+                        echo "alias $shortcuts='curl -sS -o ~/.tse/tse.sh https://raw.githubusercontent.com/redstarxxx/shell/main/tse.sh && chmod +x ~/.tse/tse.sh && ~/.tse/tse.sh'" >> ~/.bashrc
                         source ~/.bashrc
                         echo -e "快捷指令 ${MA}$shortcuts${NC} 已添加。"
                         break
@@ -366,7 +366,7 @@ case $choice in
                 while true; do
                     echo -e "${MA}清除${NC}${CY}脚本快捷指令${NC}"
                     echo -e "${colored_text2}${NC}"
-                    if grep -q "https://raw.githubusercontent.com/ieiian/shell/main/tse.sh" ~/.bashrc; then
+                    if grep -q "https://raw.githubusercontent.com/redstarxxx/shell/main/tse.sh" ~/.bashrc; then
                         sed -i '/https:\/\/raw\.githubusercontent\.com\/ieiian\/shell\/main\/tse\.sh/d' ~/.bashrc
                         source ~/.bashrc
                         echo "快捷指令已经删除。"
@@ -2871,7 +2871,7 @@ case $choice in
         ;;
     u)
         # echo
-        curl -sS -o ~/.tse/tse.sh https://raw.githubusercontent.com/ieiian/shell/main/tse.sh && chmod +x ~/.tse/tse.sh && ~/.tse/tse.sh
+        curl -sS -o ~/.tse/tse.sh https://raw.githubusercontent.com/redstarxxx/shell/main/tse.sh && chmod +x ~/.tse/tse.sh && ~/.tse/tse.sh
         exit
         ;;
     0)
