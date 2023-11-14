@@ -2315,7 +2315,7 @@ case $choice in
                             echo " $((i+2)):   ${ip_array[i]}"
                         done
                         remind1p
-                        read -e -p "系统检查到以上IP地址, 回车默认选择公网IP地址: " selected_index
+                        read -e -p "选择 Endpoint 对端IP, 回车默认选择公网IP: " selected_index
                         selected_ip_inall=""
                         if ((selected_index > 1 && selected_index <= ${#ip_array[@]} + 1)); then
                             selected_ip_inall="${ip_array[selected_index-2]}"
@@ -2338,8 +2338,9 @@ case $choice in
                         server_public_key=$(cat /etc/wireguard/server.key.pub)
                         allowed_ips=$(awk -v ip="$selected_ip" -v RS= '/\[Peer\]/ && $0 ~ ip {getline; print $2}' $config_file)
                         server_port=$(awk '/^ListenPort/{gsub(/[ \t]+/, "", $3); print $3}' $config_file)
-                        echo -e "以下为[ ${MA}PEER $choice${NC} ]配置文件信息:"
                         echo -e "${colored_text1}${NC}"
+                        echo -e "以下为[ ${MA}PEER $choice${NC} ]配置文件信息:"
+                        echo
                         echo "[Interface]"
                         # echo -e "PrivateKey = ${public_keys_array[$((choice-1))]} ${GR}# 此处为client的私钥${NC}"  ####此处错误，留着备用
                         echo -e "PrivateKey = $private_key ${GR}# 此处为client的私钥${NC}"
@@ -2350,7 +2351,7 @@ case $choice in
                         echo
                         echo "[Peer]"
                         echo -e "PublicKey = $server_public_key ${GR}# 此处为server的公钥${NC}"
-                        echo -e "AllowedIPs = $wgserver_ip_prefix0/24,::/0 ${GR}# 此处为允许访问的IP或IP段 (如禁止IPv6把"::/0"去除)${NC}"
+                        echo -e "AllowedIPs = $wgserver_ip_prefix0/24,::/0 ${GR}# 此处为允许访问的IP或IP段 (如禁止IPv6把",::/0"去除)${NC}"
                         if [[ ! $selected_ip_inall == "" ]]; then
                             echo "Endpoint = $selected_ip_inall:$server_port"
                         else
