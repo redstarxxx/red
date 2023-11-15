@@ -2410,7 +2410,7 @@ case $choice in
                         fi
                         echo -e "${colored_text1}${NC}"
                         echo -e "${CY}二维码生成:${NC}"
-                        echo -e "将配置内容粘贴至: https://zh.qr-code-generator.com ${GR}->${NC} 文本 ${GR}->${NC} 创建二维码"
+                        echo -e "将配置文件信息粘贴至: https://zh.qr-code-generator.com ${GR}->${NC} 文本 ${GR}->${NC} 创建二维码"
                         ################### 生成QRCODE, 由于画面过大，暂时放弃
                         # qrencode -t ANSIUTF8 '
                         # echo "[Interface]"
@@ -2511,7 +2511,7 @@ case $choice in
                         found=false
                         for interface in "${wginterfaces[@]}"; do
                             if [ "$conf_file" == "$interface" ]; then
-                                echo -e "$i    ${CY}$conf_file${NC}    ${MA}已开启${NC}"
+                                echo -e "$i    ${CY}$conf_file${NC}            ${MA}已开启${NC}"
                                 found=true
                                 break
                             fi
@@ -2526,8 +2526,8 @@ case $choice in
                     if (( selection >= 1 && selection <= ${#conf_files[@]} )); then
                         index=$((selection - 1))
                         selected_conf_files=${conf_files[index]}
-                        echo "选择的接口是：$selected_conf_files"
-                        echo "操作序号: 1.开启  2.关闭  3.删除"
+                        echo -e "选择的接口是：${CY}$selected_conf_files${NC}"
+                        echo -e "操作序号: 1.开启  2.关闭  3.${MA}删除${NC}"
                         remind1p
                         read -e -p "请输入操作序号:" choice
                         echo -e "${colored_text1}${NC}"
