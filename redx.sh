@@ -2521,8 +2521,8 @@ case $choice in
                         fi
                     done
                     remind1p
-                    echo -n "请输入要选择的接口序号（1-${#conf_files[@]}）: "
-                    read selection
+                    echo -n -e "请输入要选择的接口序号 (${MA}1-${#conf_files[@]}${NC}): "
+                    read -e selection
                     if (( selection >= 1 && selection <= ${#conf_files[@]} )); then
                         index=$((selection - 1))
                         selected_conf_files=${conf_files[index]}
