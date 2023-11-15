@@ -2084,7 +2084,8 @@ case $choice in
         waitfor
         ;;
     5|55)
-        config_file="/etc/wireguard/wg0.conf"
+        wgfname="wg0"
+        config_file="/etc/wireguard/$wgfname.conf"
         extract_allowed_ips() {
             local config_file="$1"
             local allowed_ips_array=()
@@ -2129,16 +2130,24 @@ case $choice in
             wgver="未安装"
             wgtag="${MA}*${NC}"
         fi
-        wgactive=($(systemctl is-active wg-quick@wg0.service | tr -d '\n'))
+        wginterfaces=$(wg show all | grep -E '^\s*interface:' | awk '{print $2}' | paste -sd ' ')
+        if [ -z "$wginterfaces" ]; then
+            wgactive="${MA}未启动${NC}"
+        else
+            wgactive="${GR}$wginterfaces${NC}"
+        fi
         clear_screen
         echo -e "${GR}▼▼${NC}"
-        echo -e "${GR}WIREGUARD${NC} ${MA}$wgver${NC}   运行状态: ${MA}$wgactive${NC}"
+        echo -e "${GR}WIREGUARD${NC} ${MA}$wgver${NC}"
+        echo -e "运行状态: $wgactive"
         echo -e "${colored_text2}${NC}"
         echo -e "1.  配置 WIREGUARD 服务"
         echo -e "2.  查询 WIREGUARD 信息(配置文件)"
         echo -e "3.  增加 WIREGUARD PEER 节点"
         echo -e "${colored_text1}${NC}"
-        echo -e "4.  手动修改 WIREGUARD 配置"
+        echo -e "4.  开启/关闭/删除 WIREGUARD 服务"
+        echo -e "${colored_text1}${NC}"
+        echo -e "5.  手动修改 WIREGUARD 配置"
         echo -e "${colored_text1}${NC}"
         echo -e "i.  安装/更新 WIREGUARD 官方脚本 ${MA}$wgtag${NC}"
         echo -e "d.  删除 WIREGUARD 官方脚本 (暂时不要使用)"
@@ -2241,8 +2250,8 @@ case $choice in
                             PrivateKey = $(cat server.key)
                             Address = $wgserver_ip
 
-                            PostUp   = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o $wgnetwork_interface -j MASQUERADE
-                            PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o $wgnetwork_interface -j MASQUERADE
+                            PostUp   = iptables -A FORWARD -i $wgfname -j ACCEPT; iptables -A FORWARD -o $wgfname -j ACCEPT; iptables -t nat -A POSTROUTING -o $wgnetwork_interface -j MASQUERADE
+                            PostDown = iptables -D FORWARD -i $wgfname -j ACCEPT; iptables -D FORWARD -o $wgfname -j ACCEPT; iptables -t nat -D POSTROUTING -o $wgnetwork_interface -j MASQUERADE
 
                             ListenPort = $wglisten_port
                             DNS = $wgdns_address
@@ -2251,14 +2260,14 @@ case $choice in
                             [Peer]
                             PublicKey =  $(cat client11.key.pub)
                             AllowedIPs = ${wgserver_ip_prefix}11/32,fe80::11/128
-                            " > wg0.conf
-                            sed -i 's/^[ \t]*//;s/[ \t]*$//' wg0.conf
+                            " > $wgfname.conf
+                            sed -i 's/^[ \t]*//;s/[ \t]*$//' $wgfname.conf
 
-                            cat wg0.conf
-                            systemctl enable wg-quick@wg0.service &>/dev/null
-                            wg-quick down wg0 &>/dev/null
-                            wg-quick up wg0 &>/dev/null
-                            ip address show wg0
+                            cat $wgfname.conf
+                            systemctl enable wg-quick@$wgfname.service &>/dev/null
+                            wg-quick down $wgfname &>/dev/null
+                            wg-quick up $wgfname &>/dev/null
+                            ip address show $wgfname
                             if [[ ! "${wgactive}" = "active" ]]; then
                                 read -e -p "重启后生效, 是否重启服务器? (Y/其它)" choice
                                     if [[ $choice == "Y" || $choice == "y" ]]; then
@@ -2287,6 +2296,11 @@ case $choice in
                     waitfor
                     continue
                 fi
+                if [ ! -f "$config_file" ]; then
+                    echo -e "未发现配置文件, 请先进行配置服务."
+                    waitfor
+                    continue
+                fi
                 allowed_ips_array=($(extract_allowed_ips "$config_file"))
                 # public_keys_array=($(extract_public_keys "$config_file"))
                 ############## 用于验证
@@ -2303,7 +2317,7 @@ case $choice in
                 #######################################
                 echo -e "${colored_text1}${NC}"
                 # wg show all
-                wg show wg0
+                wg show $wgfname
                 allowed_ips_array2=($(awk -F= '/^AllowedIPs/ {gsub(/[ \t\/]+/, "", $2); sub(/\/[0-9]+$/, "", $2); print $2}' $config_file))
                 echo -e "${colored_text1}${NC}"
                 echo -e "${CY}PEER 列表${NC}:"
@@ -2433,6 +2447,11 @@ case $choice in
                     waitfor
                     continue
                 fi
+                if [ ! -f "$config_file" ]; then
+                    echo -e "未发现配置文件, 请先进行配置服务."
+                    waitfor
+                    continue
+                fi
                 read -e -p "是否确定增加一个节点? (Y/其它)" choice
                 if [[ ! ($choice = "y" || $choice = "Y") ]]; then
                     continue
@@ -2458,28 +2477,133 @@ case $choice in
                 echo "[Peer]
                 PublicKey =  $(cat client${last_octet}.key.pub)
                 AllowedIPs = ${wgserver_ip_add}/32,${wgserver_ip6_add}/128
-                " >> wg0.conf
-                sed -i 's/^[ \t]*//;s/[ \t]*$//' wg0.conf
-                cat wg0.conf
-                wg-quick down wg0 &>/dev/null
-                wg-quick up wg0 &>/dev/null
+                " >> $wgfname.conf
+                sed -i 's/^[ \t]*//;s/[ \t]*$//' $wgfname.conf
+                cat $wgfname.conf
+                wg-quick down $wgfname &>/dev/null
+                wg-quick up $wgfname &>/dev/null
                 echo -e "${MA}WIREGUARD 服务已重启...${NC}:"
                 waitfor
                 ;;
             4|44)
+                conf_files=()
+                conf_file_value=""
+                while IFS= read -r -d '' file; do
+                    filename=$(basename "$file")
+                    conf_files+=("${filename%.conf}")  # 去除文件名后缀，只保留前缀部分
+                    conf_file_value="${filename%.conf}" # 保存 conf_file 的值
+                done < <(find /etc/wireguard/ -type f -name "*.conf" -print0)
+                # echo "所有.conf文件名前缀："
+                # for conf_file in "${conf_files[@]}"; do
+                #     echo "$conf_file"
+                # done
+                wginterfaces=($(wg show all | grep -E '^\s*interface:' | awk '{print $2}'))
+                # echo "可用接口列表："
+                # for ((i = 0; i < ${#wginterfaces[@]}; i++)); do
+                #     echo "$((i + 1)): ${wginterfaces[i]}"
+                # done
+                if [[ ! $conf_file_value == "" ]]; then
+                    i=0
+                    echo -e "${colored_text1}${NC}"
+                    echo "所有服务名称:"
+                    for conf_file in "${conf_files[@]}"; do
+                        ((i++))
+                        found=false
+                        for interface in "${wginterfaces[@]}"; do
+                            if [ "$conf_file" == "$interface" ]; then
+                                echo -e "$i    ${CY}$conf_file${NC}    ${MA}已开启${NC}"
+                                found=true
+                                break
+                            fi
+                        done
+                        if ! $found; then
+                            echo -e "$i    ${CY}$conf_file${NC}"
+                        fi
+                    done
+                    remind1p
+                    echo -n "请输入要选择的接口序号（1-${#conf_files[@]}）: "
+                    read selection
+                    if (( selection >= 1 && selection <= ${#conf_files[@]} )); then
+                        index=$((selection - 1))
+                        selected_conf_files=${conf_files[index]}
+                        echo "选择的接口是：$selected_conf_files"
+                        echo "操作序号: 1.开启  2.关闭  3.删除"
+                        remind1p
+                        read -e -p "请输入操作序号:" choice
+                        echo -e "${colored_text1}${NC}"
+                        if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
+                            echo "选择不是有效的数字"
+                        else
+                            if [ $choice -eq 1 ]; then
+                                wg-quick up $selected_conf_files
+                                echo -e "$selected_conf_files 服务已经${MA}开启${NC}"
+                            elif [ $choice -eq 2 ]; then
+                                wg-quick down $selected_conf_files
+                                echo -e "$selected_conf_files 服务已经${MA}关闭${NC}"
+                            elif [ $choice -eq 3 ]; then
+                                read -e -p "是否确定要删除 $selected_conf_files 服务? (Y/其它.取消)" delete_choice
+                                if [[ $delete_choice = "y" || $delete_choice = "Y" ]]; then
+                                    wg-quick down $selected_conf_files
+                                    rm -f /etc/wireguard/$selected_conf_files.conf
+                                    echo -e "$selected_conf_files 服务已经${MA}删除${NC}."
+                                else 
+                                    echo "取消删除."
+                                fi
+                            else
+                                echo "无效的选择."
+                            fi
+                        fi
+                    else
+                        echo "无效的选择."
+                    fi
+                else
+                    remind1p
+                    echo "未发现服务."
+                fi
+                waitfor
+                ;;
+            5|55)
                 if [[ $wgtag == *"*"* ]]; then
                     echo -e "检测到系统未安装WIREGUARD, 请先选择第 ${MA}i${NC} 项进行安装."
                     waitfor
                     continue
                 fi
-                nano /etc/wireguard/wg0.conf
+                if [ ! -f "$config_file" ]; then
+                    echo -e "未发现配置文件, 请先进行配置服务."
+                    waitfor
+                    continue
+                fi
+                nano /etc/wireguard/$wgfname.conf
                 ;;
             i|I|ii|II)
                 if command -v apt &>/dev/null; then
-                    apt install -y wireguard resolvconf
+                    source /etc/os-release
+                    if grep -q 'lunar' /etc/os-release && grep -q 'bullseye' /etc/apt/sources.list /etc/apt/sources.list.d/* &>/dev/null; then
+                        # echo "系统版本是 Ubuntu 23.04 (Lunar Lobster) 或 Debian Bullseye"
+                        apt install -y wireguard resolvconf
+                    elif grep -q 'lunar' /etc/os-release; then
+                        # echo "系统版本是 Ubuntu 23.04 (Lunar Lobster)"
+                        apt install -y wireguard resolvconf
+                    elif grep -q 'bullseye' /etc/apt/sources.list /etc/apt/sources.list.d/* &>/dev/null; then
+                        # echo "系统版本是 Debian Bullseye"
+                        apt install -y wireguard resolvconf
+                    else
+                        # echo "系统版本可能不是 Ubuntu 23.04 (Lunar Lobster) 或 Debian Bullseye"
+                        apt-get install gnupg
+                        apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131
+                        apt update
+                        apt install -y wireguard resolvconf
+                    fi
                 fi
                 if command -v yum &>/dev/null; then
-                    :
+                    yum install -y yum-utils epel-release
+                    yum-config-manager --setopt=centosplus.includepkgs=kernel-plus --enablerepo=centosplus --save
+                    sed -e 's/^DEFAULTKERNEL=kernel$/DEFAULTKERNEL=kernel-plus/' -i /etc/sysconfig/kernel
+                    yum install -y kernel-plus wireguard-tools
+                    read -e -p "重启后生效, 是否重启服务器? (Y/其它)" choice
+                    if [[ $choice == "Y" || $choice == "y" ]]; then
+                        reboot
+                    fi
                 fi
                 waitfor
                 ;;
@@ -2488,13 +2612,13 @@ case $choice in
                 if [[ ! ($choice = "y" || $choice = "Y") ]]; then
                     continue
                 fi
-                systemctl disable wg-quick@wg0
-                systemctl stop wg-quick@wg0
+                systemctl disable wg-quick@$wgfname
+                systemctl stop wg-quick@$wgfname
                 # modprobe -r wireguard
-                # rm -f /etc/wireguard/wg0.conf
+                # rm -f /etc/wireguard/$wgfname.conf
                 # rm -f /etc/wireguard/*.key
                 # rm -f /etc/wireguard/*.pub
-                # rm -f /etc/systemd/system/wg-quick@wg0.service
+                # rm -f /etc/systemd/system/wg-quick@$wgfname.service
                 # rm -f /usr/bin/wg
                 # rm -f /usr/bin/wg-quick
                 if command -v wg &>/dev/null; then
