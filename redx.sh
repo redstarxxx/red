@@ -2553,6 +2553,9 @@ case $choice in
                                 echo "无效的选择."
                             fi
                         fi
+                    elif [[ $selection == "" ]]; then
+                        echo
+                        echo "无效的选择."
                     else
                         echo "无效的选择."
                     fi
