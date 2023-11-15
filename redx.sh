@@ -2378,22 +2378,46 @@ case $choice in
                         #####################
                         echo "[Interface]"
                         # echo -e "PrivateKey = ${public_keys_array[$((choice-1))]} ${GR}# 此处为client的私钥${NC}"  ####此处错误，留着备用
-                        echo -e "PrivateKey = $private_key ${GR}# 此处为client的私钥${NC}"
-                        echo -e "Address = ${allowed_ips_array[$((choice-1))]}/32,fe80::$((choice+10))/128 ${GR}# 此处为peer的客户端IP${NC}"
+                        echo -e "PrivateKey = $private_key"
+                        echo -e "Address = ${allowed_ips_array[$((choice-1))]}/32,fe80::$((choice+10))/128"
                         echo -e "DNS = $wg_dns"
                         echo -e "MTU = 1500"
                         # echo -e "MTU = $wg_mtu" # 默认让它 1500
                         echo
                         echo "[Peer]"
-                        echo -e "PublicKey = $server_public_key ${GR}# 此处为server的公钥${NC}"
+                        echo -e "PublicKey = $server_public_key"
                         #echo -e "AllowedIPs = ${wgserver_ip_prefix0}.0/24,fe80::0/112 ${GR}# 此处为允许访问的IP或IP段${NC}"
-                        echo -e "AllowedIPs = $allowed_ips_final ${GR}# 此处为允许路由的IP或IP段${NC}"
+                        echo -e "AllowedIPs = $allowed_ips_final"
                         if [[ ! $selected_ip_inall == "" ]]; then
                             selected_ip_inall_checked=$(check_ipv4_or_ipv6 "$selected_ip_inall")
                             echo "Endpoint = $selected_ip_inall_checked:$server_port"
                         else
                             echo "Endpoint = $IP_address:$server_port"
                         fi
+                        echo -e "${colored_text1}${NC}"
+                        echo -e "${CY}二维码生成:${NC}"
+                        echo -e "将配置内容粘贴至: https://zh.qr-code-generator.com ${GR}->${NC} 文本 ${GR}->${NC} 创建二维码"
+                        ################### 生成QRCODE, 由于画面过大，暂时放弃
+                        # qrencode -t ANSIUTF8 '
+                        # echo "[Interface]"
+                        # # echo -e "PrivateKey = ${public_keys_array[$((choice-1))]} ${GR}# 此处为client的私钥${NC}"  ####此处错误，留着备用
+                        # echo -e "PrivateKey = $private_key ${GR}# 此处为client的私钥${NC}"
+                        # echo -e "Address = ${allowed_ips_array[$((choice-1))]}/32,fe80::$((choice+10))/128 ${GR}# 此处为peer的客户端IP${NC}"
+                        # echo -e "DNS = $wg_dns"
+                        # echo -e "MTU = 1500"
+                        # # echo -e "MTU = $wg_mtu" # 默认让它 1500
+                        # echo
+                        # echo "[Peer]"
+                        # echo -e "PublicKey = $server_public_key ${GR}# 此处为server的公钥${NC}"
+                        # #echo -e "AllowedIPs = ${wgserver_ip_prefix0}.0/24,fe80::0/112 ${GR}# 此处为允许访问的IP或IP段${NC}"
+                        # echo -e "AllowedIPs = $allowed_ips_final ${GR}# 此处为允许路由的IP或IP段${NC}"
+                        # if [[ ! $selected_ip_inall == "" ]]; then
+                        #     selected_ip_inall_checked=$(check_ipv4_or_ipv6 "$selected_ip_inall")
+                        #     echo "Endpoint = $selected_ip_inall_checked:$server_port"
+                        # else
+                        #     echo "Endpoint = $IP_address:$server_port"
+                        # fi'
+                        ###################
                         echo -e "${colored_text1}${NC}"
                     else
                         echo "无效的序号."
