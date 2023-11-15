@@ -2134,7 +2134,7 @@ case $choice in
         if [ -z "$wginterfaces" ]; then
             wgactive="${MA}未启动${NC}"
         else
-            wgactive="${GR}$wginterfaces${NC}"
+            wgactive="${CY}$wginterfaces${NC}"
         fi
         clear_screen
         echo -e "${GR}▼▼${NC}"
