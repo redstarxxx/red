@@ -2108,6 +2108,19 @@ case $choice in
             done < "$config_file"
             echo "${public_keys_array[@]}"
         }
+        ipv4=($(ip -4 address show | grep inet | grep -v 127.0.0 | awk '{print $2}' | cut -d'/' -f1))
+        ipv6=($(ip -6 address show | grep inet6 | awk '{print $2}' | cut -d'/' -f1))
+        ip_all_array=("${ipv4[@]}" "${ipv6[@]}")
+        check_ipv4_or_ipv6() {
+            local ip="$1"
+            local result=""
+            if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                result="$ip"
+            else
+                result="[$ip]"
+            fi
+            echo "$result"
+        }
         while true; do
         wgtag=""
         if command -v wg &>/dev/null; then
@@ -2309,20 +2322,22 @@ case $choice in
                         selected_ip="${allowed_ips_array[$((choice-1))]}"
                         ######################
                         IP_address=$(curl ipinfo.io/ip 2> /dev/null) > /dev/null
-                        mapfile -t ip_array < <(ip a | awk '/inet[[:space:]]/ && !/127\.|fe[0-9a-fA-F]*::|::1/{gsub(/\/[0-9]+/, "", $2); print $2} /inet6[[:space:]]/ && !/fe[0-9a-fA-F]*::|::1/{print $2}')
                         echo -e "${colored_text1}${NC}"
                         echo -e "${CY}检查到 IP 地址列表${NC}:"
                         echo " 1:   $IP_address"
-                        for i in "${!ip_array[@]}"; do
-                            echo " $((i+2)):   ${ip_array[i]}"
+                        for i in "${!ip_all_array[@]}"; do
+                            echo " $((i+2)):   ${ip_all_array[i]}"
                         done
                         remind1p
-                        read -e -p "选择 Endpoint 对端IP, 回车默认选择公网IP: " selected_index
+                        read -e -p "选择 Endpoint 对端IP, 回车默认选择公网IP (A.手动输入): " selected_index
                         selected_ip_inall=""
-                        if ((selected_index > 1 && selected_index <= ${#ip_array[@]} + 1)); then
-                            selected_ip_inall="${ip_array[selected_index-2]}"
+                        if ((selected_index > 1 && selected_index <= ${#ip_all_array[@]} + 1)); then
+                            selected_ip_inall="${ip_all_array[selected_index-2]}"
                         else
-                            if [[ "$selected_index" != "1" && "$selected_index" != "" ]]; then
+                            if [[ $selected_index == "a" || $selected_index == "A" ]]; then
+                                read -e -p "输入 Endpoint 对端IP: " EndpointIP
+                                selected_ip_inall="$EndpointIP"
+                            elif [[ "$selected_index" != "1" && "$selected_index" != "" ]]; then
                                 echo -e "无效的序号，系统默认选择${MA}公网IP${NC}地址."
                             fi
                         fi
@@ -2361,9 +2376,11 @@ case $choice in
                         echo
                         echo "[Peer]"
                         echo -e "PublicKey = $server_public_key ${GR}# 此处为server的公钥${NC}"
-                        echo -e "AllowedIPs = ${wgserver_ip_prefix0}.0/24,fe80::0/112 ${GR}# 此处为允许访问的IP或IP段${NC}"
+                        #echo -e "AllowedIPs = ${wgserver_ip_prefix0}.0/24,fe80::0/112 ${GR}# 此处为允许访问的IP或IP段${NC}"
+                        echo -e "AllowedIPs = 0.0.0.0/0,::/0 ${GR}# 此处为允许路由的IP或IP段${NC}"
                         if [[ ! $selected_ip_inall == "" ]]; then
-                            echo "Endpoint = $selected_ip_inall:$server_port"
+                            selected_ip_inall_checked=$(check_ipv4_or_ipv6 "$selected_ip_inall")
+                            echo "Endpoint = $selected_ip_inall_checked:$server_port"
                         else
                             echo "Endpoint = $IP_address:$server_port"
                         fi
