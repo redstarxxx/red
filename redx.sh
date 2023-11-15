@@ -2321,6 +2321,17 @@ case $choice in
                     if ((choice >= 1 && choice <= ${#allowed_ips_array[@]})); then
                         selected_ip="${allowed_ips_array[$((choice-1))]}"
                         ######################
+                        allowed_ips_no="0.0.0.0/0, ::/0"
+                        allowed_ips_plan1="1.0.0.0/8, 2.0.0.0/8, 3.0.0.0/8, 4.0.0.0/6, 8.0.0.0/7, 10.0.8.0/24, 11.0.0.0/8, 12.0.0.0/6, 16.0.0.0/4, 32.0.0.0/3, 64.0.0.0/2, 128.0.0.0/3, 160.0.0.0/5, 168.0.0.0/6, 172.0.0.0/12, 172.32.0.0/11, 172.64.0.0/10, 172.128.0.0/9, 173.0.0.0/8, 174.0.0.0/7, 176.0.0.0/4, 192.0.0.0/9, 192.128.0.0/11, 192.160.0.0/13, 192.169.0.0/16, 192.170.0.0/15, 192.172.0.0/14, 192.176.0.0/12, 192.192.0.0/10, 193.0.0.0/8, 194.0.0.0/7, 196.0.0.0/6, 200.0.0.0/5, 208.0.0.0/4, 1.1.1.1/32, 8.8.8.8/32, 2001:4860:4860::8888/128, ::/0"
+                        # allowed_ips_plan2=""
+                        remind1p
+                        read -e -p "选择路由模式: (1/回车默认.无排除,代理所有流量  2.排除局域网IP): " choicemode
+                        if [[ $choicemode == "2" ]]; then
+                            allowed_ips_final="$allowed_ips_plan1"
+                        else
+                            allowed_ips_final="$allowed_ips_no"
+                        fi
+                        ######################
                         IP_address=$(curl ipinfo.io/ip 2> /dev/null) > /dev/null
                         echo -e "${colored_text1}${NC}"
                         echo -e "${CY}检查到 IP 地址列表${NC}:"
@@ -2347,10 +2358,9 @@ case $choice in
                         else
                             private_key="未检测到, 请手动查阅文件(/etc/wireguard/...)..."
                         fi
-                        wgserver_ip=$(grep "Address" $config_file | awk '{print $3}')
-                        wgserver_ip_prefix0=$(echo $wgserver_ip | cut -d ',' -f 1 | cut -d '.' -f 1-3)
+                        # wgserver_ip=$(grep "Address" $config_file | awk '{print $3}')
+                        # wgserver_ip_prefix0=$(echo $wgserver_ip | cut -d ',' -f 1 | cut -d '.' -f 1-3)
                         # fourth_octet=$(echo $wgserver_ip | cut -d ',' -f 1 | cut -d '.' -f 4) # 取IP第四位
-
                         # address=$(awk -v ip="$selected_ip" -v RS= '/\[Peer\]/ && $0 ~ ip {getline; print $2}' $config_file)
                         wg_dns=$(awk '/^DNS/{gsub(/[ \t]+/, "", $3); print $3}' $config_file)
                         # wg_mtu=$(awk '/^MTU/{gsub(/[ \t]+/, "", $3); print $3}' $config_file)
@@ -2377,7 +2387,7 @@ case $choice in
                         echo "[Peer]"
                         echo -e "PublicKey = $server_public_key ${GR}# 此处为server的公钥${NC}"
                         #echo -e "AllowedIPs = ${wgserver_ip_prefix0}.0/24,fe80::0/112 ${GR}# 此处为允许访问的IP或IP段${NC}"
-                        echo -e "AllowedIPs = 0.0.0.0/0,::/0 ${GR}# 此处为允许路由的IP或IP段${NC}"
+                        echo -e "AllowedIPs = $allowed_ips_final ${GR}# 此处为允许路由的IP或IP段${NC}"
                         if [[ ! $selected_ip_inall == "" ]]; then
                             selected_ip_inall_checked=$(check_ipv4_or_ipv6 "$selected_ip_inall")
                             echo "Endpoint = $selected_ip_inall_checked:$server_port"
