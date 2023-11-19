@@ -1193,6 +1193,11 @@ case $choice in
                         .inbounds[-1].settings.accounts[0].pass = $en_http_password' \
                         "$jsonfile" > temp.json && mv temp.json "$jsonfile"
                     fi
+                    if [[ $en_network == "grpc" ]]; then
+                        jq --arg en_grpc_serviceName "$en_grpc_serviceName" \
+                        '.inbounds[-1].streamSettings.grpcSettings.serviceName = $en_grpc_serviceName' \
+                        "$jsonfile" > temp.json && mv temp.json "$jsonfile"
+                    fi
                     ##############默认文件已经添加，这里留着备用
                     # if [[ $en_network == "tcp" ]]; then
                     #     jq '.inbounds[-1].streamSettings.tlsSettings.acceptProxyProtocol = false' \
@@ -1278,6 +1283,7 @@ case $choice in
                     rd_tls_serverName=$(jq -r '.inbounds[-1].streamSettings.tlsSettings.serverName' "$jsonfile")
                     rd_tls_certificateFile=$(jq -r '.inbounds[-1].streamSettings.tlsSettings.certificates[0].certificateFile' "$jsonfile")
                     rd_tls_keyFile=$(jq -r '.inbounds[-1].streamSettings.tlsSettings.certificates[0].keyFile' "$jsonfile")
+                    rd_grpc_serviceName=$(jq -r '.inbounds[-1].streamSettings.grpcSettings.serviceName' "$jsonfile")
                     rd_reality_dest=$(jq -r '.inbounds[-1].streamSettings.realitySettings.dest' "$jsonfile")
                     rd_reality_serverNames=$(jq -r '.inbounds[-1].streamSettings.realitySettings.serverNames[0]' "$jsonfile")
                     rd_reality_fingerprint=$(jq -r '.inbounds[-1].streamSettings.realitySettings.fingerprint' "$jsonfile")
@@ -1312,7 +1318,7 @@ case $choice in
                     check_and_echo "${GR}协议类型${NC}:" "$rd_protocol"
                     check_and_echo "${GR}端口号${NC}:" "$rd_port"
                     check_and_echo "${GR}UUID${NC}:" "$rd_client_id"
-                    check_and_echo "${GR}流控Flow方式${NC}:" "$rd_tls_flow"
+                    check_and_echo "${GR}流控Flow方式${NC}:" "$rd_client_flow"
                     check_and_echo "${GR}Trojan密码${NC}:" "$rd_trojan_password"
                     check_and_echo "${GR}Shadowsocks加密方式${NC}:" "$rd_shadowsocks_method"
                     check_and_echo "${GR}Shadowsocks密码${NC}:" "$rd_shadowsocks_password"
@@ -1387,6 +1393,7 @@ case $choice in
                 mapfile -t rd_socks_udp_ip < <(jq -r '.inbounds[].settings.ip' "$jsonfile")
                 mapfile -t rd_http_user < <(jq -r '.inbounds[].settings.accounts[0].user' "$jsonfile")
                 mapfile -t rd_http_password < <(jq -r '.inbounds[].settings.accounts[0].pass' "$jsonfile")
+                mapfile -t rd_grpc_serviceName < <(jq -r '.inbounds[].streamSettings.grpcSettings.serviceName' "$jsonfile")
 
                 mapfile -t rd_security_http_path < <(jq -r '.inbounds[].streamSettings.tlsSettings.header.request.path[0]' "$jsonfile")
                 mapfile -t rd_security_http_host < <(jq -r '.inbounds[].streamSettings.tlsSettings.header.request.headers.Host[0]' "$jsonfile")
@@ -1412,6 +1419,8 @@ case $choice in
                     check_and_echo "${GR}Shadowsocks密码${NC}:" "${rd_shadowsocks_password[i]}"
                     check_and_echo "${GR}网络类型${NC}:" "${rd_network[i]}"
                     check_and_echo "${GR}安全性设置${NC}:" "${rd_security[i]}"
+                    check_and_echo "${GR}UUID${NC}:" "${rd_client_id[i]}"
+                    check_and_echo "${GR}流控Flow方式${NC}:" "${rd_client_flow[i]}"
                     check_and_echo "${GR}WS路径${NC}:" "${rd_ws_path[i]}"
                     check_and_echo "${GR}WS主机${NC}:" "${rd_ws_host[i]}"
                     check_and_echo "${GR}HTTP路径${NC}:" "${rd_security_http_path[i]}"
@@ -1420,7 +1429,6 @@ case $choice in
                     check_and_echo "${GR}QUIC密码${NC}:" "${rd_quic_password[i]}"
                     check_and_echo "${GR}QUIC伪装类型${NC}:" "${rd_quic_fake[i]}"
                     check_and_echo "${GR}gRPC服务名${NC}:" "${rd_grpc_serviceName[i]}"
-                    check_and_echo "${GR}流控Flow方式${NC}:" "${rd_tls_flow[i]}"
                     check_and_echo "${GR}TLS服务器名${NC}:" "${rd_tls_serverName[i]}"
                     check_and_echo "${GR}TLS证书文件路径${NC}:" "${rd_tls_certificateFile[i]}"
                     check_and_echo "${GR}TLS私钥文件路径${NC}:" "${rd_tls_keyFile[i]}"
