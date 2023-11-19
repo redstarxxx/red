@@ -658,7 +658,7 @@ case $choice in
                         esac
                         done
                     fi
-                    if [[ $en_network == "grpc" ]]; then
+                    if [[ $en_network == "grpc" || $en_network == "http" ]]; then
                         echo -e "${colored_text1}${NC}"
                         while true; do
                         remind1p
@@ -707,6 +707,27 @@ case $choice in
                         else
                             en_ws_host=""
                         fi
+                        while true; do
+                        remind1p
+                        echo "传输层安全类型: 1.tls  0.不使用"
+                        read -e -p "请先择 (1/0/C取消): " -n 2 -r choice && echoo
+                        case $choice in
+                            1|11)
+                                en_security="tls"
+                                break
+                                ;;
+                            0)
+                                en_security=""
+                                break
+                                ;;
+                            c|cc|C|CC)
+                                break 2
+                                ;;
+                            *)
+                                etag=1
+                                ;;
+                        esac
+                        done
                     fi
                     if [[ $en_network == "http" ]]; then
                         read -e -p "请输入http-PATH (格式: /path)(回车默认./): " path
@@ -1198,6 +1219,14 @@ case $choice in
                         '.inbounds[-1].streamSettings.grpcSettings.serviceName = $en_grpc_serviceName' \
                         "$jsonfile" > temp.json && mv temp.json "$jsonfile"
                     fi
+                    if [[ $en_network == "ws" ]]; then
+                        jq --arg en_ws_path "$en_ws_path" \
+                        --arg en_ws_host "$en_ws_host" \
+                        '.inbounds[-1].streamSettings.wsSettings.path = $en_ws_path |
+                        .inbounds[-1].streamSettings.wsSettings.headers.Host = $en_ws_host |
+                        .inbounds[-1].streamSettings.wsSettings.acceptProxyProtocol = false' \
+                        "$jsonfile" > temp.json && mv temp.json "$jsonfile"
+                    fi
                     ##############默认文件已经添加，这里留着备用
                     # if [[ $en_network == "tcp" ]]; then
                     #     jq '.inbounds[-1].streamSettings.tlsSettings.acceptProxyProtocol = false' \
@@ -1284,6 +1313,8 @@ case $choice in
                     rd_tls_certificateFile=$(jq -r '.inbounds[-1].streamSettings.tlsSettings.certificates[0].certificateFile' "$jsonfile")
                     rd_tls_keyFile=$(jq -r '.inbounds[-1].streamSettings.tlsSettings.certificates[0].keyFile' "$jsonfile")
                     rd_grpc_serviceName=$(jq -r '.inbounds[-1].streamSettings.grpcSettings.serviceName' "$jsonfile")
+                    rd_ws_path=$(jq -r '.inbounds[-1].streamSettings.wsSettings.path' "$jsonfile")
+                    rd_ws_host=$(jq -r '.inbounds[-1].streamSettings.wsSettings.headers.Host' "$jsonfile")
                     rd_reality_dest=$(jq -r '.inbounds[-1].streamSettings.realitySettings.dest' "$jsonfile")
                     rd_reality_serverNames=$(jq -r '.inbounds[-1].streamSettings.realitySettings.serverNames[0]' "$jsonfile")
                     rd_reality_fingerprint=$(jq -r '.inbounds[-1].streamSettings.realitySettings.fingerprint' "$jsonfile")
@@ -1394,6 +1425,8 @@ case $choice in
                 mapfile -t rd_http_user < <(jq -r '.inbounds[].settings.accounts[0].user' "$jsonfile")
                 mapfile -t rd_http_password < <(jq -r '.inbounds[].settings.accounts[0].pass' "$jsonfile")
                 mapfile -t rd_grpc_serviceName < <(jq -r '.inbounds[].streamSettings.grpcSettings.serviceName' "$jsonfile")
+                mapfile -t rd_ws_path < <(jq -r '.inbounds[].streamSettings.wsSettings.path' "$jsonfile")
+                mapfile -t rd_ws_host < <(jq -r '.inbounds[].streamSettings.wsSettings.headers.Host' "$jsonfile")
 
                 mapfile -t rd_security_http_path < <(jq -r '.inbounds[].streamSettings.tlsSettings.header.request.path[0]' "$jsonfile")
                 mapfile -t rd_security_http_host < <(jq -r '.inbounds[].streamSettings.tlsSettings.header.request.headers.Host[0]' "$jsonfile")
