@@ -1222,7 +1222,8 @@ case $choice in
                     if [[ $en_network == "ws" ]]; then
                         jq --arg en_ws_path "$en_ws_path" \
                         --arg en_ws_host "$en_ws_host" \
-                        '.inbounds[-1].streamSettings.wsSettings.path = $en_ws_path |
+                        'del(.inbounds[-1].streamSettings.tcpSettings) |
+                        .inbounds[-1].streamSettings.wsSettings.path = $en_ws_path |
                         .inbounds[-1].streamSettings.wsSettings.headers.Host = $en_ws_host |
                         .inbounds[-1].streamSettings.wsSettings.acceptProxyProtocol = false' \
                         "$jsonfile" > temp.json && mv temp.json "$jsonfile"
