@@ -1246,14 +1246,27 @@ case $choice in
                         "$jsonfile" > temp.json && mv temp.json "$jsonfile"
                     fi
                     if [[ $en_security == "tls" ]]; then
-                        mkdir -p "$jsonfile_path/ssl"
-                        chown -R nobody:nogroup "$jsonfile_path/ssl"
-                        cer_name=$(basename "$en_tls_certificateFile")
-                        key_name=$(basename "$en_tls_keyFile")
-                        cp "$en_tls_certificateFile" "$jsonfile_path/ssl" && chown -R nobody:nogroup "$jsonfile_path/ssl/$cer_name"
-                        cp "$en_tls_keyFile" "$jsonfile_path/ssl" && chown -R nobody:nogroup "$jsonfile_path/ssl/$key_name"
-                        new_en_tls_certificateFile="$jsonfile_path/ssl/$cer_name"
-                        new_en_tls_keyFile="$jsonfile_path/ssl/$key_name"
+
+                        if [ -f "$en_tls_certificateFile" ]; then
+                            mkdir -p "$jsonfile_path/ssl"
+                            chown -R nobody:nogroup "$jsonfile_path/ssl"
+                            cer_name=$(basename "$en_tls_certificateFile")
+                            cp "$en_tls_certificateFile" "$jsonfile_path/ssl" && chown -R nobody:nogroup "$jsonfile_path/ssl/$cer_name"
+                            new_en_tls_certificateFile="$jsonfile_path/ssl/$cer_name"
+                        else
+                            echo "cer文件未找到"
+                            new_en_tls_certificateFile=""
+                        fi
+                        if [ -f "$en_tls_keyFile" ]; then
+                            mkdir -p "$jsonfile_path/ssl"
+                            chown -R nobody:nogroup "$jsonfile_path/ssl"
+                            key_name=$(basename "$en_tls_keyFile")
+                            cp "$en_tls_keyFile" "$jsonfile_path/ssl" && chown -R nobody:nogroup "$jsonfile_path/ssl/$key_name"
+                            new_en_tls_keyFile="$jsonfile_path/ssl/$key_name"
+                        else
+                            echo "key文件未找到"
+                            new_en_tls_keyFile=""
+                        fi
 
                         jq --arg en_tls_serverName "$en_tls_serverName" \
                         --arg new_en_tls_certificateFile "$new_en_tls_certificateFile" \
@@ -1350,9 +1363,38 @@ case $choice in
                     rd_security_http_path=$(jq -r '.inbounds[-1].streamSettings.tlsSettings.header.request.path[0]' "$jsonfile")
                     rd_security_http_host=$(jq -r '.inbounds[-1].streamSettings.tlsSettings.header.request.headers.Host[0]' "$jsonfile")
 
-                    IP_address=$(curl ipinfo.io/ip 2> /dev/null) > /dev/null
+                    #################由于需要联网速度太慢暂时只使用IPv4
+                    # IPv4_address=$(curl -4 ip.sb 2> /dev/null) > /dev/null
+                    # IPv6_address=$(curl -6 ip.sb 2> /dev/null) > /dev/null
+                    # ifconfig_output=$(ifconfig)
+                    # if [[ $ifconfig_output =~ $IPv4_address ]]; then
+                    #     IP_address=$IPv4_address
+                    # elif [[ $ifconfig_output =~ $IPv6_address ]]; then
+                    #     IP_address=$IPv6_address
+                    # else
+                    # IP_address=$IPv4_address
+                    # fi
+                    ############################################
+                    ipv4_addresses=($(ifconfig | grep -oP 'inet \K[\d.]+'))
+                    ipv6_addresses=($(ifconfig | grep -oP 'inet6 \K[\da-f:]+' | grep -v '^fe80'))
+                    all46_addresses=("${ipv4_addresses[@]}" "${ipv6_addresses[@]}")
+                    echo -e "${colored_text1}${NC}"
+                    echo "请选择一个 IP 地址："
+                    for ((i=0; i<${#all46_addresses[@]}; i++)); do
+                        echo "[$(($i+1))]     ${all46_addresses[$i]}"
+                    done
+                    remind1p
+                    read -p "输入序号以选择链接所使用的 IP 地址: " selected_index
+                    adjusted_index=$(($selected_index - 1))
+                    if [ "$adjusted_index" -ge 0 ] && [ "$adjusted_index" -lt "${#all46_addresses[@]}" ]; then
+                        IP_address=${all46_addresses[$adjusted_index]}
+                    else
+                        echo "无效的选择。"
+                        IP_address=""
+                    fi
+                    ############################################
 
-                    cat $jsonfile | jq '.inbounds as $in | .outbounds | select(. != null) as $out | $in, $out'
+                    # cat $jsonfile | jq '.inbounds as $in | .outbounds | select(. != null) as $out | $in, $out' ########## 方便调试时关闭
                     # cat $jsonfile 
                     # clear_screen ########## 方便调试时关闭
 
@@ -1392,7 +1434,11 @@ case $choice in
                     check_and_echo "${GR}HTTP用户名${NC}:" "$rd_http_user"
                     check_and_echo "${GR}HTTP密码${NC}:" "$rd_http_password"
                     if [[ $en_protocol == "vmess" || $en_protocol == "vless" || $en_protocol == "trojan" || $en_protocol == "shadowsocks" ]]; then
-                    URL="$rd_protocol://$rd_client_id@$IP_address:$rd_port?security=$rd_security&encryption=none&type=$rd_network&path=/$rd_ws_path#$rd_protocol"
+                    if [[ $en_network == "ws" ]]; then
+                        URL="$rd_protocol://$rd_client_id@$IP_address:$rd_port?security=$rd_security&encryption=none&type=$rd_network&path=$rd_ws_path#$rd_protocol"
+                    else
+                        URL="$rd_protocol://$rd_client_id@$IP_address:$rd_port?security=$rd_security&encryption=none&type=$rd_network#$rd_protocol"
+                    fi
                     qrencode -t ANSIUTF8 "$URL"
                     echo "$URL"
                     fi
@@ -1450,7 +1496,38 @@ case $choice in
                 mapfile -t rd_tag < <(jq -r '.inbounds[].tag' "$jsonfile")
                 mapfile -t rd_client_id < <(jq -r '.inbounds[].settings.clients[0].id' "$jsonfile")
                 mapfile -t rd_client_flow < <(jq -r '.inbounds[].settings.clients[0].flow' "$jsonfile")
-                IP_address=$(curl ipinfo.io/ip 2> /dev/null) > /dev/null
+
+                #################由于需要联网速度太慢暂时只使用IPv4
+                # IPv4_address=$(curl -4 ip.sb 2> /dev/null) > /dev/null
+                # IPv6_address=$(curl -6 ip.sb 2> /dev/null) > /dev/null
+                # ifconfig_output=$(ifconfig)
+                # if [[ $ifconfig_output =~ $IPv4_address ]]; then
+                #     IP_address=$IPv4_address
+                # elif [[ $ifconfig_output =~ $IPv6_address ]]; then
+                #     IP_address=$IPv6_address
+                # else
+                # IP_address=$IPv4_address
+                # fi
+                ############################################
+                ipv4_addresses=($(ifconfig | grep -oP 'inet \K[\d.]+'))
+                ipv6_addresses=($(ifconfig | grep -oP 'inet6 \K[\da-f:]+' | grep -v '^fe80'))
+                all46_addresses=("${ipv4_addresses[@]}" "${ipv6_addresses[@]}")
+                echo -e "${colored_text1}${NC}"
+                echo "请选择一个 IP 地址："
+                for ((i=0; i<${#all46_addresses[@]}; i++)); do
+                    echo "[$(($i+1))]     ${all46_addresses[$i]}"
+                done
+                remind1p
+                read -p "输入序号以选择链接所使用的 IP 地址: " selected_index
+                adjusted_index=$(($selected_index - 1))
+                if [ "$adjusted_index" -ge 0 ] && [ "$adjusted_index" -lt "${#all46_addresses[@]}" ]; then
+                    IP_address=${all46_addresses[$adjusted_index]}
+                else
+                    echo "无效的选择。"
+                    IP_address=""
+                fi
+                ############################################
+
                 clear_screen
                 echo -e "${GR}▼▼${NC}"
                 for ((i=0; i<${#rd_port[@]}; i++)); do
@@ -1491,7 +1568,11 @@ case $choice in
                     check_and_echo "${GR}HTTP用户名${NC}:" "${rd_http_user[i]}"
                     check_and_echo "${GR}HTTP密码${NC}:" "${rd_http_password[i]}"
                     if [[ ${rd_protocol[i]} == "vmess" || ${rd_protocol[i]} == "vless" || ${rd_protocol[i]} == "trojan" || ${rd_protocol[i]} == "shadowsocks" ]]; then
-                    URL="${rd_protocol[i]}://${rd_client_id[i]}@$IP_address:${rd_port[i]}?path=/path&security=${rd_security[i]}&encryption=none&type=${rd_network[i]}#${rd_protocol[i]}"
+                    if [[ $en_network == "ws" ]]; then
+                        URL="${rd_protocol[i]}://${rd_client_id[i]}@$IP_address:${rd_port[i]}?security=${rd_security[i]}&encryption=none&type=${rd_network[i]}&path=${rd_ws_path[i]}#${rd_protocol[i]}"
+                    else
+                        URL="${rd_protocol[i]}://${rd_client_id[i]}@$IP_address:${rd_port[i]}?security=${rd_security[i]}&encryption=none&type=${rd_network[i]}#${rd_protocol[i]}"
+                    fi
                     qrencode -t ANSIUTF8 "$URL"
                     echo "$URL"
                     fi
