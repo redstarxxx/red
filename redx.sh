@@ -1781,17 +1781,22 @@ case $choice in
                                 $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                                 $user_path/.acme.sh/acme.sh --issue -d $domain --standalone
                                 $user_path/.acme.sh/acme.sh --installcert -d $domain --key-file $user_path/cert/$domain.key --fullchain-file $user_path/cert/$domain.cer
-                                if [ ! -s "$user_path/cert/$domain.key" ] && [ ! -s "$user_path/cert/$domain.cer" ]; then
-                                    rm $user_path/cert/$domain.key &>/dev/null
-                                    rm $user_path/cert/$domain.cer &>/dev/null
-                                    rm -rf $user_path/.acme.sh/${domain}_ecc &>/dev/null
-                                fi
                                 if [[ -f "$user_path/cert/$domain.key" && -f "$user_path/cert/$domain.cer" ]]; then
-                                    echo "证书已生成并保存到 $user_path/cert 目录下."
+                                    if [[ -s "$user_path/cert/$domain.key" && -s "$user_path/cert/$domain.cer" ]]; then
+                                        echo "证书申请成功！"
+                                        echo "证书已生成并保存到 $user_path/cert 目录下."
+                                        break
+                                    else
+                                        rm $user_path/cert/$domain.key &>/dev/null
+                                        rm $user_path/cert/$domain.cer &>/dev/null
+                                        rm -rf $user_path/.acme.sh/${domain}_ecc &>/dev/null
+                                        echo "申请失败：存在文件但文件大小为0，已删除空文件。"
+                                        break
+                                    fi
+                                else
+                                    echo "申请失败：缺少证书文件。"
                                     break
                                 fi
-                                echo "证书生成失败."
-                                break
                             else
                                 if [[ $domain == "" ]]; then
                                     break
@@ -1840,18 +1845,21 @@ case $choice in
                                     $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                                     $user_path/.acme.sh/acme.sh --issue -d $domain --nginx
                                     $user_path/.acme.sh/acme.sh --installcert -d $domain --key-file $user_path/cert/$domain.key --fullchain-file $user_path/cert/$domain.cer
-                                    if [ ! -s "$user_path/cert/$domain.key" ] && [ ! -s "$user_path/cert/$domain.cer" ]; then
-                                        rm $user_path/cert/$domain.key &>/dev/null
-                                        rm $user_path/cert/$domain.cer &>/dev/null
-                                        rm -rf $user_path/.acme.sh/${domain}_ecc &>/dev/null
-                                    fi
                                     if [[ -f "$user_path/cert/$domain.key" && -f "$user_path/cert/$domain.cer" ]]; then
-                                        echo "证书已生成并保存到 $user_path/cert 目录下."
-                                        mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
-                                        break
+                                        if [[ -s "$user_path/cert/$domain.key" && -s "$user_path/cert/$domain.cer" ]]; then
+                                            echo "证书申请成功！"
+                                            echo "证书已生成并保存到 $user_path/cert 目录下."
+                                            mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
+                                        else
+                                            rm $user_path/cert/$domain.key &>/dev/null
+                                            rm $user_path/cert/$domain.cer &>/dev/null
+                                            rm -rf $user_path/.acme.sh/${domain}_ecc &>/dev/null
+                                            echo "申请失败：存在文件但文件大小为0，已删除空文件。"
+                                            mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
+                                        fi
+                                    else
+                                        echo "申请失败：缺少证书文件。"
                                     fi
-                                    echo "证书生成失败."
-                                    mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
                                 }
                                 if systemctl is-active --quiet nginx; then
                                     systemctl stop nginx
@@ -1908,30 +1916,39 @@ case $choice in
                             $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                             $user_path/.acme.sh/acme.sh --issue -d "$domain1" -d "$domain2" -w "$webroot"
                             $user_path/.acme.sh/acme.sh --installcert -d $domain1 --key-file $user_path/cert/$domain1.key --fullchain-file $user_path/cert/$domain1.cer
-                            if [ ! -s "$user_path/cert/$domain1.key" ] && [ ! -s "$user_path/cert/$domain1.cer" ]; then
-                                rm $user_path/cert/$domain1.key &>/dev/null
-                                rm $user_path/cert/$domain1.cer &>/dev/null
-                                rm -rf $user_path/.acme.sh/${domain1}_ecc &>/dev/null
-                            fi
+
                             if [[ -f "$user_path/cert/$domain1.key" && -f "$user_path/cert/$domain1.cer" ]]; then
-                                echo "证书已生成并保存到 $user_path/cert 目录下."
-                                break
+                                if [[ -s "$user_path/cert/$domain1.key" && -s "$user_path/cert/$domain1.cer" ]]; then
+                                    echo "证书申请成功！"
+                                    echo "证书已生成并保存到 $user_path/cert 目录下."
+                                else
+                                    rm $user_path/cert/$domain1.key &>/dev/null
+                                    rm $user_path/cert/$domain1.cer &>/dev/null
+                                    rm -rf $user_path/.acme.sh/${domain1}_ecc &>/dev/null
+                                    echo "申请失败：存在文件但文件大小为0，已删除空文件。"
+                                fi
+                            else
+                                echo "申请失败：缺少证书文件。"
                             fi
-                            echo "证书生成失败."
+
                         else
                             $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                             $user_path/.acme.sh/acme.sh --issue -d "$domain1" -w "$webroot"
                             $user_path/.acme.sh/acme.sh --installcert -d $domain1 --key-file $user_path/cert/$domain1.key --fullchain-file $user_path/cert/$domain1.cer
-                            if [ ! -s "$user_path/cert/$domain1.key" ] && [ ! -s "$user_path/cert/$domain1.cer" ]; then
-                                rm $user_path/cert/$domain1.key &>/dev/null
-                                rm $user_path/cert/$domain1.cer &>/dev/null
-                                rm -rf $user_path/.acme.sh/${domain1}_ecc &>/dev/null
-                            fi
+
                             if [[ -f "$user_path/cert/$domain1.key" && -f "$user_path/cert/$domain1.cer" ]]; then
-                                echo "证书已生成并保存到 $user_path/cert 目录下."
-                                break
+                                if [[ -s "$user_path/cert/$domain1.key" && -s "$user_path/cert/$domain1.cer" ]]; then
+                                    echo "证书申请成功！"
+                                    echo "证书已生成并保存到 $user_path/cert 目录下."
+                                else
+                                    rm $user_path/cert/$domain1.key &>/dev/null
+                                    rm $user_path/cert/$domain1.cer &>/dev/null
+                                    rm -rf $user_path/.acme.sh/${domain1}_ecc &>/dev/null
+                                    echo "申请失败：存在文件但文件大小为0，已删除空文件。"
+                                fi
+                            else
+                                echo "申请失败：缺少证书文件。"
                             fi
-                            echo "证书生成失败."
                         fi
                         fi
                         fi
@@ -1955,17 +1972,24 @@ case $choice in
                                 $user_path/.acme.sh/acme.sh --issue -d "$domain" -d "$wildcard_domain" --dns dns_cf \
                                 --key-file       $user_path/cert/"$domain.key"  \
                                 --fullchain-file $user_path/cert/"$domain.pem"
-                                if [ ! -s "$user_path/cert/$domain.key" ] && [ ! -s "$user_path/cert/$domain.pem" ]; then
-                                    rm $user_path/cert/$domain.key &>/dev/null
-                                    rm $user_path/cert/$domain.pem &>/dev/null
-                                    rm -rf $user_path/.acme.sh/${domain}_ecc &>/dev/null
-                                fi
-                                if [[ -f "$user_path/cert/$domain.key" && -f "$user_path/cert/$domain.pem" ]]; then
-                                    echo "证书已生成并保存到 $user_path/cert 目录下."
+
+                                if [[ -f "$user_path/cert/$domain.key" && -f "$user_path/cert/$domain.cer" ]]; then
+                                    if [[ -s "$user_path/cert/$domain.key" && -s "$user_path/cert/$domain.cer" ]]; then
+                                        echo "证书申请成功！"
+                                        echo "证书已生成并保存到 $user_path/cert 目录下."
+                                        break
+                                    else
+                                        rm $user_path/cert/$domain.key &>/dev/null
+                                        rm $user_path/cert/$domain.cer &>/dev/null
+                                        rm -rf $user_path/.acme.sh/${domain}_ecc &>/dev/null
+                                        echo "申请失败：存在文件但文件大小为0，已删除空文件。"
+                                        break
+                                    fi
+                                else
+                                    echo "申请失败：缺少证书文件。"
                                     break
                                 fi
-                                echo "证书生成失败."
-                                break
+
                             else
                                 if [[ $domain == "" ]]; then
                                     break
