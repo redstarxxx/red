@@ -164,6 +164,7 @@ read -e -p "请输入你的选择: " -n 2 -r choice && echoo
 case $choice in
     1|11)
         jsonfile="/usr/local/etc/xray/config.json"
+        jsonfile_path=$(dirname "$jsonfile")
         check_and_echo() {
             local label="$1"
             local value="$2"
@@ -1245,13 +1246,22 @@ case $choice in
                         "$jsonfile" > temp.json && mv temp.json "$jsonfile"
                     fi
                     if [[ $en_security == "tls" ]]; then
+                        mkdir -p "$jsonfile_path/ssl"
+                        chown -R nobody:nogroup "$jsonfile_path/ssl"
+                        cer_name=$(basename "$en_tls_certificateFile")
+                        key_name=$(basename "$en_tls_keyFile")
+                        cp "$en_tls_certificateFile" "$jsonfile_path/ssl" && chown -R nobody:nogroup "$jsonfile_path/ssl/$cer_name"
+                        cp "$en_tls_keyFile" "$jsonfile_path/ssl" && chown -R nobody:nogroup "$jsonfile_path/ssl/$key_name"
+                        new_en_tls_certificateFile="$jsonfile_path/ssl/$cer_name"
+                        new_en_tls_keyFile="$jsonfile_path/ssl/$key_name"
+
                         jq --arg en_tls_serverName "$en_tls_serverName" \
-                        --arg en_tls_certificateFile "$en_tls_certificateFile" \
-                        --arg en_tls_keyFile "$en_tls_keyFile" \
+                        --arg new_en_tls_certificateFile "$new_en_tls_certificateFile" \
+                        --arg new_en_tls_keyFile "$new_en_tls_keyFile" \
                         'del(.inbounds[-1].streamSettings.realitySettings) |
                         .inbounds[-1].streamSettings.tlsSettings.serverName = $en_tls_serverName |
-                        .inbounds[-1].streamSettings.tlsSettings.certificates[0].certificateFile = $en_tls_certificateFile |
-                        .inbounds[-1].streamSettings.tlsSettings.certificates[0].keyFile = $en_tls_keyFile' \
+                        .inbounds[-1].streamSettings.tlsSettings.certificates[0].certificateFile = $new_en_tls_certificateFile |
+                        .inbounds[-1].streamSettings.tlsSettings.certificates[0].keyFile = $new_en_tls_keyFile' \
                         "$jsonfile" > temp.json && mv temp.json "$jsonfile"
                     fi
                     if [[ $en_security == "reality" ]]; then
