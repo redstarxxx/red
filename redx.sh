@@ -1444,6 +1444,7 @@ case $choice in
                     echo "$URL"
                     fi
                     echo
+                    systemctl restart xray.service
                     waitfor
                     break
                 elif [[ $choice == "C" || $choice == "c" ]]; then
