@@ -1375,8 +1375,9 @@ case $choice in
                     # IP_address=$IPv4_address
                     # fi
                     ############################################
-                    ipv4_addresses=($(ifconfig | grep -oP 'inet \K[\d.]+'))
-                    ipv6_addresses=($(ifconfig | grep -oP 'inet6 \K[\da-f:]+' | grep -v '^fe80'))
+                    ipv4_addresses=($(ifconfig | grep -oP 'inet \K[\d.]+' | grep -v '^127\.'))
+                    ipv6_addresses=($(ifconfig | grep -oP 'inet6 \K[\da-f:]+' | grep -vE '^:|^(fe80)'))
+
                     all46_addresses=("${ipv4_addresses[@]}" "${ipv6_addresses[@]}")
                     echo -e "${colored_text1}${NC}"
                     echo "请选择一个 IP 地址："
@@ -1509,8 +1510,8 @@ case $choice in
                 # IP_address=$IPv4_address
                 # fi
                 ############################################
-                ipv4_addresses=($(ifconfig | grep -oP 'inet \K[\d.]+'))
-                ipv6_addresses=($(ifconfig | grep -oP 'inet6 \K[\da-f:]+' | grep -v '^fe80'))
+                ipv4_addresses=($(ifconfig | grep -oP 'inet \K[\d.]+' | grep -v '^127\.'))
+                ipv6_addresses=($(ifconfig | grep -oP 'inet6 \K[\da-f:]+' | grep -vE '^:|^(fe80)'))
                 all46_addresses=("${ipv4_addresses[@]}" "${ipv6_addresses[@]}")
                 echo -e "${colored_text1}${NC}"
                 echo "请选择一个 IP 地址："
