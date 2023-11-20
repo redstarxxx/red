@@ -1059,7 +1059,7 @@ case $choice in
                     },
                     "streamSettings": {
                         "network": null,
-                        "security": null,
+                        "security": "none",
                         "tlsSettings": {
                             "serverName": null,
                             "minVersion": "1.2",
