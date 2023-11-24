@@ -2738,7 +2738,12 @@ case $choice in
                 nano /etc/wireguard/$wgfname.conf
                 ;;
             i|I|ii|II)
+                if [ "$virtual" = "OpenVZ" ]; then
+                    echo "检测到系统为: $virtual"
+                    curl -fsSL git.io/wireguard-go.sh | sudo bash
+                fi
                 if command -v apt &>/dev/null; then
+                    echo "检测到系统为: $virtual"
                     source /etc/os-release
                     if grep -q 'lunar' /etc/os-release && grep -q 'bullseye' /etc/apt/sources.list /etc/apt/sources.list.d/* &>/dev/null; then
                         # echo "系统版本是 Ubuntu 23.04 (Lunar Lobster) 或 Debian Bullseye"
@@ -2758,6 +2763,7 @@ case $choice in
                     fi
                 fi
                 if command -v yum &>/dev/null; then
+                    echo "检测到系统为: $virtual"
                     yum install -y yum-utils epel-release
                     yum-config-manager --setopt=centosplus.includepkgs=kernel-plus --enablerepo=centosplus --save
                     sed -e 's/^DEFAULTKERNEL=kernel$/DEFAULTKERNEL=kernel-plus/' -i /etc/sysconfig/kernel
