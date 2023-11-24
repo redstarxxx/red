@@ -298,7 +298,7 @@ check_sys
 while true; do
 clear_screen
 echo && echo -e " iptables 端口转发一键管理脚本 ${Red_font_prefix}[v${sh_ver}]${Font_color_suffix}
-  -- Toyo | doub.io/wlzy-20 --
+  -- Toyo | doub.io/wlzy-20 - Revised by TSE --
   
  ${Green_font_prefix}0.${Font_color_suffix} 升级脚本
 ————————————
