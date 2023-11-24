@@ -2741,36 +2741,40 @@ case $choice in
                 if [ "$virtual" = "OpenVZ" ]; then
                     echo "检测到系统为: $virtual"
                     curl -fsSL git.io/wireguard-go.sh | sudo bash
-                fi
-                if command -v apt &>/dev/null; then
+                elif [ "$virtual" = "Lxc" ]; then
                     echo "检测到系统为: $virtual"
-                    source /etc/os-release
-                    if grep -q 'lunar' /etc/os-release && grep -q 'bullseye' /etc/apt/sources.list /etc/apt/sources.list.d/* &>/dev/null; then
-                        # echo "系统版本是 Ubuntu 23.04 (Lunar Lobster) 或 Debian Bullseye"
-                        apt install -y wireguard resolvconf
-                    elif grep -q 'lunar' /etc/os-release; then
-                        # echo "系统版本是 Ubuntu 23.04 (Lunar Lobster)"
-                        apt install -y wireguard resolvconf
-                    elif grep -q 'bullseye' /etc/apt/sources.list /etc/apt/sources.list.d/* &>/dev/null; then
-                        # echo "系统版本是 Debian Bullseye"
-                        apt install -y wireguard resolvconf
-                    else
-                        # echo "系统版本可能不是 Ubuntu 23.04 (Lunar Lobster) 或 Debian Bullseye"
-                        apt-get install gnupg
-                        apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131
-                        apt update
-                        apt install -y wireguard resolvconf
+                    curl -fsSL git.io/wireguard-go.sh | sudo bash
+                else
+                    if command -v apt &>/dev/null; then
+                        echo "检测到系统为: $virtual"
+                        source /etc/os-release
+                        if grep -q 'lunar' /etc/os-release && grep -q 'bullseye' /etc/apt/sources.list /etc/apt/sources.list.d/* &>/dev/null; then
+                            # echo "系统版本是 Ubuntu 23.04 (Lunar Lobster) 或 Debian Bullseye"
+                            apt install -y wireguard resolvconf
+                        elif grep -q 'lunar' /etc/os-release; then
+                            # echo "系统版本是 Ubuntu 23.04 (Lunar Lobster)"
+                            apt install -y wireguard resolvconf
+                        elif grep -q 'bullseye' /etc/apt/sources.list /etc/apt/sources.list.d/* &>/dev/null; then
+                            # echo "系统版本是 Debian Bullseye"
+                            apt install -y wireguard resolvconf
+                        else
+                            # echo "系统版本可能不是 Ubuntu 23.04 (Lunar Lobster) 或 Debian Bullseye"
+                            apt-get install gnupg
+                            apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131
+                            apt update
+                            apt install -y wireguard resolvconf
+                        fi
                     fi
-                fi
-                if command -v yum &>/dev/null; then
-                    echo "检测到系统为: $virtual"
-                    yum install -y yum-utils epel-release
-                    yum-config-manager --setopt=centosplus.includepkgs=kernel-plus --enablerepo=centosplus --save
-                    sed -e 's/^DEFAULTKERNEL=kernel$/DEFAULTKERNEL=kernel-plus/' -i /etc/sysconfig/kernel
-                    yum install -y kernel-plus wireguard-tools
-                    read -e -p "重启后生效, 是否重启服务器? (Y/其它)" choice
-                    if [[ $choice == "Y" || $choice == "y" ]]; then
-                        reboot
+                    if command -v yum &>/dev/null; then
+                        echo "检测到系统为: $virtual"
+                        yum install -y yum-utils epel-release
+                        yum-config-manager --setopt=centosplus.includepkgs=kernel-plus --enablerepo=centosplus --save
+                        sed -e 's/^DEFAULTKERNEL=kernel$/DEFAULTKERNEL=kernel-plus/' -i /etc/sysconfig/kernel
+                        yum install -y kernel-plus wireguard-tools
+                        read -e -p "重启后生效, 是否重启服务器? (Y/其它)" choice
+                        if [[ $choice == "Y" || $choice == "y" ]]; then
+                            reboot
+                        fi
                     fi
                 fi
                 waitfor
