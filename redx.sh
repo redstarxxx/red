@@ -112,14 +112,14 @@ else
     echo "不支持的Linux包管理器"
     exit 1
 fi
-if ! command -v curl &>/dev/null || ! command -v wget &>/dev/null || ! command -v nano &>/dev/null || ! command -v ifconfig &>/dev/null || ! command -v jq &>/dev/null || ! command -v qrencode &>/dev/null; then
+if ! command -v curl &>/dev/null || ! command -v wget &>/dev/null || ! command -v nano &>/dev/null || ! command -v ifconfig &>/dev/null; then
     clear_screen
     echo -e "${GR}▼${NC}"
     echo -e "${colored_text2}${NC}"
-    echo -e "CURL/WGET/NANO/NET-TOOLS/JQ/QRENCODE"
+    echo -e "CURL/WGET/NANO/NET-TOOLS"
     read -e -p "检查到部分依赖工具没有安装, 是否要进行安装? (Y/其它跳过): " -n 3 -r choice
     if [[ $choice == "Y" || $choice == "y" ]]; then
-        $pm install -y curl wget nano net-tools jq qrencode
+        $pm install -y curl wget nano net-tools
     fi
 fi
 (EUID=$(id -u)) 2>/dev/null
@@ -137,19 +137,22 @@ echo -e "${RE}RedX 一键脚本工具 v1.0${NC}"
 if [ "$virtual" != "" ]; then
     echo -e "VPS虚拟化类型: ${GR}$virtual${NC}"
 fi
-echo -e " ____  _____ ____  ${MA}__  __ ${NC}"
-echo -e "|  _ \| ____|  _ \ ${MA}\ \/ / ${NC}"
-echo -e "| |_) |  _| | | | | ${MA}\  /  ${NC}"
-echo -e "|  _ <| |___| |_| | ${MA}/  \  ${NC}"
-echo -e "|_| \_\_____|____ /${MA}/_/\_\ ${NC}"
-echo -e "${BK}■ ${RE}■ ${GR}■ ${YE}■ ${BL}■ ${MA}■ ${CY}■ ${WH}■ ${BL}■ ${GR}■ ${RE}■ ${YE}■ ${BK}■"
+echo -e "${MA} ____  _____ ____  ${NC}${RE}__  __ ${NC}"
+echo -e "${MA}|  _ \| ____|  _ \ ${NC}${RE}\ \/ / ${NC}"
+echo -e "${MA}| |_| |  _| | | | | ${NC}${RE}\  /  ${NC}"
+echo -e "${MA}|  _ <| |___| |_| | ${NC}${RE}/  \  ${NC}"
+echo -e "${MA}|_| \_\_____|____ /${NC}${RE}/_/\_\ ${NC}"
+# echo -e "${BK}■ ${RE}■ ${GR}■ ${YE}■ ${BL}■ ${MA}■ ${CY}■ ${WH}■ ${BL}■ ${GR}■ ${RE}■ ${YE}■ ${BK}■"
+echo -e "${BK}■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■${NC}"
 echo -e "${colored_text2}${NC}"
 echo -e "1.  XRAY  节点相关操作 ▶"
 echo -e "2.  ACME  证书相关操作 ▶"
 echo -e "3.  BBR   相关操作 ▶"
 echo -e "4.  WARP  相关操作 ▶"
 echo -e "5.  WIREGUARD  相关操作 ▶"
+echo -e "6.  IPTABLES   相关操作 ▶"
 echo -e "${colored_text1}${NC}"
+echo -e "-.  删除所有.sh子文件"
 echo -e "o.  更新脚本"
 echo -e "x.  退出脚本"
 echo -e "${colored_text1}${NC}"
@@ -163,6 +166,16 @@ fi
 read -e -p "请输入你的选择: " -n 2 -r choice && echoo
 case $choice in
     1|11)
+        if ! command -v jq &>/dev/null || ! command -v qrencode &>/dev/null; then
+            clear_screen
+            echo -e "${GR}▼${NC}"
+            echo -e "${colored_text2}${NC}"
+            echo -e "JQ/QRENCODE"
+            read -e -p "检查到部分依赖工具没有安装, 是否要进行安装? (Y/其它跳过): " -n 3 -r choice
+            if [[ $choice == "Y" || $choice == "y" ]]; then
+                $pm install -y jq qrencode
+            fi
+        fi
         jsonfile="/usr/local/etc/xray/config.json"
         jsonfile_path=$(dirname "$jsonfile")
         check_and_echo() {
@@ -2821,6 +2834,10 @@ case $choice in
         done
         onlyone=0
         ;;
+    6|66)
+        wget -N --no-check-certificate "https://raw.githubusercontent.com/redstarxxx/shell/main/iptables-ie.sh" && chmod +x iptables-ie.sh && bash iptables-ie.sh
+        exit 0
+        ;;
     v|vv)
         clear_screen
         echo -e "${GR}▼▼${NC}"
@@ -2848,6 +2865,11 @@ case $choice in
         echo -e "${CY}2023.11.11${NC}"
         echo -e "${MA}end.${NC}"
         echo -e "${colored_text2}${NC}${colored_text2}${NC}"
+        waitfor
+        ;;
+    -)
+        rm -f /$user_path/.redx/redx_*.sh
+        echo ".sh子文件已全部删除."
         waitfor
         ;;
     o|O|oo|OO)
