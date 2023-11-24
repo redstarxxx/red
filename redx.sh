@@ -87,11 +87,14 @@ virt_check() {
 stopfire() {
     sudo service iptables stop > /dev/null 2>&1
     sudo systemctl stop firewalld > /dev/null 2>&1
+    iptables-save > firewall_rules_backup
+    iptables -F > /dev/null 2>&1
     # echo "尝试暂停防火墙, 请在操作后重新启动以恢复防火墙功能."
 }
 recoverfire(){
     sudo service iptables start > /dev/null 2>&1
     sudo systemctl start firewalld > /dev/null 2>&1
+    iptables-restore < firewall_rules_backup
 }
 get_random_color() {
     colors=($BL $RE $GR $YE $MA $CY $WH)
