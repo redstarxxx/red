@@ -84,6 +84,15 @@ virt_check() {
         virtual="Dedicated"
     fi
 }
+stopfire() {
+    sudo service iptables stop > /dev/null 2>&1
+    sudo systemctl stop firewalld > /dev/null 2>&1
+    # echo "尝试暂停防火墙, 请在操作后重新启动以恢复防火墙功能."
+}
+recoverfire(){
+    sudo service iptables start > /dev/null 2>&1
+    sudo systemctl start firewalld > /dev/null 2>&1
+}
 get_random_color() {
     colors=($BL $RE $GR $YE $MA $CY $WH)
     random_index=$((RANDOM % ${#colors[@]}))
@@ -1792,9 +1801,11 @@ case $choice in
                                         kill -9 $pid &>/dev/null
                                     done
                                 fi
+                                stopfire
                                 $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                                 $user_path/.acme.sh/acme.sh --issue -d $domain --standalone
                                 $user_path/.acme.sh/acme.sh --installcert -d $domain --key-file $user_path/cert/$domain.key --fullchain-file $user_path/cert/$domain.cer
+                                recoverfire
                                 if [[ -f "$user_path/cert/$domain.key" && -f "$user_path/cert/$domain.cer" ]]; then
                                     if [[ -s "$user_path/cert/$domain.key" && -s "$user_path/cert/$domain.cer" ]]; then
                                         echo "证书申请成功！"
@@ -1856,9 +1867,11 @@ case $choice in
                                         }
                                     }" > /etc/nginx/nginx.conf
                                     systemctl start nginx
+                                    stopfire
                                     $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                                     $user_path/.acme.sh/acme.sh --issue -d $domain --nginx
                                     $user_path/.acme.sh/acme.sh --installcert -d $domain --key-file $user_path/cert/$domain.key --fullchain-file $user_path/cert/$domain.cer
+                                    recoverfire
                                     if [[ -f "$user_path/cert/$domain.key" && -f "$user_path/cert/$domain.cer" ]]; then
                                         if [[ -s "$user_path/cert/$domain.key" && -s "$user_path/cert/$domain.cer" ]]; then
                                             echo "证书申请成功！"
@@ -1926,6 +1939,7 @@ case $choice in
                             fi
                         done
                         if [[ $noloop != 1 ]]; then
+                        stopfire
                         if [[ -n "$domain2" ]]; then
                             $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                             $user_path/.acme.sh/acme.sh --issue -d "$domain1" -d "$domain2" -w "$webroot"
@@ -1964,6 +1978,7 @@ case $choice in
                                 echo "申请失败：缺少证书文件。"
                             fi
                         fi
+                        recoverfire
                         fi
                         fi
                         waitfor
@@ -1979,6 +1994,7 @@ case $choice in
                                     echo "输入有误，请确保API Key和邮箱都已经输入"
                                     break
                                 fi
+                                stopfire
                                 export CF_Key="$cf_key"
                                 export CF_Email="$cf_email"
                                 wildcard_domain="*.${domain#*.}"
@@ -1986,7 +2002,7 @@ case $choice in
                                 $user_path/.acme.sh/acme.sh --issue -d "$domain" -d "$wildcard_domain" --dns dns_cf \
                                 --key-file       $user_path/cert/"$domain.key"  \
                                 --fullchain-file $user_path/cert/"$domain.pem"
-
+                                recoverfire
                                 if [[ -f "$user_path/cert/$domain.key" && -f "$user_path/cert/$domain.cer" ]]; then
                                     if [[ -s "$user_path/cert/$domain.key" && -s "$user_path/cert/$domain.cer" ]]; then
                                         echo "证书申请成功！"
