@@ -26,7 +26,7 @@ clear_screen() {
     fi
 }
 waitfor() {
-    echo -e "执行完成, 按任意键继续..."
+    echo -e "${Info} 执行完成, 按任意键继续..."
     read -n 1 -s -r -p ""
 }
 check_iptables(){
@@ -166,6 +166,9 @@ Set_Config(){
 Add_forwarding(){
 	check_iptables
 	Set_Config
+	if [ -z "$forwarding_port" ] || [ -z "$forwarding_ip" ]; then
+		return 1
+	fi
 	local_port=$(echo ${local_port} | sed 's/-/:/g')
 	forwarding_port_1=$(echo ${forwarding_port} | sed 's/-/:/g')
 	if [[ ${forwarding_type} == "TCP" ]]; then
@@ -272,7 +275,9 @@ Save_iptables(){
 	fi
 }
 Set_iptables(){
-	echo -e "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+	if ! grep -qE "^\s*net\.ipv4\.ip_forward=1" /etc/sysctl.conf; then
+		echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+	fi
 	sysctl -p
 	if [[ ${release} == "centos" ]]; then
 		service iptables save
@@ -284,9 +289,9 @@ Set_iptables(){
 	fi
 }
 Update_Shell(){
-	sh_new_ver=$(wget --no-check-certificate -qO- -t1 -T3 "https://raw.githubusercontent.com/ToyoDAdoubiBackup/doubi/master/iptables-pf.sh"|grep 'sh_ver="'|awk -F "=" '{print $NF}'|sed 's/\"//g'|head -1)
+	sh_new_ver=$(wget --no-check-certificate -qO- -t1 -T3 "https://raw.githubusercontent.com/redstarxxx/shell/main/iptables-ie.sh"|grep 'sh_ver="'|awk -F "=" '{print $NF}'|sed 's/\"//g'|head -1)
 	[[ -z ${sh_new_ver} ]] && echo -e "${Error} 无法链接到 Github !" && return 0
-	wget -N --no-check-certificate "https://raw.githubusercontent.com/ToyoDAdoubiBackup/doubi/master/iptables-pf.sh" && chmod +x iptables-pf.sh
+	wget -N --no-check-certificate "https://raw.githubusercontent.com/redstarxxx/shell/main/iptables-ie.sh" && chmod +x iptables-ie.sh
 	echo -e "脚本已更新为最新版本[ ${sh_new_ver} ] !(注意：因为更新方式为直接覆盖当前运行的脚本，所以可能下面会提示一些报错，无视即可)" && return 0
 }
 check_sys
@@ -311,12 +316,15 @@ read -e -p " 请输入数字 [0-5]:" num
 case "$num" in
 	0)
 	Update_Shell
+	waitfor
 	;;
 	1)
 	install_iptables
+	waitfor
 	;;
 	2)
 	Uninstall_forwarding
+	waitfor
 	;;
 	3)
 	View_forwarding
@@ -324,6 +332,7 @@ case "$num" in
 	;;
 	4)
 	Add_forwarding
+	waitfor
 	;;
 	5)
 	Del_forwarding
