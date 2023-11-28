@@ -58,7 +58,7 @@ if netstat -tuln | grep -q ":$3\b"; then
     
     # 询问是否重启系统
     read -p "是否断续? (按Y继续, 其它退出): " choice
-    if [ ! "$choice" == "Y" ] || [ ! "$choice" == "y" ]; then
+    if [ "$choice" != "Y" ] && [ "$choice" != "y" ]; then
         echo "退出脚本..."
         exit 0
     fi
