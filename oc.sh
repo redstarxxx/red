@@ -72,6 +72,11 @@ sed -i -e "s/^#\?Port .*/Port $3/g" \
        -e 's/^#\?ClientAliveInterval .*/ClientAliveInterval 30/g' \
        /etc/ssh/sshd_config
 
+# 编辑 /etc/screenrc
+if command -v screen &>/dev/null; then
+    sed -i -e "s/termcapinfo xterm 'is=/termcapinfo xterm* 'is=/g" /etc/screenrc
+fi
+
 # 重启SSH服务
 echo "重启 SSH 服务..."
 systemctl restart ssh
