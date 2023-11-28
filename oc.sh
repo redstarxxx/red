@@ -9,7 +9,7 @@ fi
 # 检查参数是否提供正确
 if [ $# -ne 3 ]; then
     echo "请提供正确的参数:"
-    echo "格式: oc.sh <主机名> <密码> <端口>"
+    echo '格式: oc.sh <主机名> <密码> <端口>  如果有特殊符号用双引号("")括起'
     echo "例如: oc.sh NAME pw123 8888"
     echo '例如: bash -c "$(curl -L https://raw.githubusercontent.com/redstarxxx/shell/main/oc.sh)" @ NAME pw123 8888'
     exit 1
