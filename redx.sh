@@ -2239,7 +2239,7 @@ case $choice in
                 done
                 ;;
             i|I|ii|II)
-                $pm install -y socat
+                $pm install -y socat openssl
                 curl https://get.acme.sh | sh
                 ;;
             d|D|dd|DD)
