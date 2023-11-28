@@ -27,12 +27,23 @@ hostnamectl set-hostname $2
 
 # 编辑 /etc/ssh/sshd_config
 echo "编辑 /etc/ssh/sshd_config..."
-sed -i -e 's/#Port 22/Port 8022/g' \
-       -e 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' \
-       -e 's/#MaxSessions 10/MaxSessions 1/g' \
-       -e 's/PasswordAuthentication no/PasswordAuthentication yes/g' \
-       -e 's/#ClientAliveInterval 0/ClientAliveInterval 30/g' \
+sed -i -e 's/^#\?Port .*/Port 8022/g' \
+       -e 's/^#\?PermitRootLogin .*/PermitRootLogin yes/g' \
+       -e 's/^#\?MaxSessions .*/MaxSessions 1/g' \
+       -e 's/^#\?PasswordAuthentication .*/PasswordAuthentication yes/g' \
+       -e 's/^#\?ClientAliveInterval .*/ClientAliveInterval 30/g' \
        /etc/ssh/sshd_config
+
+# 重启SSH服务
+echo "重启 SSH 服务..."
+systemctl restart ssh
+
+# 验证端口是否打开
+if lsof -i :8022 >/dev/null; then
+    echo -e "\e[32m端口 8022 已经打开，更改端口成功。\e[0m"
+else
+    echo -e "\e[31m端口 8022 没有打开，更改端口失败。\e[0m"
+fi
 
 # 停止和禁用系统服务
 echo "停止和禁用系统服务..."
