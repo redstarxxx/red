@@ -53,7 +53,7 @@ echo "root:$2" | chpasswd
 
 # 检查端口是否被占用
 if netstat -tuln | grep -q ":$3\b"; then
-    echo -e "\e[31m端口 $3 已经被占用.\e[0m"
+    echo -e "\e[31m端口 $3 正在使用中...\e[0m"
     
     # 询问是否重启系统
     read -p "是否断续? (按Y继续, 其它退出): " choice
