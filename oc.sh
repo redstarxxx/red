@@ -7,7 +7,7 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 # 检查参数是否提供正确
-if [ $# -ne 2 ]; then
+if [ $# -ne 3 ]; then
     echo "请提供正确的参数:"
     echo "格式: oc.sh <主机名> <密码> <端口>"
     echo "例如: oc.sh NAME pw123 8888"
