@@ -74,7 +74,7 @@ sed -i -e "s/^#\?Port .*/Port $3/g" \
 
 # 编辑 /etc/screenrc
 if command -v screen &>/dev/null; then
-    sed -i -e "s/termcapinfo xterm 'is=/termcapinfo xterm* 'is=/g" /etc/screenrc
+    sed -i "s/termcapinfo xterm 'is=/termcapinfo xterm* 'is=/" /etc/screenrc
 fi
 
 # 重启SSH服务
