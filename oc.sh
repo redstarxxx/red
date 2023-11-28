@@ -11,7 +11,7 @@ if [ $# -ne 2 ]; then
     echo "请提供正确的参数:"
     echo "格式: oc.sh <密码> <主机名>"
     echo "例如: oc.sh pw123 NAME"
-    echo "例如: "bash -c "$(curl -L https://raw.githubusercontent.com/redstarxxx/shell/main/oc.sh)" @ pw123 NAME""
+    echo '例如: bash -c "$(curl -L https://raw.githubusercontent.com/redstarxxx/shell/main/oc.sh)" pw123 NAME'
     exit 1
 fi
 
