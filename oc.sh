@@ -29,9 +29,8 @@ done
 if [ ${#missing_dependencies[@]} -gt 0 ]; then
     echo "以下依赖未安装: ${missing_dependencies[*]}"
     echo "正在安装缺失的依赖..."
-    if [ -x "$(command -v apt-get)" ]; then
-        apt-get update
-        apt-get install -y "${missing_dependencies[@]}"
+    if [ -x "$(command -v apt)" ]; then
+        apt install -y "${missing_dependencies[@]}"
     elif [ -x "$(command -v yum)" ]; then
         yum install -y "${missing_dependencies[@]}"
     else
