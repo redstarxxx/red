@@ -128,7 +128,7 @@ if ! command -v curl &>/dev/null || ! command -v wget &>/dev/null || ! command -
     clear_screen
     echo -e "${GR}▼${NC}"
     echo -e "${colored_text2}${NC}"
-    echo -e "CURL/WGET/NANO/NET-TOOLS"
+    echo -e "CURL/WGET/NANO/NET-TOOLS/LSOF"
     read -e -p "检查到部分依赖工具没有安装, 是否要进行安装? (Y/其它跳过): " -n 3 -r choice
     if [[ $choice == "Y" || $choice == "y" ]]; then
         $pm install -y curl wget nano net-tools lsof
