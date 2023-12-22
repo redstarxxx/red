@@ -148,37 +148,75 @@ if [ -f "$frp_dir/1.x" ]; then
     read -e -p "请输入你的选择: " -n 2 -r choice && echoo
     case $choice in
         1|11)
-            if [ ! -f "$frp_dir/frps" ]; then
+            if [ -f "$frp_dir/frps" ]; then
+                #bindPort=$(netstat -untlp | grep "frps" | awk '{print $4}' | awk -F '[:/]' '{print $4}')
+                bindPort=$(grep -Po '^bindPort = \K\d+' "$frp_dir/frps.toml")
+                if [ -z "$bindPort" ]; then
+                    bindPort="none"
+                fi
+                vhostHTTPPort=$(grep -Po '^vhostHTTPPort = \K\d+' "$frp_dir/frps.toml")
+                if [ -z "$vhostHTTPPort" ]; then
+                    vhostHTTPPort="none"
+                fi
+                vhostHTTPSPort=$(grep -Po '^vhostHTTPSPort = \K\d+' "$frp_dir/frps.toml")
+                if [ -z "$vhostHTTPSPort" ]; then
+                    vhostHTTPSPort="none"
+                fi
+                echo "端口范围: 1-65535, 请自行规避占用的端口, 输入时不在此范围则直接跳过."
+                read -e -p "请输入FRP绑定端口号 (回车跳过/使用中: $bindPort) : " port
+                if [[ -n $port && $port -ge 1 && $port -le 65535 ]]; then
+                    bindPort=$port
+                    echo "bindPort = $bindPort" > $frp_dir/frps.toml
+                fi
+                
+                read -e -p "请输入HTTP端口号 (回车跳过/使用中: $vhostHTTPPort) : " port
+                if [[ -n $port && $port -ge 1 && $port -le 65535 ]]; then
+                    vhostHTTPPort=$port
+                    echo "vhostHTTPPort = $vhostHTTPPort" >> $frp_dir/frps.toml
+                fi
+                
+                read -e -p "请输入HTTPS端口号 (回车跳过/使用中: $vhostHTTPSPort) : " port
+                if [[ -n $port && $port -ge 1 && $port -le 65535 ]]; then
+                    vhostHTTPSPort=$port
+                    echo "vhostHTTPSPort = $vhostHTTPSPort" >> $frp_dir/frps.toml
+                    # echo "" >> $frp_dir/frps.toml
+                fi
+                
+                read -e -p "是否开启服务端 DASHBOARD? 如果开启请直接输入端口号 (回车跳过/不开启) : " port
+                if [[ -n $port && $port -ge 1 && $port -le 65535 ]]; then
+                    webServerPort=$port
+                    echo "webServer.port = $webServerPort" >> $frp_dir/frps.toml
+                    read -e -p "请输入 DASHBOARD 用户名: " user
+                    echo "webServer.user = \"$user\"" >> $frp_dir/frps.toml
+                    read -e -p "请输入 DASHBOARD 密码: " password
+                    echo "webServer.password = \"$password\"" >> $frp_dir/frps.toml
+                    read -e -p "是否配置服务端 DASHBOARD TSL 证书? (回车跳过/不配置) : " ifnone
+                    if [ -n "$ifnone" ]; then
+                        read ssl
+                    fi
+                fi
+
+                echo "[Unit]" > /etc/systemd/system/frps.service
+                echo "Description=frp server" >> /etc/systemd/system/frps.service
+                echo "After=network.target syslog.target" >> /etc/systemd/system/frps.service
+                echo "Wants=network.target" >> /etc/systemd/system/frps.service
+                echo "" >> /etc/systemd/system/frps.service
+                echo "[Service]" >> /etc/systemd/system/frps.service
+                echo "Type=simple" >> /etc/systemd/system/frps.service
+                echo "ExecStart=$frp_dir/frps -c $frp_dir/frps.toml" >> /etc/systemd/system/frps.service
+                echo "" >> /etc/systemd/system/frps.service
+                echo "[Install]" >> /etc/systemd/system/frps.service
+                echo "WantedBy=multi-user.target" >> /etc/systemd/system/frps.service
+
+                cat /etc/systemd/system/frps.service
+                sudo systemctl restart frps
+                sudo systemctl enable frps
+                systemctl daemon-reload
+                waitfor
+            else
                 echo "请先运行选项 + 进行安装。"
                 waitfor
-                break
             fi
-            frpport=$(netstat -untlp | grep "frps" | awk '{print $4}' | awk -F '[:/]' '{print $4}')
-            echo "端口范围: 1-65535，请自行规避其它程序占用的端口。"
-            read -e -p "请输入绑定端口号 (回车跳过默认: $frpport) : " port
-            if [[ -n $port && $port -ge 1 && $port -le 65535 ]]; then
-                bindPort=$port
-                echo "bindPort = $bindPort" > $frp_dir/frps.toml
-                echo "" >> $frp_dir/frps.toml
-            fi
-            
-            echo "[Unit]" > /etc/systemd/system/frps.service
-            echo "Description=frp server" >> /etc/systemd/system/frps.service
-            echo "After=network.target syslog.target" >> /etc/systemd/system/frps.service
-            echo "Wants=network.target" >> /etc/systemd/system/frps.service
-            echo "" >> /etc/systemd/system/frps.service
-            echo "[Service]" >> /etc/systemd/system/frps.service
-            echo "Type=simple" >> /etc/systemd/system/frps.service
-            echo "ExecStart=$frp_dir/frps -c $frp_dir/frps.toml" >> /etc/systemd/system/frps.service
-            echo "" >> /etc/systemd/system/frps.service
-            echo "[Install]" >> /etc/systemd/system/frps.service
-            echo "WantedBy=multi-user.target" >> /etc/systemd/system/frps.service
-
-            cat /etc/systemd/system/frps.service
-            sudo systemctl restart frps
-            sudo systemctl enable frps
-            systemctl daemon-reload
-            waitfor
             ;;
         2|22)
             nano $frp_dir/frps.toml
@@ -403,3 +441,5 @@ elif [ -f "$frp_dir/2.x" ]; then
     done
 
 fi
+    
+
