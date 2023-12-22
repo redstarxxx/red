@@ -3,6 +3,7 @@
 curl -o redx.sh https://raw.githubusercontent.com/redstarxxx/shell/main/redx.sh && chmod +x redx.sh && ./redx.sh
 
 FRP:
+
 curl -o frp.sh https://raw.githubusercontent.com/redstarxxx/shell/main/frp.sh && chmod +x frp.sh && ./frp.sh
 
 常用要具集:
