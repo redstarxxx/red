@@ -428,7 +428,8 @@ elif [ -f "$frp_dir/2.x" ]; then
                 waitfor
                 break
             fi
-            if [ ! -f "/etc/systemd/system/frpc.service" ]; then
+            service_frpc_file="/etc/systemd/system/frpc.service"
+            if [ ! -f "$service_frpc_file" ] || ! grep -q "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" "$service_frpc_file"; then
                 touch "/etc/systemd/system/frpc.service"
                 echo "[Unit]" > /etc/systemd/system/frpc.service
                 echo "Description=frp server" >> /etc/systemd/system/frpc.service
