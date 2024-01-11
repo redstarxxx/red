@@ -14,6 +14,8 @@ NC='\033[0m'
 clear_screen() {
     if command -v apt &>/dev/null; then
         clear
+    elif command -v opkg &>/dev/null; then
+        clear
     elif command -v yum &>/dev/null; then
         printf "\033c"
     else
