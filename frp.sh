@@ -170,7 +170,7 @@ if [ -f "$frp_dir/1.x" ]; then
                     fi
                 elif [ "$choice" == "2" ]; then
                     rm -f "$frp_dir/frps.toml"
-                    echo "已经删除配置文件$frp_dir/frps.toml, 请选择选项1重新配置."
+                    echo -e "已经删除配置文件$frp_dir/frps.toml, 请选择选项 ${GR}1${NC} 重新配置."
                 else
                     echo "取消操作."
                 fi
