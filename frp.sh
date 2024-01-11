@@ -428,20 +428,22 @@ elif [ -f "$frp_dir/2.x" ]; then
                 waitfor
                 break
             fi
-            service_frpc_file="/etc/systemd/system/frpc.service"
-            if [ ! -f "$service_frpc_file" ] || ! grep -q "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" "$service_frpc_file"; then
-                touch "/etc/systemd/system/frpc.service"
-                echo "[Unit]" > /etc/systemd/system/frpc.service
-                echo "Description=frp server" >> /etc/systemd/system/frpc.service
-                echo "After=network.target syslog.target" >> /etc/systemd/system/frpc.service
-                echo "Wants=network.target" >> /etc/systemd/system/frpc.service
-                echo "" >> /etc/systemd/system/frpc.service
-                echo "[Service]" >> /etc/systemd/system/frpc.service
-                echo "Type=simple" >> /etc/systemd/system/frpc.service
-                echo "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" >> /etc/systemd/system/frpc.service
-                echo "" >> /etc/systemd/system/frpc.service
-                echo "[Install]" >> /etc/systemd/system/frpc.service
-                echo "WantedBy=multi-user.target" >> /etc/systemd/system/frpc.service
+            if command -v systemctl &>/dev/null; then
+                service_frpc_file="/etc/systemd/system/frpc.service"
+                if [ ! -f "$service_frpc_file" ] || ! grep -q "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" "$service_frpc_file"; then
+                    touch "/etc/systemd/system/frpc.service"
+                    echo "[Unit]" > /etc/systemd/system/frpc.service
+                    echo "Description=frp server" >> /etc/systemd/system/frpc.service
+                    echo "After=network.target syslog.target" >> /etc/systemd/system/frpc.service
+                    echo "Wants=network.target" >> /etc/systemd/system/frpc.service
+                    echo "" >> /etc/systemd/system/frpc.service
+                    echo "[Service]" >> /etc/systemd/system/frpc.service
+                    echo "Type=simple" >> /etc/systemd/system/frpc.service
+                    echo "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" >> /etc/systemd/system/frpc.service
+                    echo "" >> /etc/systemd/system/frpc.service
+                    echo "[Install]" >> /etc/systemd/system/frpc.service
+                    echo "WantedBy=multi-user.target" >> /etc/systemd/system/frpc.service
+                fi
             fi
             if [ -s $frp_dir/frpc.toml ]; then
                 echo -e "${colored_text1}${NC}"
