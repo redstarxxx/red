@@ -307,7 +307,7 @@ if [ -f "$frp_dir/1.x" ]; then
                 cd "$frp_dir" || exit
                 latest=$(curl -sL https://api.github.com/repos/fatedier/frp/releases/latest | grep -oP 'tag_name": "\K(.*)(?=")' | sed 's/v//')
                 download_link="https://github.com/fatedier/frp/releases/download/v${latest}/frp_${latest}_${sys_output}_${arch}.tar.gz"
-                echo "$download_link"
+                echo "Download link: $download_link"
                 wget -O "frp_${latest}_${sys_output}_${arch}.tar.gz" "${download_link}"
                 tar -zxvf "frp_${latest}_${sys_output}_${arch}.tar.gz" --strip-components=1
                 rm *.tar.gz
@@ -492,7 +492,7 @@ elif [ -f "$frp_dir/2.x" ]; then
                 cd "$frp_dir" || exit
                 latest=$(curl -sL https://api.github.com/repos/fatedier/frp/releases/latest | grep -oP 'tag_name": "\K(.*)(?=")' | sed 's/v//')
                 download_link="https://github.com/fatedier/frp/releases/download/v${latest}/frp_${latest}_${sys_output}_${arch}.tar.gz"
-                echo "$download_link"
+                echo "Download link: $download_link"
                 wget -O "frp_${latest}_${sys_output}_${arch}.tar.gz" "${download_link}"
                 tar -zxvf "frp_${latest}_${sys_output}_${arch}.tar.gz" --strip-components=1
                 rm *.tar.gz
