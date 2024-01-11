@@ -215,8 +215,8 @@ if [ -f "$frp_dir/1.x" ]; then
                     echo "transport.tcpMux = false" >> "$frp_dir/frps.toml"
                 fi
                 echo "本脚本只配置可运行的基本信息, 如果需要更多的配置, 请阅读官方文档: https://gofrp.org/zh-cn/docs/reference/server-configures/ 并手动添加."
-                read -e -p "配置完成, 是否启动/重启FRPS服务? 回车默认开启/N" choice
-                if [ ! "$choice" = "n" ] && [ ! "$choice" = "N" ]; then
+                read -e -p "配置完成, 是否启动/重启FRPS服务? Y/回车默认不启动 : " choice
+                if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
                     if command -v systemctl &>/dev/null; then
                         if netstat -untlp | grep -q "frps"; then
                             sudo systemctl restart frps
