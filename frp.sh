@@ -70,6 +70,8 @@ if command -v apt &>/dev/null; then
     pm="apt"
 elif command -v yum &>/dev/null; then
     pm="yum"
+elif command -v opkg &>/dev/null; then
+    pm="opkg"
 else
     echo "不支持的Linux包管理器"
     exit 1
@@ -85,7 +87,7 @@ else
 fi
 frp_dir="/etc/frp"
 if [ ! -d "$frp_dir" ]; then
-    sudo mkdir -p "$frp_dir"
+    mkdir -p "$frp_dir"
 fi
 if [ ! -f "$frp_dir/1.x" ] && [ ! -f "$frp_dir/2.x" ]; then
     echo -e "${MA} 欢迎使用 FRP 一键脚本工具 ${NC}"
@@ -119,7 +121,7 @@ if [ -f "$frp_dir/1.x" ]; then
     if netstat -untlp | grep -q "frpc"; then
         runtag="${GR}FRPC runing${NC}"
     fi
-    if [ -f "$frp_dir/frps" ]; then
+    if [ -f "$frp_dir/frps" ] || [ "$(command -v frps)" ] ; then
         setuptag="${GR}Ready${NC}"
     fi
     clear_screen
@@ -148,17 +150,23 @@ if [ -f "$frp_dir/1.x" ]; then
     read -e -p "请输入你的选择: " -n 2 -r choice && echoo
     case $choice in
         1|11)
-            if [ -f "$frp_dir/frps" ]; then
-                #bindPort=$(netstat -untlp | grep "frps" | awk '{print $4}' | awk -F '[:/]' '{print $4}')
-                bindPort=$(grep -Po '^bindPort = \K\d+' "$frp_dir/frps.toml")
+            if [ -f "$frp_dir/frps" ] || [ "$(command -v frps)" ]; then
+                if [ ! -f "$frp_dir/frps.toml" ]; then
+                    touch "$frp_dir/frps.toml"
+                fi
+                # bindPort=$(netstat -untlp | grep "frps" | awk '{print $4}' | awk -F '[:/]' '{print $4}')
+                # bindPort=$(grep -Po '^bindPort = \K\d+' "$frp_dir/frps.toml")
+                bindPort=$(grep '^bindPort = [0-9]\+' "$frp_dir/frps.toml" | sed 's/^bindPort = \([0-9]\+\)/\1/')
                 if [ -z "$bindPort" ]; then
                     bindPort="none"
                 fi
-                vhostHTTPPort=$(grep -Po '^vhostHTTPPort = \K\d+' "$frp_dir/frps.toml")
+                # vhostHTTPPort=$(grep -Po '^vhostHTTPPort = \K\d+' "$frp_dir/frps.toml")
+                vhostHTTPPort=$(grep '^vhostHTTPPort = [0-9]\+' "$frp_dir/frps.toml" | sed 's/^vhostHTTPPort = \([0-9]\+\)/\1/')
                 if [ -z "$vhostHTTPPort" ]; then
                     vhostHTTPPort="none"
                 fi
-                vhostHTTPSPort=$(grep -Po '^vhostHTTPSPort = \K\d+' "$frp_dir/frps.toml")
+                # vhostHTTPSPort=$(grep -Po '^vhostHTTPSPort = \K\d+' "$frp_dir/frps.toml")
+                vhostHTTPSPort=$(grep '^vhostHTTPSPort = [0-9]\+' "$frp_dir/frps.toml" | sed 's/^vhostHTTPSPort = \([0-9]\+\)/\1/')
                 if [ -z "$vhostHTTPSPort" ]; then
                     vhostHTTPSPort="none"
                 fi
@@ -184,6 +192,7 @@ if [ -f "$frp_dir/1.x" ]; then
                 
                 read -e -p "是否开启服务端 DASHBOARD? 如果开启请直接输入端口号 (回车跳过/不开启) : " port
                 if [[ -n $port && $port -ge 1 && $port -le 65535 ]]; then
+                    echo "webServer.addr = \"0.0.0.0\"" >> $frp_dir/frps.toml
                     webServerPort=$port
                     echo "webServer.port = $webServerPort" >> $frp_dir/frps.toml
                     read -e -p "请输入 DASHBOARD 用户名: " user
@@ -196,22 +205,27 @@ if [ -f "$frp_dir/1.x" ]; then
                     fi
                 fi
 
-                echo "[Unit]" > /etc/systemd/system/frps.service
-                echo "Description=frp server" >> /etc/systemd/system/frps.service
-                echo "After=network.target syslog.target" >> /etc/systemd/system/frps.service
-                echo "Wants=network.target" >> /etc/systemd/system/frps.service
-                echo "" >> /etc/systemd/system/frps.service
-                echo "[Service]" >> /etc/systemd/system/frps.service
-                echo "Type=simple" >> /etc/systemd/system/frps.service
-                echo "ExecStart=$frp_dir/frps -c $frp_dir/frps.toml" >> /etc/systemd/system/frps.service
-                echo "" >> /etc/systemd/system/frps.service
-                echo "[Install]" >> /etc/systemd/system/frps.service
-                echo "WantedBy=multi-user.target" >> /etc/systemd/system/frps.service
+                if command -v opkg &>/dev/null; then
+                    echo "待完成"
+                else
 
-                cat /etc/systemd/system/frps.service
-                sudo systemctl restart frps
-                sudo systemctl enable frps
-                systemctl daemon-reload
+                    echo "[Unit]" > /etc/systemd/system/frps.service
+                    echo "Description=frp server" >> /etc/systemd/system/frps.service
+                    echo "After=network.target syslog.target" >> /etc/systemd/system/frps.service
+                    echo "Wants=network.target" >> /etc/systemd/system/frps.service
+                    echo "" >> /etc/systemd/system/frps.service
+                    echo "[Service]" >> /etc/systemd/system/frps.service
+                    echo "Type=simple" >> /etc/systemd/system/frps.service
+                    echo "ExecStart=$frp_dir/frps -c $frp_dir/frps.toml" >> /etc/systemd/system/frps.service
+                    echo "" >> /etc/systemd/system/frps.service
+                    echo "[Install]" >> /etc/systemd/system/frps.service
+                    echo "WantedBy=multi-user.target" >> /etc/systemd/system/frps.service
+
+                    cat /etc/systemd/system/frps.service
+                    sudo systemctl restart frps
+                    sudo systemctl enable frps
+                    systemctl daemon-reload
+                fi
                 waitfor
             else
                 echo "请先运行选项 + 进行安装。"
@@ -219,24 +233,45 @@ if [ -f "$frp_dir/1.x" ]; then
             fi
             ;;
         2|22)
-            nano $frp_dir/frps.toml
+            if [ "$(command -v nano)" ]; then
+                nano $frp_dir/frps.toml
+            else
+                vi $frp_dir/frps.toml
+            fi
             ;;
         3|33)
-            service_file="/etc/systemd/system/frps.service"
-            if [ -f "$service_file" ]; then
-                sudo systemctl restart frps
-                sudo systemctl enable frps
-                echo "FRPS 服务已经启动."
+            if command -v systemctl &>/dev/null; then
+                service_file="/etc/systemd/system/frps.service"
+                if [ -f "$service_file" ]; then
+                    if netstat -untlp | grep -q "frps"; then
+                        sudo systemctl restart frps
+                    else
+                        sudo systemctl start frps
+                    fi
+                    sudo systemctl enable frps
+                    echo "FRPS 服务已经启动. (systemctl)"
+                else
+                    echo "FRPS 服务未配置，请先配置服务."
+                fi
+            elif command -v nohup &>/dev/null; then
+                nohup frps -c "$frp_dir/frps.toml" > "$frp_dir/frps.log" 2>&1 &
+                cat "nohup.out"
+                ps -ef | grep "frps"
+                echo "FRPS 服务已经启动. (nohup)"
             else
-                echo "FRPS 服务未配置，请先配置服务."
+                echo "运行失败：未检测到相关指令 (systemctl 或 nohup)."
             fi
             waitfor
             onlyone=0
             ;;
         4|44)
             if netstat -untlp | grep -q "frps"; then
-                sudo systemctl stop frps
-                sudo systemctl disable frps
+                if command -v systemctl &>/dev/null; then
+                    sudo systemctl stop frps
+                    sudo systemctl disable frps
+                else
+                    killall -9 frps
+                fi
                 echo "已停止并禁用 FRPS 服务."
             else
                 echo "FRPS 服务未启动."
@@ -246,38 +281,64 @@ if [ -f "$frp_dir/1.x" ]; then
             ;;
         +|++)
             arch=$(uname -m)
-            sys_output=$(uname -s)
-            if [ "$sys_output" = "Linux" ] && [ "$arch" = "x86_64" ]; then
-                arch="amd64"
-            fi
-            file_name="frp_$(uname -m)"
-            file_extension=".tar.gz"
-            cd "$frp_dir" || exit
-            latest=$(curl -sL https://api.github.com/repos/fatedier/frp/releases/latest | grep -oP 'tag_name": "\K(.*)(?=")' | sed 's/v//')
-            download_link="https://github.com/fatedier/frp/releases/download/v${latest}/frp_${latest}_${sys_output}_${arch}.tar.gz"
-            echo "$download_link"
-            wget -O "frp_${latest}_${sys_output}_${arch}.tar.gz" "${download_link}"
-            tar -zxvf "frp_${latest}_${sys_output}_${arch}.tar.gz" --strip-components=1
-            rm *.tar.gz
-            echo -e "${colored_text1}${NC}"
-            echo -e "PATH: ${GR}$frp_dir${NC}"
-            ls "$frp_dir"
-            if [ -s "frps" ] && [ -s "frpc" ] ; then
-                echo "下载/解压成功."
+            if command -v opkg &>/dev/null; then
+                if [ "$(command -v frps)" ] ; then
+                    echo "检测到系统已经安装FPRS."
+                else
+                    latest=$(curl -sL https://github.com/kuoruan/openwrt-frp/releases/latest | grep -oE "/tag/v[^\"]+" | awk -F '/' '{print $NF}' | sed -n '1s/^v//p')
+                    download_link="https://github.com/kuoruan/openwrt-frp/releases/download/v${latest}/frps_${latest}_${arch}.ipk"
+                    echo "Download link: $download_link"
+                    wget $download_link
+                    opkg install "frps_${latest}_${arch}.ipk"
+                    if [ "$(command -v frps)" ] ; then
+                        echo "安装成功."
+                    else
+                        echo "安装失败!"
+                    fi
+                    rm -f "frps_${latest}_${arch}.ipk"
+                fi
             else
-                echo "下载/解压失败!"
+                sys_output=$(uname -s)
+                if [ "$sys_output" = "Linux" ] && [ "$arch" = "x86_64" ]; then
+                    arch="amd64"
+                fi
+                file_name="frp_$(uname -m)"
+                file_extension=".tar.gz"
+                cd "$frp_dir" || exit
+                latest=$(curl -sL https://api.github.com/repos/fatedier/frp/releases/latest | grep -oP 'tag_name": "\K(.*)(?=")' | sed 's/v//')
+                download_link="https://github.com/fatedier/frp/releases/download/v${latest}/frp_${latest}_${sys_output}_${arch}.tar.gz"
+                echo "$download_link"
+                wget -O "frp_${latest}_${sys_output}_${arch}.tar.gz" "${download_link}"
+                tar -zxvf "frp_${latest}_${sys_output}_${arch}.tar.gz" --strip-components=1
+                rm *.tar.gz
+                echo -e "${colored_text1}${NC}"
+                echo -e "PATH: ${GR}$frp_dir${NC}"
+                ls "$frp_dir"
+                if [ -s "frps" ] && [ -s "frpc" ] ; then
+                    echo "下载/解压成功."
+                else
+                    echo "下载/解压失败!"
+                fi
             fi
             waitfor
             ;;
         -|--)
             if netstat -untlp | grep -q "frps"; then
-                sudo systemctl stop frps
-                sudo systemctl disable frps
+                if command -v systemctl &>/dev/null; then
+                    sudo systemctl stop frps
+                    sudo systemctl disable frps
+                else
+                    killall frps
+                fi
                 echo "已停止并禁用 FRPS 服务."
             fi
             if netstat -untlp | grep -q "frpc"; then
-                sudo systemctl stop frpc
-                sudo systemctl disable frpc
+                if command -v systemctl &>/dev/null; then
+                    sudo systemctl stop frpc
+                    sudo systemctl disable frpc
+                else
+                    killall frpc
+                fi
                 echo "已停止并禁用 FRPC 服务."
             fi
             find $frp_dir -type f ! -name '*.toml' -delete
@@ -315,7 +376,7 @@ elif [ -f "$frp_dir/2.x" ]; then
     if netstat -untlp | grep -q "frpc"; then
         runtag="${GR}FRPC runing${NC}"
     fi
-    if [ -f "$frp_dir/frpc" ]; then
+    if [ -f "$frp_dir/frpc" ] || [ "$(command -v frpc)" ] ; then
         setuptag="${GR}Ready${NC}"
     fi
     clear_screen
@@ -344,34 +405,57 @@ elif [ -f "$frp_dir/2.x" ]; then
     read -e -p "请输入你的选择: " -n 2 -r choice && echoo
     case $choice in
         1|11)
-            if [ ! -f "$frp_dir/frpc" ]; then
+            if [ ! -f "$frp_dir/frpc" ] && [ ! "$(command -v frpc)" ]; then
                 echo "请先运行选项 + 进行安装。"
                 waitfor
                 break
             fi
             read -e -p "请输入服务端的IP地址: " serverAddr
             read -e -p "请输入服务端的端口号: " serverPort
+            echo "serverAddr = $serverAddr" > $frp_dir/frpc.toml
+            echo "serverPort = $serverPort" >> $frp_dir/frpc.toml
 
             ;;
         2|22)
-            nano $frp_dir/frpc.toml
+            if [ "$(command -v nano)" ]; then
+                nano $frp_dir/frpc.toml
+            else
+                vi $frp_dir/frpc.toml
+            fi
             ;;
         3|33)
-            service_file="/etc/systemd/system/frpc.service"
-            if [ -f "$service_file" ]; then
-                sudo systemctl restart frpc
-                sudo systemctl enable frpc
-                echo "FRPC 服务已经启动."
+            if command -v systemctl &>/dev/null; then
+                service_file="/etc/systemd/system/frpc.service"
+                if [ -f "$service_file" ]; then
+                    if netstat -untlp | grep -q "frpc"; then
+                        sudo systemctl restart frpc
+                    else
+                        sudo systemctl start frpc
+                    fi
+                    sudo systemctl enable frpc
+                    echo "FRPC 服务已经启动. (systemctl)"
+                else
+                    echo "FRPC 服务未配置，请先配置服务."
+                fi
+            elif command -v nohup &>/dev/null; then
+                nohup frpc -c "$frp_dir/frpc.toml" > "$frp_dir/frpc.log" 2>&1 &
+                cat "nohup.out"
+                ps -ef | grep "frpc"
+                echo "FRPC 服务已经启动. (nohup)"
             else
-                echo "FRPC 服务未配置，请先配置服务."
+                echo "运行失败：未检测到相关指令 (systemctl 或 nohup)."
             fi
             waitfor
             onlyone=0
             ;;
         4|44)
             if netstat -untlp | grep -q "frpc"; then
-                sudo systemctl stop frpc
-                sudo systemctl disable frpc
+                if command -v systemctl &>/dev/null; then
+                    sudo systemctl stop frpc
+                    sudo systemctl disable frpc
+                else
+                    killall -9 frpc
+                fi
                 echo "已停止并禁用 FRPC 服务."
             else
                 echo "FRP 服务未启动."
@@ -381,38 +465,65 @@ elif [ -f "$frp_dir/2.x" ]; then
             ;;
         +|++)
             arch=$(uname -m)
-            sys_output=$(uname -s)
-            if [ "$sys_output" = "Linux" ] && [ "$arch" = "x86_64" ]; then
-                arch="amd64"
-            fi
-            file_name="frp_$(uname -m)"
-            file_extension=".tar.gz"
-            cd "$frp_dir" || exit
-            latest=$(curl -sL https://api.github.com/repos/fatedier/frp/releases/latest | grep -oP 'tag_name": "\K(.*)(?=")' | sed 's/v//')
-            download_link="https://github.com/fatedier/frp/releases/download/v${latest}/frp_${latest}_${sys_output}_${arch}.tar.gz"
-            echo "$download_link"
-            wget -O "frp_${latest}_${sys_output}_${arch}.tar.gz" "${download_link}"
-            tar -zxvf "frp_${latest}_${sys_output}_${arch}.tar.gz" --strip-components=1
-            rm *.tar.gz
-            echo -e "${colored_text1}${NC}"
-            echo -e "PATH: ${GR}$frp_dir${NC}"
-            ls "$frp_dir"
-            if [ -s "frps" ] && [ -s "frpc" ] ; then
-                echo "下载/解压成功."
+            if command -v opkg &>/dev/null; then
+                if [ "$(command -v frpc)" ] ; then
+                    echo "检测到系统已经安装FPRC."
+                else
+                    latest=$(curl -sL https://github.com/kuoruan/openwrt-frp/releases/latest | grep -oE "/tag/v[^\"]+" | awk -F '/' '{print $NF}' | sed -n '1s/^v//p')
+                    download_link="https://github.com/kuoruan/openwrt-frp/releases/download/v${latest}/frpc_${latest}_${arch}.ipk"
+                    echo "Download link: $download_link"
+                    wget $download_link
+                    opkg install "frpc_${latest}_${arch}.ipk"
+                    if [ "$(command -v frpc)" ] ; then
+                        echo "安装成功."
+                        echo -e "如果需要安装Frpc的Web管理界面, 请到 https://github.com/kuoruan/luci-app-frpc/releases 下载两个 ${GR}*.ipk${NC} 文件并依次执行 ${GR}opkg install *.ipk${NC} 进行安装."
+                    else
+                        echo "安装失败!"
+                    fi
+                    rm -f "frpc_${latest}_${arch}.ipk"
+                fi
             else
-                echo "下载/解压失败!"
+                sys_output=$(uname -s)
+                if [ "$sys_output" = "Linux" ] && [ "$arch" = "x86_64" ]; then
+                    arch="amd64"
+                fi
+                file_name="frp_$(uname -m)"
+                file_extension=".tar.gz"
+                cd "$frp_dir" || exit
+                latest=$(curl -sL https://api.github.com/repos/fatedier/frp/releases/latest | grep -oP 'tag_name": "\K(.*)(?=")' | sed 's/v//')
+                download_link="https://github.com/fatedier/frp/releases/download/v${latest}/frp_${latest}_${sys_output}_${arch}.tar.gz"
+                echo "$download_link"
+                wget -O "frp_${latest}_${sys_output}_${arch}.tar.gz" "${download_link}"
+                tar -zxvf "frp_${latest}_${sys_output}_${arch}.tar.gz" --strip-components=1
+                rm *.tar.gz
+                echo -e "${colored_text1}${NC}"
+                echo -e "PATH: ${GR}$frp_dir${NC}"
+                ls "$frp_dir"
+                if [ -s "frps" ] && [ -s "frpc" ] ; then
+                    echo "下载/解压成功."
+                else
+                    echo "下载/解压失败!"
+                fi
             fi
             waitfor
             ;;
         -|--)
             if netstat -untlp | grep -q "frps"; then
-                sudo systemctl stop frps
-                sudo systemctl disable frps
+                if command -v systemctl &>/dev/null; then
+                    sudo systemctl stop frps
+                    sudo systemctl disable frps
+                else
+                    killall -9 frps
+                fi
                 echo "已停止并禁用 FRPS 服务."
             fi
             if netstat -untlp | grep -q "frpc"; then
-                sudo systemctl stop frpc
-                sudo systemctl disable frpc
+                if command -v systemctl &>/dev/null; then
+                    sudo systemctl stop frpc
+                    sudo systemctl disable frpc
+                else
+                    killall -9 frpc
+                fi
                 echo "已停止并禁用 FRPC 服务."
             fi
             find $frp_dir -type f ! -name '*.toml' -delete
@@ -433,6 +544,12 @@ elif [ -f "$frp_dir/2.x" ]; then
         x|X|xx|XX)
             exit 0
             ;;
+        t|T)
+            latest=$(curl -sL https://github.com/kuoruan/openwrt-frp/releases/latest | grep -oE "/tag/v[^\"]+" | awk -F '/' '{print $NF}' | sed -n '1s/^v//p')
+            echo $latest
+            echo "此指令仅调试使用..."
+            waitfor
+            ;;
         *)
             etag=1
             onlyone=0
@@ -441,5 +558,3 @@ elif [ -f "$frp_dir/2.x" ]; then
     done
 
 fi
-    
-
