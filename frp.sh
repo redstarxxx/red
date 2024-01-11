@@ -411,10 +411,63 @@ elif [ -f "$frp_dir/2.x" ]; then
                 break
             fi
             read -e -p "请输入服务端的IP地址: " serverAddr
+            if [ -n "$serverAddr" ]; then
+                echo "serverAddr = \"$serverAddr\"" > "$frp_dir/frpc.toml"
+            fi
             read -e -p "请输入服务端的端口号: " serverPort
-            echo "serverAddr = $serverAddr" > $frp_dir/frpc.toml
-            echo "serverPort = $serverPort" >> $frp_dir/frpc.toml
+            if [ -n "$serverPort" ]; then
+                echo "serverPort = $serverPort" >> $frp_dir/frpc.toml
+            fi
+            read -e -p "请输入服务端的TOKEN: " authToken
+            if [ -n "$authToken" ]; then
+                echo "auth.token = \"$authToken\"" >> $frp_dir/frpc.toml
+            fi
+            while true; do
+            remind1p
+            echo "传输协议类型: 1.tcp  2.kcp  3.quic  4.websocket  5.wss"
+            read -e -p "请先择 (1/2/3/4/5/C取消): " -n 2 -r choice && echoo
+                case $choice in
+                    1|11)
+                        en_network="tcp"
+                        break
+                        ;;
+                    2|22)
+                        en_network="kcp"
+                        break
+                        ;;
+                    3|33)
+                        en_network="quic"
+                        break
+                        ;;
+                    4|44)
+                        en_network="websocket"
+                        break
+                        ;;
+                    5|55)
+                        en_network="wss"
+                        break
+                        ;;
+                    c|cc|C|CC)
+                        break 2
+                        ;;
+                    *)
+                        etag=1
+                        ;;
+                esac
+            done
+            if [ -n "$choice" ]; then
+                echo "transport.protocol = \"$en_network\"" >> $frp_dir/frpc.toml
+            fi
+            read -e -p "是否开启TCP多路复用, 回车默认开启/N: " tmyn
+            if [ ! "$tmyn" = "n" ] && [ ! "$tmyn" = "N" ]; then
+                echo "transport.tcpMux = true" > "$frp_dir/frpc.toml"
+            else
+                echo "transport.tcpMux = false" > "$frp_dir/frpc.toml"
+            fi
+            echo "本脚本只配置可运行的基本信息, 如果需要更多的配置, 请阅读官方文档: https://gofrp.org/zh-cn/docs/reference/client-configures/ 并手动添加."
 
+            echo "添加访问端/客户端/节点"
+            waitfor
             ;;
         2|22)
             if [ "$(command -v nano)" ]; then
