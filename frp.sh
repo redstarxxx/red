@@ -218,6 +218,23 @@ if [ -f "$frp_dir/1.x" ]; then
                 read -e -p "配置完成, 是否启动/重启FRPS服务? Y/回车默认不启动 : " choice
                 if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
                     if command -v systemctl &>/dev/null; then
+                        service_frps_file="/etc/systemd/system/frps.service"
+                        if [ ! -f "$service_frps_file" ] || ! grep -q "ExecStart=$frp_dir/frps -c $frp_dir/frps.toml" "$service_frps_file"; then
+                            if [ ! -e "$service_frps_file" ]; then
+                                touch "$service_frps_file"
+                            fi
+                            echo "[Unit]" > /etc/systemd/system/frps.service
+                            echo "Description=frp server" >> /etc/systemd/system/frps.service
+                            echo "After=network.target syslog.target" >> /etc/systemd/system/frps.service
+                            echo "Wants=network.target" >> /etc/systemd/system/frps.service
+                            echo "" >> /etc/systemd/system/frps.service
+                            echo "[Service]" >> /etc/systemd/system/frps.service
+                            echo "Type=simple" >> /etc/systemd/system/frps.service
+                            echo "ExecStart=$frp_dir/frps -c $frp_dir/frps.toml" >> /etc/systemd/system/frps.service
+                            echo "" >> /etc/systemd/system/frps.service
+                            echo "[Install]" >> /etc/systemd/system/frps.service
+                            echo "WantedBy=multi-user.target" >> /etc/systemd/system/frps.service
+                        fi
                         if netstat -untlp | grep -q "frps"; then
                             sudo systemctl restart frps
                         else
@@ -327,18 +344,6 @@ if [ -f "$frp_dir/1.x" ]; then
                 else
                     echo "下载/解压失败!"
                 fi
-                echo "[Unit]" > /etc/systemd/system/frps.service
-                echo "Description=frp server" >> /etc/systemd/system/frps.service
-                echo "After=network.target syslog.target" >> /etc/systemd/system/frps.service
-                echo "Wants=network.target" >> /etc/systemd/system/frps.service
-                echo "" >> /etc/systemd/system/frps.service
-                echo "[Service]" >> /etc/systemd/system/frps.service
-                echo "Type=simple" >> /etc/systemd/system/frps.service
-                echo "ExecStart=$frp_dir/frps -c $frp_dir/frps.toml" >> /etc/systemd/system/frps.service
-                echo "" >> /etc/systemd/system/frps.service
-                echo "[Install]" >> /etc/systemd/system/frps.service
-                echo "WantedBy=multi-user.target" >> /etc/systemd/system/frps.service
-                cat /etc/systemd/system/frps.service
             fi
             waitfor
             ;;
@@ -429,23 +434,6 @@ elif [ -f "$frp_dir/2.x" ]; then
                 echo "请先运行选项 + 进行安装。"
                 waitfor
                 break
-            fi
-            if command -v systemctl &>/dev/null; then
-                service_frpc_file="/etc/systemd/system/frpc.service"
-                if [ ! -f "$service_frpc_file" ] || ! grep -q "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" "$service_frpc_file"; then
-                    touch "/etc/systemd/system/frpc.service"
-                    echo "[Unit]" > /etc/systemd/system/frpc.service
-                    echo "Description=frp server" >> /etc/systemd/system/frpc.service
-                    echo "After=network.target syslog.target" >> /etc/systemd/system/frpc.service
-                    echo "Wants=network.target" >> /etc/systemd/system/frpc.service
-                    echo "" >> /etc/systemd/system/frpc.service
-                    echo "[Service]" >> /etc/systemd/system/frpc.service
-                    echo "Type=simple" >> /etc/systemd/system/frpc.service
-                    echo "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" >> /etc/systemd/system/frpc.service
-                    echo "" >> /etc/systemd/system/frpc.service
-                    echo "[Install]" >> /etc/systemd/system/frpc.service
-                    echo "WantedBy=multi-user.target" >> /etc/systemd/system/frpc.service
-                fi
             fi
             if [ -s $frp_dir/frpc.toml ]; then
                 echo -e "${colored_text1}${NC}"
@@ -576,6 +564,23 @@ elif [ -f "$frp_dir/2.x" ]; then
             read -e -p "配置完成, 是否启动/重启FRPC服务? Y/回车默认不开启 : " choice
             if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
                 if command -v systemctl &>/dev/null; then
+                    service_frpc_file="/etc/systemd/system/frpc.service"
+                    if [ ! -f "$service_frpc_file" ] || ! grep -q "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" "$service_frpc_file"; then
+                        if [ ! -e "$service_frpc_file" ]; then
+                            touch "$service_frpc_file"
+                        fi
+                        echo "[Unit]" > /etc/systemd/system/frpc.service
+                        echo "Description=frp server" >> /etc/systemd/system/frpc.service
+                        echo "After=network.target syslog.target" >> /etc/systemd/system/frpc.service
+                        echo "Wants=network.target" >> /etc/systemd/system/frpc.service
+                        echo "" >> /etc/systemd/system/frpc.service
+                        echo "[Service]" >> /etc/systemd/system/frpc.service
+                        echo "Type=simple" >> /etc/systemd/system/frpc.service
+                        echo "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" >> /etc/systemd/system/frpc.service
+                        echo "" >> /etc/systemd/system/frpc.service
+                        echo "[Install]" >> /etc/systemd/system/frpc.service
+                        echo "WantedBy=multi-user.target" >> /etc/systemd/system/frpc.service
+                    fi
                     if netstat -untlp | grep -q "frpc"; then
                         sudo systemctl restart frpc
                     else
