@@ -171,26 +171,28 @@ if [ -f "$frp_dir/1.x" ]; then
                     vhostHTTPSPort="none"
                 fi
                 echo "端口范围: 1-65535, 请自行规避占用的端口, 输入时不在此范围则直接跳过."
-                read -e -p "请输入FRP绑定端口号 (回车跳过/使用中: $bindPort) : " port
+                read -e -p "请输入FRP绑定端口号 (回车跳过|使用中: $bindPort) : " port
                 if [[ -n $port && $port -ge 1 && $port -le 65535 ]]; then
                     bindPort=$port
-                    echo "bindPort = $bindPort" > $frp_dir/frps.toml
                 fi
-                
-                read -e -p "请输入HTTP端口号 (回车跳过/使用中: $vhostHTTPPort) : " port
+                read -e -p "请输入HTTP端口号 (回车跳过|使用中: $vhostHTTPPort) : " port
                 if [[ -n $port && $port -ge 1 && $port -le 65535 ]]; then
                     vhostHTTPPort=$port
-                    echo "vhostHTTPPort = $vhostHTTPPort" >> $frp_dir/frps.toml
                 fi
-                
-                read -e -p "请输入HTTPS端口号 (回车跳过/使用中: $vhostHTTPSPort) : " port
+                read -e -p "请输入HTTPS端口号 (回车跳过|使用中: $vhostHTTPSPort) : " port
                 if [[ -n $port && $port -ge 1 && $port -le 65535 ]]; then
                     vhostHTTPSPort=$port
-                    echo "vhostHTTPSPort = $vhostHTTPSPort" >> $frp_dir/frps.toml
-                    # echo "" >> $frp_dir/frps.toml
                 fi
-                
-                read -e -p "是否开启服务端 DASHBOARD? 如果开启请直接输入端口号 (回车跳过/不开启) : " port
+                echo "bindPort = $bindPort" > $frp_dir/frps.toml
+                echo "kcpBindPort = $bindPort" >> $frp_dir/frps.toml
+                echo "vhostHTTPPort = $vhostHTTPPort" >> $frp_dir/frps.toml
+                echo "vhostHTTPSPort = $vhostHTTPSPort" >> $frp_dir/frps.toml
+                read -e -p "请输入服务端的TOKEN (回车跳过) : " authToken
+                if [ -n "$authToken" ]; then
+                    echo "auth.token = \"$authToken\"" >> $frp_dir/frps.toml
+                fi
+                echo -e "是否开启服务端 DASHBOARD? 如果开启请直接${GR}输入端口号${NC} (回车跳过) : \c"
+                read port
                 if [[ -n $port && $port -ge 1 && $port -le 65535 ]]; then
                     echo "webServer.addr = \"0.0.0.0\"" >> $frp_dir/frps.toml
                     webServerPort=$port
@@ -199,34 +201,38 @@ if [ -f "$frp_dir/1.x" ]; then
                     echo "webServer.user = \"$user\"" >> $frp_dir/frps.toml
                     read -e -p "请输入 DASHBOARD 密码: " password
                     echo "webServer.password = \"$password\"" >> $frp_dir/frps.toml
-                    read -e -p "是否配置服务端 DASHBOARD TSL 证书? (回车跳过/不配置) : " ifnone
-                    if [ -n "$ifnone" ]; then
-                        read ssl
-                    fi
+                    # read -e -p "是否配置服务端 DASHBOARD TSL 证书? (回车跳过/不配置) : " ifnone
+                    # if [ -n "$ifnone" ]; then
+                    #     read ssl
+                    # fi
                 fi
-
-                if command -v opkg &>/dev/null; then
-                    echo "待完成"
+                read -e -p "是否开启TCP多路复用, 回车默认开启/N: " tmyn
+                if [ ! "$tmyn" = "n" ] && [ ! "$tmyn" = "N" ]; then
+                    echo "transport.tcpMux = true" >> "$frp_dir/frps.toml"
                 else
-
-                    echo "[Unit]" > /etc/systemd/system/frps.service
-                    echo "Description=frp server" >> /etc/systemd/system/frps.service
-                    echo "After=network.target syslog.target" >> /etc/systemd/system/frps.service
-                    echo "Wants=network.target" >> /etc/systemd/system/frps.service
-                    echo "" >> /etc/systemd/system/frps.service
-                    echo "[Service]" >> /etc/systemd/system/frps.service
-                    echo "Type=simple" >> /etc/systemd/system/frps.service
-                    echo "ExecStart=$frp_dir/frps -c $frp_dir/frps.toml" >> /etc/systemd/system/frps.service
-                    echo "" >> /etc/systemd/system/frps.service
-                    echo "[Install]" >> /etc/systemd/system/frps.service
-                    echo "WantedBy=multi-user.target" >> /etc/systemd/system/frps.service
-
-                    cat /etc/systemd/system/frps.service
-                    sudo systemctl restart frps
-                    sudo systemctl enable frps
-                    systemctl daemon-reload
+                    echo "transport.tcpMux = false" >> "$frp_dir/frps.toml"
                 fi
-                waitfor
+                echo "本脚本只配置可运行的基本信息, 如果需要更多的配置, 请阅读官方文档: https://gofrp.org/zh-cn/docs/reference/client-configures/ 并手动添加."
+                read -e -p "配置完成, 是否启动/重启FRPS服务? 回车默认开启/N" choice
+                if [ ! "$choice" = "n" ] && [ ! "$choice" = "N" ]; then
+                    if command -v systemctl &>/dev/null; then
+                        if netstat -untlp | grep -q "frps"; then
+                            sudo systemctl restart frps
+                        else
+                            sudo systemctl start frps
+                        fi
+                        sudo systemctl enable frps
+                        systemctl daemon-reload
+                    elif command -v opkg &>/dev/null; then
+                        if netstat -untlp | grep -q "frps"; then
+                            killall -9 frps
+                        fi
+                        nohup frps -c "$frp_dir/frps.toml" > "$frp_dir/frps.log" 2>&1 &
+                        cat "nohup.out"
+                        ps -ef | grep "frps"
+                    fi
+                    waitfor
+                fi
             else
                 echo "请先运行选项 + 进行安装。"
                 waitfor
@@ -319,6 +325,18 @@ if [ -f "$frp_dir/1.x" ]; then
                 else
                     echo "下载/解压失败!"
                 fi
+                echo "[Unit]" > /etc/systemd/system/frps.service
+                echo "Description=frp server" >> /etc/systemd/system/frps.service
+                echo "After=network.target syslog.target" >> /etc/systemd/system/frps.service
+                echo "Wants=network.target" >> /etc/systemd/system/frps.service
+                echo "" >> /etc/systemd/system/frps.service
+                echo "[Service]" >> /etc/systemd/system/frps.service
+                echo "Type=simple" >> /etc/systemd/system/frps.service
+                echo "ExecStart=$frp_dir/frps -c $frp_dir/frps.toml" >> /etc/systemd/system/frps.service
+                echo "" >> /etc/systemd/system/frps.service
+                echo "[Install]" >> /etc/systemd/system/frps.service
+                echo "WantedBy=multi-user.target" >> /etc/systemd/system/frps.service
+                cat /etc/systemd/system/frps.service
             fi
             waitfor
             ;;
@@ -328,7 +346,7 @@ if [ -f "$frp_dir/1.x" ]; then
                     sudo systemctl stop frps
                     sudo systemctl disable frps
                 else
-                    killall frps
+                    killall -9 frps
                 fi
                 echo "已停止并禁用 FRPS 服务."
             fi
@@ -337,7 +355,7 @@ if [ -f "$frp_dir/1.x" ]; then
                     sudo systemctl stop frpc
                     sudo systemctl disable frpc
                 else
-                    killall frpc
+                    killall -9 frpc
                 fi
                 echo "已停止并禁用 FRPC 服务."
             fi
@@ -410,63 +428,165 @@ elif [ -f "$frp_dir/2.x" ]; then
                 waitfor
                 break
             fi
-            read -e -p "请输入服务端的IP地址: " serverAddr
-            if [ -n "$serverAddr" ]; then
-                echo "serverAddr = \"$serverAddr\"" > "$frp_dir/frpc.toml"
+            if [ ! -f "/etc/systemd/system/frpc.service" ]; then
+                touch "/etc/systemd/system/frpc.service"
+                echo "[Unit]" > /etc/systemd/system/frpc.service
+                echo "Description=frp server" >> /etc/systemd/system/frpc.service
+                echo "After=network.target syslog.target" >> /etc/systemd/system/frpc.service
+                echo "Wants=network.target" >> /etc/systemd/system/frpc.service
+                echo "" >> /etc/systemd/system/frpc.service
+                echo "[Service]" >> /etc/systemd/system/frpc.service
+                echo "Type=simple" >> /etc/systemd/system/frpc.service
+                echo "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" >> /etc/systemd/system/frpc.service
+                echo "" >> /etc/systemd/system/frpc.service
+                echo "[Install]" >> /etc/systemd/system/frpc.service
+                echo "WantedBy=multi-user.target" >> /etc/systemd/system/frpc.service
             fi
-            read -e -p "请输入服务端的端口号: " serverPort
-            if [ -n "$serverPort" ]; then
-                echo "serverPort = $serverPort" >> $frp_dir/frpc.toml
-            fi
-            read -e -p "请输入服务端的TOKEN: " authToken
-            if [ -n "$authToken" ]; then
-                echo "auth.token = \"$authToken\"" >> $frp_dir/frpc.toml
-            fi
-            while true; do
-            remind1p
-            echo "传输协议类型: 1.tcp  2.kcp  3.quic  4.websocket  5.wss"
-            read -e -p "请先择 (1/2/3/4/5/C取消): " -n 2 -r choice && echoo
-                case $choice in
-                    1|11)
-                        en_network="tcp"
-                        break
-                        ;;
-                    2|22)
-                        en_network="kcp"
-                        break
-                        ;;
-                    3|33)
-                        en_network="quic"
-                        break
-                        ;;
-                    4|44)
-                        en_network="websocket"
-                        break
-                        ;;
-                    5|55)
-                        en_network="wss"
-                        break
-                        ;;
-                    c|cc|C|CC)
-                        break 2
-                        ;;
-                    *)
-                        etag=1
-                        ;;
-                esac
-            done
-            if [ -n "$choice" ]; then
-                echo "transport.protocol = \"$en_network\"" >> $frp_dir/frpc.toml
-            fi
-            read -e -p "是否开启TCP多路复用, 回车默认开启/N: " tmyn
-            if [ ! "$tmyn" = "n" ] && [ ! "$tmyn" = "N" ]; then
-                echo "transport.tcpMux = true" > "$frp_dir/frpc.toml"
+            if [ -s $frp_dir/frpc.toml ]; then
+                echo -e "${colored_text1}${NC}"
+                cat "$frp_dir/frpc.toml"
+                echo -e "${colored_text1}${NC}"
+                echo -e "配置文件已经存在. 1.添加客户端 2.手动修改 3.删除配置文件(${GR}重新配置${NC}) 4.回车取消, 请选择操作类型: \c"
+                read choice
+                if [ "$choice" == "1" ]; then
+                    echo "你选择了添加客户端"
+                    # name = "PandoraNext"
+                    # type = "tcp"
+                    # localIP = "10.0.0.100"
+                    # localPort = 8181
+                    # remotePort = 7002
+                    read -e -p "请输入客户端名称: " pname
+                    while true; do
+                    remind1p
+                    echo "传输协议类型: 1.tcp  2.kcp  3.quic  4.websocket  5.wss"
+                    read -e -p "请先择 (1/2/3/4/5/C取消): " -n 2 -r choice && echoo
+                        case $choice in
+                            1|11)
+                                en_network="tcp"
+                                break
+                                ;;
+                            2|22)
+                                en_network="kcp"
+                                break
+                                ;;
+                            3|33)
+                                en_network="quic"
+                                break
+                                ;;
+                            4|44)
+                                en_network="websocket"
+                                break
+                                ;;
+                            5|55)
+                                en_network="wss"
+                                break
+                                ;;
+                            c|cc|C|CC)
+                                break 2
+                                ;;
+                            *)
+                                etag=1
+                                ;;
+                        esac
+                    done
+                    read -e -p "请输入本地IP地址: " lIP
+                    read -e -p "请输入本地端口号: " lPort
+                    read -e -p "请输入远程端口号: " rPort
+                    echo "" >> "$frp_dir/frpc.toml"
+                    echo "[[proxies]]" >> "$frp_dir/frpc.toml"
+                    echo "name = \"$pname\"" >> "$frp_dir/frpc.toml"
+                    echo "type = \"$en_network\"" >> "$frp_dir/frpc.toml"
+                    echo "localIP = \"$lIP\"" >> "$frp_dir/frpc.toml"
+                    echo "localPort = $lPort" >> "$frp_dir/frpc.toml"
+                    echo "remotePort = $rPort" >> "$frp_dir/frpc.toml"
+                elif [ "$choice" == "2" ]; then
+                    if [ "$(command -v nano)" ]; then
+                        nano $frp_dir/frpc.toml
+                    else
+                        vi $frp_dir/frpc.toml
+                    fi
+                elif [ "$choice" == "3" ]; then
+                    rm -f "$frp_dir/frpc.toml"
+                    echo "已经删除配置文件$frp_dir/frpc.toml, 请选择选项1重新配置."
+                else
+                    echo "取消操作."
+                fi
             else
-                echo "transport.tcpMux = false" > "$frp_dir/frpc.toml"
+                read -e -p "请输入服务端的IP地址: " serverAddr
+                read -e -p "请输入服务端的端口号: " serverPort
+                while true; do
+                remind1p
+                echo "传输协议类型: 1.tcp  2.kcp  3.quic  4.websocket  5.wss"
+                read -e -p "请先择 (1/2/3/4/5/C取消): " -n 2 -r choice && echoo
+                    case $choice in
+                        1|11)
+                            en_network="tcp"
+                            break
+                            ;;
+                        2|22)
+                            en_network="kcp"
+                            break
+                            ;;
+                        3|33)
+                            en_network="quic"
+                            break
+                            ;;
+                        4|44)
+                            en_network="websocket"
+                            break
+                            ;;
+                        5|55)
+                            en_network="wss"
+                            break
+                            ;;
+                        c|cc|C|CC)
+                            break 2
+                            ;;
+                        *)
+                            etag=1
+                            ;;
+                    esac
+                done
+                if [ -n "$serverAddr" ]; then
+                    echo "serverAddr = \"$serverAddr\"" > "$frp_dir/frpc.toml"
+                fi
+                if [ -n "$serverPort" ]; then
+                    echo "serverPort = $serverPort" >> $frp_dir/frpc.toml
+                fi
+                if [ -n "$choice" ]; then
+                    echo "transport.protocol = \"$en_network\"" >> $frp_dir/frpc.toml
+                fi
+                read -e -p "请输入服务端的TOKEN: " authToken
+                if [ -n "$authToken" ]; then
+                    echo "auth.token = \"$authToken\"" >> $frp_dir/frpc.toml
+                fi
+                read -e -p "是否开启TCP多路复用, 回车默认开启/N: " tmyn
+                if [ ! "$tmyn" = "n" ] && [ ! "$tmyn" = "N" ]; then
+                    echo "transport.tcpMux = true" >> "$frp_dir/frpc.toml"
+                else
+                    echo "transport.tcpMux = false" >> "$frp_dir/frpc.toml"
+                fi
+                echo "本脚本只配置可运行的基本信息, 如果需要更多的配置, 请阅读官方文档: https://gofrp.org/zh-cn/docs/reference/client-configures/ 并手动添加."
             fi
-            echo "本脚本只配置可运行的基本信息, 如果需要更多的配置, 请阅读官方文档: https://gofrp.org/zh-cn/docs/reference/client-configures/ 并手动添加."
-
-            echo "添加访问端/客户端/节点"
+            read -e -p "配置完成, 是否启动/重启FRPC服务? 回车默认开启/N" choice
+            if [ ! "$choice" = "n" ] && [ ! "$choice" = "N" ]; then
+                if command -v systemctl &>/dev/null; then
+                    if netstat -untlp | grep -q "frpc"; then
+                        sudo systemctl restart frpc
+                    else
+                        sudo systemctl start frpc
+                    fi
+                    sudo systemctl enable frpc
+                    systemctl daemon-reload
+                elif command -v opkg &>/dev/null; then
+                    if netstat -untlp | grep -q "frpc"; then
+                        killall -9 frpc
+                    fi
+                    nohup frpc -c "$frp_dir/frpc.toml" > "$frp_dir/frpc.log" 2>&1 &
+                    cat "nohup.out"
+                    ps -ef | grep "frpc"
+                fi
+            fi
             waitfor
             ;;
         2|22)
