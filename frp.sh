@@ -152,7 +152,30 @@ if [ -f "$frp_dir/1.x" ]; then
     read -e -p "请输入你的选择: " -n 2 -r choice && echoo
     case $choice in
         1|11)
-            if [ -f "$frp_dir/frps" ] || [ "$(command -v frps)" ]; then
+            if [ ! -f "$frp_dir/frps" ] && [ ! "$(command -v frps)" ]; then
+                echo "请先运行选项 + 进行安装。"
+                waitfor
+                break
+            fi
+            if [ -s $frp_dir/frps.toml ]; then
+                echo -e "${colored_text1}${NC}"
+                cat "$frp_dir/frps.toml"
+                echo -e "${colored_text1}${NC}"
+                echo -e "配置文件已经存在. 1.手动修改 2.删除配置文件(${GR}重新配置${NC}) 3.回车取消, 请选择操作类型: \c"
+                read choice
+                if [ "$choice" == "1" ]; then
+                    if [ "$(command -v nano)" ]; then
+                        nano $frp_dir/frps.toml
+                    else
+                        vi $frp_dir/frps.toml
+                    fi
+                elif [ "$choice" == "2" ]; then
+                    rm -f "$frp_dir/frps.toml"
+                    echo "已经删除配置文件$frp_dir/frps.toml, 请选择选项1重新配置."
+                else
+                    echo "取消操作."
+                fi
+            else
                 if [ ! -f "$frp_dir/frps.toml" ]; then
                     touch "$frp_dir/frps.toml"
                 fi
@@ -250,12 +273,9 @@ if [ -f "$frp_dir/1.x" ]; then
                         cat "nohup.out"
                         ps -ef | grep "frps"
                     fi
-                    waitfor
                 fi
-            else
-                echo "请先运行选项 + 进行安装。"
-                waitfor
             fi
+            waitfor
             ;;
         2|22)
             if [ "$(command -v nano)" ]; then
@@ -442,12 +462,6 @@ elif [ -f "$frp_dir/2.x" ]; then
                 echo -e "配置文件已经存在. 1.添加客户端 2.手动修改 3.删除配置文件(${GR}重新配置${NC}) 4.回车取消, 请选择操作类型: \c"
                 read choice
                 if [ "$choice" == "1" ]; then
-                    echo "你选择了添加客户端"
-                    # name = "PandoraNext"
-                    # type = "tcp"
-                    # localIP = "10.0.0.100"
-                    # localPort = 8181
-                    # remotePort = 7002
                     read -e -p "请输入客户端名称: " pname
                     while true; do
                     remind1p
@@ -505,6 +519,9 @@ elif [ -f "$frp_dir/2.x" ]; then
                     echo "取消操作."
                 fi
             else
+                if [ ! -f "$frp_dir/frpc.toml" ]; then
+                    touch "$frp_dir/frpc.toml"
+                fi
                 read -e -p "请输入服务端的IP地址: " serverAddr
                 read -e -p "请输入服务端的端口号: " serverPort
                 while true; do
@@ -560,42 +577,43 @@ elif [ -f "$frp_dir/2.x" ]; then
                     echo "transport.tcpMux = false" >> "$frp_dir/frpc.toml"
                 fi
                 echo "本脚本只配置可运行的基本信息, 如果需要更多的配置, 请阅读官方文档: https://gofrp.org/zh-cn/docs/reference/client-configures/ 并手动添加."
-            fi
-            read -e -p "配置完成, 是否启动/重启FRPC服务? Y/回车默认不开启 : " choice
-            if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
-                if command -v systemctl &>/dev/null; then
-                    service_frpc_file="/etc/systemd/system/frpc.service"
-                    if [ ! -f "$service_frpc_file" ] || ! grep -q "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" "$service_frpc_file"; then
-                        if [ ! -e "$service_frpc_file" ]; then
-                            touch "$service_frpc_file"
+                read -e -p "配置完成, 是否启动/重启FRPC服务? Y/回车默认不开启 : " choice
+                if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
+                    if command -v systemctl &>/dev/null; then
+                        service_frpc_file="/etc/systemd/system/frpc.service"
+                        if [ ! -f "$service_frpc_file" ] || ! grep -q "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" "$service_frpc_file"; then
+                            if [ ! -e "$service_frpc_file" ]; then
+                                touch "$service_frpc_file"
+                            fi
+                            echo "[Unit]" > /etc/systemd/system/frpc.service
+                            echo "Description=frp server" >> /etc/systemd/system/frpc.service
+                            echo "After=network.target syslog.target" >> /etc/systemd/system/frpc.service
+                            echo "Wants=network.target" >> /etc/systemd/system/frpc.service
+                            echo "" >> /etc/systemd/system/frpc.service
+                            echo "[Service]" >> /etc/systemd/system/frpc.service
+                            echo "Type=simple" >> /etc/systemd/system/frpc.service
+                            echo "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" >> /etc/systemd/system/frpc.service
+                            echo "" >> /etc/systemd/system/frpc.service
+                            echo "[Install]" >> /etc/systemd/system/frpc.service
+                            echo "WantedBy=multi-user.target" >> /etc/systemd/system/frpc.service
                         fi
-                        echo "[Unit]" > /etc/systemd/system/frpc.service
-                        echo "Description=frp server" >> /etc/systemd/system/frpc.service
-                        echo "After=network.target syslog.target" >> /etc/systemd/system/frpc.service
-                        echo "Wants=network.target" >> /etc/systemd/system/frpc.service
-                        echo "" >> /etc/systemd/system/frpc.service
-                        echo "[Service]" >> /etc/systemd/system/frpc.service
-                        echo "Type=simple" >> /etc/systemd/system/frpc.service
-                        echo "ExecStart=$frp_dir/frpc -c $frp_dir/frpc.toml" >> /etc/systemd/system/frpc.service
-                        echo "" >> /etc/systemd/system/frpc.service
-                        echo "[Install]" >> /etc/systemd/system/frpc.service
-                        echo "WantedBy=multi-user.target" >> /etc/systemd/system/frpc.service
+                        if netstat -untlp | grep -q "frpc"; then
+                            sudo systemctl restart frpc
+                        else
+                            sudo systemctl start frpc
+                        fi
+                        sudo systemctl enable frpc
+                        systemctl daemon-reload
+                    elif command -v opkg &>/dev/null; then
+                        if netstat -untlp | grep -q "frpc"; then
+                            killall -9 frpc
+                        fi
+                        nohup frpc -c "$frp_dir/frpc.toml" > "$frp_dir/frpc.log" 2>&1 &
+                        cat "nohup.out"
+                        ps -ef | grep "frpc"
                     fi
-                    if netstat -untlp | grep -q "frpc"; then
-                        sudo systemctl restart frpc
-                    else
-                        sudo systemctl start frpc
-                    fi
-                    sudo systemctl enable frpc
-                    systemctl daemon-reload
-                elif command -v opkg &>/dev/null; then
-                    if netstat -untlp | grep -q "frpc"; then
-                        killall -9 frpc
-                    fi
-                    nohup frpc -c "$frp_dir/frpc.toml" > "$frp_dir/frpc.log" 2>&1 &
-                    cat "nohup.out"
-                    ps -ef | grep "frpc"
                 fi
+                echo -e "配置完成, 如需要添加客户端请${GR}再次运行${NC}选项 ${GR}1${NC} ."
             fi
             waitfor
             ;;
