@@ -1,5 +1,4 @@
 #!/bin/bash
-
 export LANG="en_US.UTF-8"
 BK='\033[0;30m'
 RE='\033[0;31m'
@@ -740,6 +739,9 @@ elif [ -f "$frp_dir/2.x" ]; then
             onlyone=0
             ;;
         o|O|oo|OO)
+            echo "调试阶段避免误操作, 已经禁止自动更新, 如需更新请执行以下指令: "
+            echo "curl -o frp.sh https://raw.githubusercontent.com/redstarxxx/shell/main/frp.sh && chmod +x frp.sh && ./frp.sh"
+            waitfor
             onlyone=0
             ;;
         x|X|xx|XX)
