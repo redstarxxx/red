@@ -78,7 +78,7 @@ if $all_zero; then
 else
     if ! ps aux | grep -q '[w]orldserver'; then
         echo "worldserver 进程未运行，执行开启."
-		nohup ./worldserver > worldserver.log 2>&1 &
+	nohup ./worldserver > worldserver.log 2>&1 &
     else
         echo "worldserver 正在运行中."
     fi
