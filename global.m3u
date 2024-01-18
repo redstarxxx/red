@@ -93,11 +93,13 @@ https://cntv.sbs/tv?auth=2310201855&id=xmws
 http://222.71.90.218:8888/newlive/live/hls/23/live.m3u8
 #EXTINF:-1 tvg-id="南方卫视" tvg-name="南方卫视" tvg-logo="https://live.fanmingming.com/tv/南方卫视.png" group-title="卫视",南方卫视
 http://39.134.24.162/dbiptv.sn.chinamobile.com/PLTV/88888890/224/3221226218/index.m3u8
-#EXTINF:-1 tvg-id="南方卫视" tvg-name="南方卫视2" tvg-logo="https://live.fanmingming.com/tv/南方卫视.png" group-title="卫视",南方卫视2
+#EXTINF:-1 tvg-id="南方卫视2" tvg-name="南方卫视2" tvg-logo="https://live.fanmingming.com/tv/南方卫视.png" group-title="卫视",南方卫视2
 http://gxdl-lhs.8866.org:85/tsfile/live/1002_1.m3u8?key=txiptv&playlive=1&authid=0
+#EXTINF:-1 tvg-id="南方卫视3" tvg-name="南方卫视3" tvg-logo="https://live.fanmingming.com/tv/南方卫视.png" group-title="卫视",南方卫视3
+http://dbiptv.sn.chinamobile.com/PLTV/88888890/224/3221226218/index.m3u8
 #EXTINF:-1 tvg-id="深圳卫视" tvg-name="深圳卫视" tvg-logo="https://live.fanmingming.com/tv/深圳卫视.png" group-title="卫视",深圳卫视
 http://222.71.90.218:8888/newlive/live/hls/24/live.m3u8
-#EXTINF:-1 tvg-id="深圳卫视" tvg-name="深圳卫视2" tvg-logo="https://live.fanmingming.com/tv/深圳卫视.png" group-title="卫视",深圳卫视2
+#EXTINF:-1 tvg-id="深圳卫视2" tvg-name="深圳卫视2" tvg-logo="https://live.fanmingming.com/tv/深圳卫视.png" group-title="卫视",深圳卫视2
 http://101.33.17.11/liveplay-kk.rtxapp.com/live/program/live/szwshd8m/8000000/mnf.m3u8
 #EXTINF:-1 tvg-id="广西卫视" tvg-name="广西卫视" tvg-logo="https://live.fanmingming.com/tv/广西卫视.png" group-title="卫视",广西卫视
 http://222.71.90.218:8888/newlive/live/hls/40/live.m3u8
