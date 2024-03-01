@@ -319,7 +319,7 @@ SetupCPU_TG() {
 
 count=0
 while true; do
-    cpu_usage=\$(sar -u 1 1 | awk '\$9 ~ /[0-9.]+/ { print 100 - \$9 }')
+    cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { print 100 - \$8 }')
     if (( cpu_usage > $threshold )); then
         (( count++ ))
     else
