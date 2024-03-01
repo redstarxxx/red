@@ -18,9 +18,9 @@ if [ "$UID" -ne 0 ]; then
 fi
 
 # 导入参数
-if [ -f /root/.shfile/TelgramBot.ini ]; then
-    source /root/.shfile/TelgramBot.ini
-fi
+# if [ -f /root/.shfile/TelgramBot.ini ]; then
+#     source /root/.shfile/TelgramBot.ini
+# fi
 
 # 颜色代码
 GR="\033[32m" && RE="\033[31m" && GRB="\033[42;37m" && REB="\033[41;37m" && NC="\033[0m"
@@ -31,7 +31,7 @@ Tip="${GR}[提示]${NC}:"
 # 创建.shfile目录
 CheckAndCreateFold() {
     if [ ! -d "/root/.shfile" ]; then
-        sudo mkdir -p "/root/.shfile"
+        mkdir -p "/root/.shfile"
     fi
     if [ -f /root/.shfile/TelgramBot.ini ]; then
         source /root/.shfile/TelgramBot.ini
@@ -81,7 +81,7 @@ CheckSys() {
 CheckRely() {
     # 检查并安装依赖
     echo "检查并安装依赖..."
-    declare -a dependencies=("sudo" "sed" "passwd" "hostnamectl" "grep")
+    declare -a dependencies=("sed" "passwd" "hostnamectl" "grep")
     missing_dependencies=()
     for dep in "${dependencies[@]}"; do
         if ! command -v "$dep" &>/dev/null; then
@@ -185,7 +185,7 @@ SetupBoot_TG() {
     chmod +x /root/.shfile/tg_boot.sh
     if command -v systemd &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-            sudo cat <<EOF > /etc/systemd/system/tg_boot.service
+            cat <<EOF > /etc/systemd/system/tg_boot.service
 [Unit]
 Description=Run tg_boot.sh script at boot time
 After=network.target
@@ -244,7 +244,7 @@ SetupShutdown_TG() {
     chmod +x /root/.shfile/tg_shutdown.sh
     if command -v systemd &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-            sudo cat <<EOF > /etc/systemd/system/tg_shutdown.service
+            cat <<EOF > /etc/systemd/system/tg_shutdown.service
 [Unit]
 Description=tg_shutdown
 DefaultDependencies=no
@@ -275,7 +275,7 @@ EOF
 SetupDocker_TG() {
     if command -v docker &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-            sudo cat <<EOF > /root/.shfile/tg_docker.sh
+            cat <<EOF > /root/.shfile/tg_docker.sh
 #!/bin/bash
 
 old_message=""
@@ -322,10 +322,10 @@ UnsetupAll() {
     rm -rf /root/.shfile
     crontab -l | grep -v "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
     if [ -f /etc/bash.bashrc ]; then
-        sudo sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
+        sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
     fi
     if [ -f /etc/profile ]; then
-        sudo sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
+        sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
     fi
     echo "已经成功删除所有通知."
 }
