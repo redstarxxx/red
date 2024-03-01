@@ -390,7 +390,7 @@ case "$num" in
 	;;
 	d|D)
     UnsetupAll
-	Pause
+	exit 0
 	;;
 	x|X)
 	exit 0
