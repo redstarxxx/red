@@ -98,7 +98,7 @@ CheckRely() {
             elif [ -x "$(command -v yum)" ]; then
                 yum install -y "${missing_dependencies[@]}"
             else
-                echo -e "$Tip 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
+                echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
             fi
         else
             echo -e "$Tip 已跳过安装."
@@ -279,20 +279,16 @@ SetupDocker_TG() {
 #!/bin/bash
 
 old_message=""
-
 while true; do
     new_message=\$(docker ps --format '{{.Names}}' | tr '\n' "\n" | sed 's/|$//')
-    
     if [ "\$new_message" != "\$old_message" ]; then
         old_message=\$new_message
         message="Docker List:"\$'\n'"\$new_message"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
     fi
-    
     sleep 10
 done
 EOF
-
             chmod +x /root/.shfile/tg_docker.sh
             echo "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
             ShowContents "/root/.shfile/tg_docker.sh"
@@ -302,6 +298,49 @@ EOF
         fi
     else
         echo -e "$Err 未检测到 \"Docker\" 程序."
+    fi
+}
+
+SetupCPU_TG() {
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+        threshold=70
+        if ! command -v sar &>/dev/null; then
+            echo "正在安装缺失的依赖 sar, 一个获取 CPU 工作状态的专业工具."
+            if [ -x "$(command -v apt)" ]; then
+                apt -y install sysstat
+            elif [ -x "$(command -v yum)" ]; then
+                yum -y install sysstat
+            else
+                echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
+            fi
+        fi
+        cat <<EOF > /root/.shfile/tg_cpu.sh
+#!/bin/bash
+
+count=0
+while true; do
+    cpu_usage=\$(sar -u 1 1 | awk '\$9 ~ /[0-9.]+/ { print 100 - \$9 }')
+    if (( cpu_usage > $threshold )); then
+        (( count++ ))
+    else
+        count=0
+    fi
+    if (( count >= 3 )); then
+        message="警告：CPU 使用率连续三次超过 $threshold%，当前使用率为 \$cpu_usage%"
+        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
+        count=0  # 发送警告后重置计数器
+    fi
+    echo "程序正在运行中，目前 CPU 使用率为: \$cpu_usage%"
+    sleep 5
+done
+EOF
+        chmod +x /root/.shfile/tg_cpu.sh
+        nohup /root/.shfile/tg_cpu.sh > /root/.shfile/tg_cpu.log 2>&1 &
+        echo "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
+        ShowContents "/root/.shfile/tg_cpu.sh"
+        echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $threshold 时, 你的 Telgram 将收到通知."
+    else
+        echo -e "$Err \"Telgram BOT Token\" 或 \"Chat ID\" 为空, 请设置(0选项)后再执行."
     fi
 }
 
@@ -319,14 +358,16 @@ UnsetupAll() {
     # fi
     sleep 1
     rm -f /etc/systemd/system/tg_shutdown.service
-    rm -rf /root/.shfile
+    pkill tg_cpu
     crontab -l | grep -v "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
+    crontab -l | grep -v "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
     if [ -f /etc/bash.bashrc ]; then
         sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
     fi
     if [ -f /etc/profile ]; then
         sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
     fi
+    rm -rf /root/.shfile
     echo "已经成功删除所有通知."
 }
 
@@ -343,7 +384,8 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
  ${GR}2.${NC} 一键设置 ${GR}[开机]${NC} Telgram 通知
  ${GR}3.${NC} 一键设置 ${GR}[登陆]${NC} Telgram 通知
  ${GR}4.${NC} 一键设置 ${GR}[关机]${NC} Telgram 通知
- ${GR}5.${NC} 一键设置 ${GR}[Docker 变更]${NC} Telgram 通知
+ ${GR}5.${NC} 一键设置 ${GR}[CPU 使用率]${NC} Telgram 通知
+ ${GR}6.${NC} 一键设置 ${GR}[Docker 变更]${NC} Telgram 通知
  ———————————————————————————————————————
  ${GR}d.${NC} 一键取消并删除所有通知设置
 ———————————————————————————————————————
@@ -378,6 +420,11 @@ case "$num" in
     Pause
     ;;
     5)
+    CheckAndCreateFold
+    SetupCPU_TG
+    Pause
+    ;;
+    6)
     CheckAndCreateFold
     SetupDocker_TG
     Pause
