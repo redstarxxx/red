@@ -335,6 +335,7 @@ while true; do
 done
 EOF
         chmod +x /root/.shfile/tg_cpu.sh
+        pkill tg_cpu.sh
         nohup /root/.shfile/tg_cpu.sh > /root/.shfile/tg_cpu.log 2>&1 &
         echo "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
         ShowContents "/root/.shfile/tg_cpu.sh"
