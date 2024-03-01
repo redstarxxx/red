@@ -13,3 +13,8 @@ mkdir -p /root/.tse/ && curl -o /root/.tse/tse.sh https://raw.githubusercontent.
 OC:
 
 curl -o oc.sh https://raw.githubusercontent.com/redstarxxx/shell/main/oc.sh && chmod +x oc.sh && bash oc.sh @ 
+
+VPSKeeper:
+
+bash -c "$(curl -L https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh)"
+
