@@ -319,7 +319,7 @@ SetupCPU_TG() {
 
 count=0
 while true; do
-    cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { print 100 - \$8 }')
+    cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$8 }')
     if (( cpu_usage > $threshold )); then
         (( count++ ))
     else
@@ -335,7 +335,6 @@ while true; do
 done
 EOF
         chmod +x /root/.shfile/tg_cpu.sh
-        pkill tg_cpu.sh
         nohup /root/.shfile/tg_cpu.sh > /root/.shfile/tg_cpu.log 2>&1 &
         echo "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
         ShowContents "/root/.shfile/tg_cpu.sh"
