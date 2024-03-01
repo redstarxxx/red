@@ -285,7 +285,7 @@ while true; do
     
     if [ "\$new_message" != "\$old_message" ]; then
         old_message=\$new_message
-        message="Docker List:"\$'\n'\"\$new_message"
+        message="Docker List:"\$'\n'"\$new_message"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
     fi
     
