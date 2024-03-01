@@ -358,16 +358,16 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
 $Tip 使用前请先执行 0 确保依赖完整和完成 Telgram 机器人设置." && echo
 read -e -p "请输入数字 [0-4]:" num
 case "$num" in
-	0)
+    0)
     CheckAndCreateFold
     CheckRely
     SetupTelgramBot
-	Pause
-	;;
-	1)
+    Pause
+    ;;
+    1)
     ModifyHostname
-	Pause
-	;;
+    Pause
+    ;;
     2)
     CheckAndCreateFold
     SetupBoot_TG
@@ -378,26 +378,26 @@ case "$num" in
     SetupLogin_TG
     Pause
     ;;
-	4)
+    4)
     CheckAndCreateFold
     SetupShutdown_TG
-	Pause
-	;;
-	5)
+    Pause
+    ;;
+    5)
     CheckAndCreateFold
     SetupDocker_TG
-	Pause
-	;;
-	d|D)
+    Pause
+    ;;
+    d|D)
     UnsetupAll
-	exit 0
-	;;
-	x|X)
-	exit 0
-	;;
-	*)
-	echo "请输入正确数字 [0-4]"
-	;;
+    exit 0
+    ;;
+    x|X)
+    exit 0
+    ;;
+    *)
+    echo "请输入正确数字 [0-4]"
+    ;;
 esac
 done
 # END
