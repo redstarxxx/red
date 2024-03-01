@@ -81,7 +81,7 @@ CheckSys() {
 CheckRely() {
     # 检查并安装依赖
     echo "检查并安装依赖..."
-    declare -a dependencies=("sed" "passwd" "hostnamectl" "grep")
+    declare -a dependencies=("sed" "passwd" "hostnamectl" "grep" "systemd")
     missing_dependencies=()
     for dep in "${dependencies[@]}"; do
         if ! command -v "$dep" &>/dev/null; then
