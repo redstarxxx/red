@@ -33,6 +33,11 @@ CheckAndCreateFold() {
     if [ ! -d "/root/.shfile" ]; then
         sudo mkdir -p "/root/.shfile"
     fi
+    if [ -f /root/.shfile/TelgramBot.ini ]; then
+        source /root/.shfile/TelgramBot.ini
+    else
+        touch /root/.shfile/TelgramBot.ini
+    fi
 }
 
 # 清屏
@@ -106,9 +111,9 @@ CheckRely() {
 }
 
 SetupTelgramBot() {
-    if [ ! -f /root/.shfile/TelgramBot.ini ]; then
-        touch /root/.shfile/TelgramBot.ini
-    fi
+    # if [ ! -f /root/.shfile/TelgramBot.ini ]; then
+    #     touch /root/.shfile/TelgramBot.ini
+    # fi
     # echo -e "$Tip Telgram BOT Token 即为电报机器人 Token,"
     echo -e "$Tip Token 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
     # echo -e "$Tip 根据提示操作后最终获得电报机器人 Token"
@@ -275,20 +280,28 @@ EOF
 SetupDocker_TG() {
     if command -v docker &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-            echo "\
-            old_message=\"\" \
-            while true; do \
-                new_message=\$(docker ps --format '{{.Names}}' | tr '\n' \"\\n\" | sed 's/|$//') \
-                if [ \"\$new_message\" != \"\$old_message\" ]; then \
-                    old_message=\$new_message \
-                    message=\"Docker List:\"\$'\\n'\"\$new_message\" \
-                    curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$message\" \
-                fi \
-                sleep 10 \
-            done" \
-            > /root/.shfile/tg_docker.sh
+        sudo cat <<EOF > /root/.shfile/tg_docker.sh
+
+#!/bin/bash
+
+old_message=""
+
+while true; do
+    new_message=\$(docker ps --format '{{.Names}}' | tr '\n' "\n" | sed 's/|$//')
+    
+    if [ "\$new_message" != "\$old_message" ]; then
+        old_message=\$new_message
+        message="Docker List:"\$'\n'\"\$new_message"
+        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
+    fi
+    
+    sleep 10
+done
+EOF
+
             chmod +x /root/.shfile/tg_docker.sh
             echo "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
+            ShowContents "/root/.shfile/tg_docker.sh"
             echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
         else
             echo -e "$Err \"Telgram BOT Token\" 或 \"Chat ID\" 为空, 请设置(0选项)后再执行."
@@ -324,7 +337,7 @@ UnsetupAll() {
 }
 
 # 以下为主程序
-CheckSys
+# CheckSys
 while true; do
 CLS
 echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
