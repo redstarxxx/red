@@ -59,22 +59,22 @@ Pause() {
 
 # 检测系统
 CheckSys() {
-	if [[ -f /etc/redhat-release ]]; then
-		release="centos"
-	elif cat /etc/issue | grep -q -E -i "debian"; then
-		release="debian"
-	elif cat /etc/issue | grep -q -E -i "ubuntu"; then
-		release="ubuntu"
-	elif cat /etc/issue | grep -q -E -i "centos|red hat|redhat"; then
-		release="centos"
-	elif cat /proc/version | grep -q -E -i "debian"; then
-		release="debian"
-	elif cat /proc/version | grep -q -E -i "ubuntu"; then
-		release="ubuntu"
-	elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
-		release="centos"
+    if [[ -f /etc/redhat-release ]]; then
+        release="centos"
+    elif cat /etc/issue | grep -q -E -i "debian"; then
+        release="debian"
+    elif cat /etc/issue | grep -q -E -i "ubuntu"; then
+        release="ubuntu"
+    elif cat /etc/issue | grep -q -E -i "centos|red hat|redhat"; then
+        release="centos"
+    elif cat /proc/version | grep -q -E -i "debian"; then
+        release="debian"
+    elif cat /proc/version | grep -q -E -i "ubuntu"; then
+        release="ubuntu"
+    elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
+        release="centos"
     fi
-	#bit=`uname -m`
+    #bit=`uname -m`
 }
 
 # 检测依赖
@@ -83,13 +83,11 @@ CheckRely() {
     echo "检查并安装依赖..."
     declare -a dependencies=("sudo" "sed" "passwd" "hostnamectl" "grep")
     missing_dependencies=()
-
     for dep in "${dependencies[@]}"; do
         if ! command -v "$dep" &>/dev/null; then
             missing_dependencies+=("$dep")
         fi
     done
-
     if [ ${#missing_dependencies[@]} -gt 0 ]; then
         echo -e "$Tip 以下依赖未安装: ${missing_dependencies[*]}"
         read -p "是否要安装依赖 Y/其它 : " yorn
@@ -188,7 +186,6 @@ SetupBoot_TG() {
     if command -v systemd &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
             sudo cat <<EOF > /etc/systemd/system/tg_boot.service
-
 [Unit]
 Description=Run tg_boot.sh script at boot time
 After=network.target
@@ -212,8 +209,6 @@ EOF
     else
         echo -e "$Err 系统未检测到 \"systemd\" 程序, 无法设置关闭通知."
     fi
-
-
 }
 
 SetupLogin_TG() {
@@ -280,8 +275,7 @@ EOF
 SetupDocker_TG() {
     if command -v docker &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-        sudo cat <<EOF > /root/.shfile/tg_docker.sh
-
+            sudo cat <<EOF > /root/.shfile/tg_docker.sh
 #!/bin/bash
 
 old_message=""
