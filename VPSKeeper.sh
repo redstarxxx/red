@@ -646,8 +646,8 @@ $Tip 使用前请先执行 0 确保依赖完整和完成 Telgram 机器人设置
 read -e -p "请输入数字 [0-4]:" num
 case "$num" in
     0)
-    SourceAndShowINI
     CheckAndCreateFold
+    SourceAndShowINI
     CheckRely
     SetupTelgramBot
     SetupThreshold
