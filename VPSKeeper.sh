@@ -243,11 +243,13 @@ SetupThreshold() {
 
 # 用于显示内容（调试用）
 SourceAndShowINI() {
-    source /root/.shfile/TelgramBot.ini
-    echo "------------------------------------"
-    cat /root/.shfile/TelgramBot.ini
-    echo "------------------------------------"
-    echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可执行(0.选项)或手动修改参数."
+    if [ -f /root/.shfile/TelgramBot.ini ]; then
+        source /root/.shfile/TelgramBot.ini
+        echo "------------------------------------"
+        cat /root/.shfile/TelgramBot.ini
+        echo "------------------------------------"
+        echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可执行(0.选项)或手动修改参数."
+    fi
 }
 
 # 发送Telegram消息的函数
