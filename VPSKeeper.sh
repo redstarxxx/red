@@ -639,13 +639,13 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
  ${GR}5.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag   $flow_menu_tag
  ${GR}6.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知            $docker_menu_tag
  ———————————————————————————————————————
- ${GR}t.${NC} 发送测试 - 用以检验 Telgram 的参数设置
- ${GR}h.${NC} 修改 Hostname
+ ${GR}t.${NC} 测试 - 发送一条信息用以检验参数设置
+ ${GR}h.${NC} 修改 - Hostname 以此作为主机标记
  ${GR}d.${NC} 取消 / 删除 通知设置
 ———————————————————————————————————————
  ${GR}x.${NC} 退出脚本
 ————————————
-$Tip 使用前请先执行 0 确保依赖完整和完成 Telgram 机器人设置." && echo
+$Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && echo
 read -e -p "请输入选项 [0-6,t,h,d]:" num
 case "$num" in
     0)
