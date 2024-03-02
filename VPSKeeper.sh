@@ -81,7 +81,7 @@ CheckSys() {
 CheckRely() {
     # 检查并安装依赖
     echo "检查并安装依赖..."
-    declare -a dependencies=("sed" "passwd" "hostnamectl" "grep" "systemd")
+    declare -a dependencies=("sed" "grep" "hostnamectl" "systemd")
     missing_dependencies=()
     for dep in "${dependencies[@]}"; do
         if ! command -v "$dep" &>/dev/null; then
@@ -109,13 +109,10 @@ CheckRely() {
 }
 
 SetupTelgramBot() {
-    # if [ ! -f /root/.shfile/TelgramBot.ini ]; then
-    #     touch /root/.shfile/TelgramBot.ini
-    # fi
     # echo -e "$Tip Telgram BOT Token 即为电报机器人 Token,"
     echo -e "$Tip Token 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
     # echo -e "$Tip 根据提示操作后最终获得电报机器人 Token"
-    read -p "请输入 Telgram BOT Token : " bottoken
+    read -p "请输入 Telgram BOT Token (回车跳过): " bottoken
     if [ ! -z "$bottoken" ]; then
         if grep -q "^TelgramBotToken=" /root/.shfile/TelgramBot.ini; then
             sed -i "/^TelgramBotToken=/d" /root/.shfile/TelgramBot.ini
@@ -123,26 +120,64 @@ SetupTelgramBot() {
         echo "TelgramBotToken=$bottoken" >> /root/.shfile/TelgramBot.ini
         echo -e "$Tip 已将 Token 写入 /root/.shfile/TelgramBot.ini 文件中."
     else
-        echo "输入为空, 跳过操作."
+        echo -e "$Tip 输入为空, 跳过操作."
     fi
     # echo -e "$Tip Chat ID 即为接收电报信息的用户 ID,"
     echo -e "$Tip ID 获取方法: 在 Telgram 中添加机器人 @userinfobot, 点击或输入: /start"
     # echo -e "$Tip 显示的第二行 Id 即为你的用户 ID."
-    read -p "请输入 Chat ID : " cahtid
+    read -p "请输入 Chat ID : (回车跳过)" cahtid
     if [ ! -z "$cahtid" ]; then
-        if grep -q "^ChatID_1=" /root/.shfile/TelgramBot.ini; then
-            sed -i "/^ChatID_1=/d" /root/.shfile/TelgramBot.ini
+        if [[ $threshold =~ ^[0-9]+$ ]]; then
+            if grep -q "^ChatID_1=" /root/.shfile/TelgramBot.ini; then
+                sed -i "/^ChatID_1=/d" /root/.shfile/TelgramBot.ini
+            fi
+            echo "ChatID_1=$cahtid" >> /root/.shfile/TelgramBot.ini
+            echo -e "$Tip 已将 Chat ID 写入 /root/.shfile/TelgramBot.ini 文件中."
+        else
+            echo -e "$Err 输入无效, Chat ID 必须是数字, 跳过操作."
         fi
-        echo "ChatID_1=$cahtid" >> /root/.shfile/TelgramBot.ini
-        echo -e "$Tip 已将 Chat ID 写入 /root/.shfile/TelgramBot.ini 文件中."
     else
-        echo "输入为空, 跳过操作."
+        echo -e "$Tip 输入为空, 跳过操作."
     fi
+}
+
+SetupThreshold() {
+    read -p "请输入 CPU 报警阀值 (回车跳过): " threshold
+    if [ ! -z "$threshold" ]; then
+        if [[ $threshold =~ ^[0-9]+$ ]]; then
+            if grep -q "^CPUThreshold=" /root/.shfile/TelgramBot.ini; then
+                sed -i "/^CPUThreshold=/d" /root/.shfile/TelgramBot.ini
+            fi
+            echo "CPUThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
+            echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
+        else
+            echo -e "$Err 输入无效, 报警阀值 必须是数字, 跳过操作."
+        fi
+    else
+        echo -e "$Tip 输入为空, 跳过操作."
+    fi
+    read -p "请输入 流量 报警阀值 (回车跳过): " threshold
+    if [ ! -z "$threshold" ]; then
+        if [[ $threshold =~ ^[0-9]+$ ]]; then
+            if grep -q "^FlowThreshold=" /root/.shfile/TelgramBot.ini; then
+                sed -i "/^FlowThreshold=/d" /root/.shfile/TelgramBot.ini
+            fi
+            echo "FlowThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
+            echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
+        else
+            echo -e "$Err 输入无效, 报警阀值 必须是数字, 跳过操作."
+        fi
+    else
+        echo -e "$Tip 输入为空, 跳过操作."
+    fi
+}
+
+SourceAndShowINI() {
     source /root/.shfile/TelgramBot.ini
     echo "------------------------------------"
     cat /root/.shfile/TelgramBot.ini
     echo "------------------------------------"
-    echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可重新执行或手动修改 Token 和 ID."
+    echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可执行(0.选项)或手动修改参数."
 }
 
 # 发送Telegram消息的函数
@@ -168,16 +203,20 @@ Update() {
 
 # 修改Hostname
 ModifyHostname() {
-    # 修改 hosts 和 hostname
-    echo "当前 Hostname : $(hostname)"
-    read -p "请输入要修改的 Hostname : " name
-    if [[ ! -z "${name}" ]]; then
-        echo "修改 hosts 和 hostname..."
-        sed -i "s/$(hostname)/$name/g" /etc/hosts
-        echo "$name" > /etc/hostname
-        hostnamectl set-hostname $name
+    if command -v hostnamectl &>/dev/null; then
+        # 修改 hosts 和 hostname
+        echo "当前 Hostname : $(hostname)"
+        read -p "请输入要修改的 Hostname (回车跳过): " name
+        if [[ ! -z "${name}" ]]; then
+            echo "修改 hosts 和 hostname..."
+            sed -i "s/$(hostname)/$name/g" /etc/hosts
+            echo -e "$name" > /etc/hostname
+            hostnamectl set-hostname $name
+        else
+            echo -e "$Tip 输入为空, 跳过操作."
+        fi
     else
-        echo "输入为空, 未改动."
+        echo -e "$Err 系统未检测到 \"hostnamectl\" 程序, 无法修改Hostname."
     fi
 }
 
@@ -209,10 +248,10 @@ EOF
                 systemctl enable tg_boot.service
             fi
         else
-            echo -e "$Err \"Telgram BOT Token\" 或 \"Chat ID\" 为空, 请设置(0选项)后再执行."
+            echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
         fi
     else
-        echo -e "$Err 系统未检测到 \"systemd\" 程序, 无法设置关闭通知."
+        echo -e "$Err 系统未检测到 \"systemd\" 程序, 无法设置开机通知."
     fi
 }
 
@@ -237,7 +276,7 @@ SetupLogin_TG() {
         fi
         ShowContents "/root/.shfile/tg_login.sh"
     else
-        echo -e "$Err \"Telgram BOT Token\" 或 \"Chat ID\" 为空, 请设置(0选项)后再执行."
+        echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
     fi
 }
 
@@ -269,10 +308,10 @@ EOF
                 systemctl enable tg_shutdown.service
             # fi
         else
-            echo -e "$Err \"Telgram BOT Token\" 或 \"Chat ID\" 为空, 请设置(0选项)后再执行."
+            echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
         fi
     else
-        echo -e "$Err 系统未检测到 \"systemd\" 程序, 无法设置关闭通知."
+        echo -e "$Err 系统未检测到 \"systemd\" 程序, 无法设置关机通知."
     fi
 }
 
@@ -299,7 +338,7 @@ EOF
             ShowContents "/root/.shfile/tg_docker.sh"
             echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
         else
-            echo -e "$Err \"Telgram BOT Token\" 或 \"Chat ID\" 为空, 请设置(0选项)后再执行."
+            echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
         fi
     else
         echo -e "$Err 未检测到 \"Docker\" 程序."
@@ -307,8 +346,8 @@ EOF
 }
 
 SetupCPU_TG() {
-    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-        threshold=70
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${CPUThreshold}" ]]; then
+        # CPUThreshold=70
         # if ! command -v sar &>/dev/null; then
         #     echo "正在安装缺失的依赖 sar, 一个获取 CPU 工作状态的专业工具."
         #     if [ -x "$(command -v apt)" ]; then
@@ -326,15 +365,16 @@ count=0
 while true; do
     # cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$8 }')
     cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 1)))
-    if (( cpu_usage > $threshold )); then
+    if (( cpu_usage > $CPUThreshold )); then
         (( count++ ))
     else
         count=0
     fi
     if (( count >= 3 )); then
-        message="❗️\$(hostname) CPU 当前使用率为: \$cpu_usage%"
+        message="\$(hostname) CPU 当前使用率为: \$cpu_usage% ❗️"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
         count=0  # 发送警告后重置计数器
+        sleep 600   # 发送后等待10分钟再检测
     fi
     echo "程序正在运行中，目前 CPU 使用率为: \$cpu_usage%"
     # sleep 5
@@ -346,22 +386,22 @@ EOF
         nohup /root/.shfile/tg_cpu.sh > /root/.shfile/tg_cpu.log 2>&1 &
         echo "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
         ShowContents "/root/.shfile/tg_cpu.sh"
-        echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $threshold 时, 你的 Telgram 将收到通知."
+        echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold 时, 你的 Telgram 将收到通知."
     else
-        echo -e "$Err \"Telgram BOT Token\" 或 \"Chat ID\" 为空, 请设置(0选项)后再执行."
+        echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
     fi
 }
 
 SetupFlow_TG() {
-    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-        THRESHOLD_MB=500
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${FlowThreshold}" ]]; then
+        # FlowThreshold=500
         cat <<EOF > /root/.shfile/tg_flow.sh
 #!/bin/bash
 
 # 流量阈值设置 (MB)
-# THRESHOLD_MB=500
-# THRESHOLD_BYTES=\$((THRESHOLD_MB * 1024 * 1024))
-THRESHOLD_BYTES=$((THRESHOLD_MB * 1024 * 1024))
+# FlowThreshold=500
+# THRESHOLD_BYTES=\$((FlowThreshold * 1024 * 1024))
+THRESHOLD_BYTES=$((FlowThreshold * 1024 * 1024))
 
 # 获取所有活动网络接口（排除lo本地接口）
 interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
@@ -391,6 +431,9 @@ while true; do
         current_rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
         current_tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
         
+        all_rx_mb=\$((current_rx_bytes / 1024 / 1024))
+        all_tx_mb=\$((current_tx_bytes / 1024 / 1024))
+
         # 计算增量
         rx_diff=\$((current_rx_bytes - prev_rx_data[\$sanitized_interface]))
         tx_diff=\$((current_tx_bytes - prev_tx_data[\$sanitized_interface]))
@@ -406,7 +449,7 @@ while true; do
             rx_mb=\$((rx_diff / 1024 / 1024))
             tx_mb=\$((tx_diff / 1024 / 1024))
         
-            message="❗️\$(hostname) \$sanitized_interface 流量已超标(> $THRESHOLD_MB MB)! \n已接收: \${rx_mb}MB\n已发送: \${tx_mb}MB"
+            message="\$(hostname) \$sanitized_interface 流量已达阀值 - $FlowThreshold MB❗️"\$'\n'"已接收: \${rx_mb}MB  已发送: \${tx_mb}MB"\$'\n'"总接收: \${all_rx_mb}MB  总发送: \${all_tx_mb}MB"
             curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
 
             # 更新前一个状态的流量数据
@@ -429,9 +472,9 @@ EOF
         nohup /root/.shfile/tg_flow.sh > /root/.shfile/tg_flow.log 2>&1 &
         echo "@reboot bash /root/.shfile/tg_flow.sh" | crontab -
         ShowContents "/root/.shfile/tg_flow.sh"
-        echo -e "$Inf FLOW 通知已经设置成功, 当流量使用达到 $THRESHOLD_MB 时, 你的 Telgram 将收到通知."
+        echo -e "$Inf FLOW 通知已经设置成功, 当流量使用达到 $FlowThreshold 时, 你的 Telgram 将收到通知."
     else
-        echo -e "$Err \"Telgram BOT Token\" 或 \"Chat ID\" 为空, 请设置(0选项)后再执行."
+        echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
     fi
 }
 
@@ -462,28 +505,45 @@ UnsetupAll() {
     if [ -f /etc/profile ]; then
         sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
     fi
-    rm -rf /root/.shfile
-    echo "已经成功删除所有通知."
+    read -p "是否要删除 /root/.shfile 文件夹? (建议保留) Y/其它 : " yorn
+    if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
+        rm -rf /root/.shfile
+        echo -e "$Tip /root/.shfile 文件夹已经删除."
+    else
+        echo -e "$Tip /root/.shfile 文件夹已经保留."
+    fi
+    echo -e "$Tip 已经成功删除所有通知."
 }
 
 # 以下为主程序
 # CheckSys
 while true; do
+source /root/.shfile/TelgramBot.ini
+if [ -z "$CPUThreshold" ]; then
+    CPUThreshold_tag="${RE}未设置${NC}"
+else
+    CPUThreshold_tag=$CPUThreshold
+fi
+if [ -z "$FlowThreshold" ]; then
+    FlowThreshold_tag="${RE}未设置${NC}"
+else
+    FlowThreshold_tag=$FlowThreshold
+fi
 CLS
 echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
 -- tse | vtse.eu.org --
   
- ${GR}0.${NC} 检查依赖 / 设置 Telgram 机器人
+ ${GR}0.${NC} 检查依赖 / 设置参数
 ————————————
- ${GR}1.${NC} 修改 HOSTNAME
- ${GR}2.${NC} 一键设置 ${GR}[开机]${NC} Telgram 通知
- ${GR}3.${NC} 一键设置 ${GR}[登陆]${NC} Telgram 通知
- ${GR}4.${NC} 一键设置 ${GR}[关机]${NC} Telgram 通知
- ${GR}5.${NC} 一键设置 ${GR}[CPU 报警(>70%)]${NC} Telgram 通知
- ${GR}6.${NC} 一键设置 ${GR}[流量报警(500M)]${NC} Telgram 通知
- ${GR}7.${NC} 一键设置 ${GR}[Docker 变更]${NC} Telgram 通知
+ ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知
+ ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知
+ ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知
+ ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 - 阀值: $CPUThreshold_tag
+ ${GR}5.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag
+ ${GR}6.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知
  ———————————————————————————————————————
- ${GR}d.${NC} 一键取消并删除所有通知设置
+ ${GR}h.${NC} 修改 Hostname
+ ${GR}d.${NC} 取消并删除所有通知设置
 ———————————————————————————————————————
  ${GR}x.${NC} 退出脚本
 ————————————
@@ -491,41 +551,44 @@ $Tip 使用前请先执行 0 确保依赖完整和完成 Telgram 机器人设置
 read -e -p "请输入数字 [0-4]:" num
 case "$num" in
     0)
+    SourceAndShowINI
     CheckAndCreateFold
     CheckRely
     SetupTelgramBot
+    SetupThreshold
+    SourceAndShowINI
     Pause
     ;;
-    1)
+    h|H)
     ModifyHostname
     Pause
     ;;
-    2)
+    1)
     CheckAndCreateFold
     SetupBoot_TG
     Pause
     ;;
-    3)
+    2)
     CheckAndCreateFold
     SetupLogin_TG
     Pause
     ;;
-    4)
+    3)
     CheckAndCreateFold
     SetupShutdown_TG
     Pause
     ;;
-    5)
+    4)
     CheckAndCreateFold
     SetupCPU_TG
     Pause
     ;;
-    6)
+    5)
     CheckAndCreateFold
     SetupFlow_TG
     Pause
     ;;
-    7)
+    6)
     CheckAndCreateFold
     SetupDocker_TG
     Pause
