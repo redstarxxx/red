@@ -145,6 +145,11 @@ SetupTelgramBot() {
     echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可重新执行或手动修改 Token 和 ID."
 }
 
+# 发送Telegram消息的函数
+# send_telegram_message() {
+#     curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="$1" > /dev/null
+# }
+
 # 检查文件是否存在并显示内容
 ShowContents() {
     if [ -f "$1" ]; then
@@ -304,41 +309,123 @@ EOF
 SetupCPU_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         threshold=70
-        if ! command -v sar &>/dev/null; then
-            echo "正在安装缺失的依赖 sar, 一个获取 CPU 工作状态的专业工具."
-            if [ -x "$(command -v apt)" ]; then
-                apt -y install sysstat
-            elif [ -x "$(command -v yum)" ]; then
-                yum -y install sysstat
-            else
-                echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
-            fi
-        fi
+        # if ! command -v sar &>/dev/null; then
+        #     echo "正在安装缺失的依赖 sar, 一个获取 CPU 工作状态的专业工具."
+        #     if [ -x "$(command -v apt)" ]; then
+        #         apt -y install sysstat
+        #     elif [ -x "$(command -v yum)" ]; then
+        #         yum -y install sysstat
+        #     else
+        #         echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
+        #     fi
+        # fi
         cat <<EOF > /root/.shfile/tg_cpu.sh
 #!/bin/bash
 
 count=0
 while true; do
-    cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$8 }')
+    # cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$8 }')
+    cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 1)))
     if (( cpu_usage > $threshold )); then
         (( count++ ))
     else
         count=0
     fi
     if (( count >= 3 )); then
-        message="警告：CPU 使用率连续三次超过 $threshold%，当前使用率为 \$cpu_usage%"
+        message="❗️\$(hostname) CPU 当前使用率为: \$cpu_usage%"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
         count=0  # 发送警告后重置计数器
     fi
     echo "程序正在运行中，目前 CPU 使用率为: \$cpu_usage%"
-    sleep 5
+    # sleep 5
 done
 EOF
         chmod +x /root/.shfile/tg_cpu.sh
+        pkill tg_cpu.sh
+        pkill tg_cpu.sh
         nohup /root/.shfile/tg_cpu.sh > /root/.shfile/tg_cpu.log 2>&1 &
         echo "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
         ShowContents "/root/.shfile/tg_cpu.sh"
         echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $threshold 时, 你的 Telgram 将收到通知."
+    else
+        echo -e "$Err \"Telgram BOT Token\" 或 \"Chat ID\" 为空, 请设置(0选项)后再执行."
+    fi
+}
+
+SetupFlow_TG() {
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+        THRESHOLD_MB=10
+        cat <<EOF > /root/.shfile/tg_flow.sh
+#!/bin/bash
+
+# 流量阈值设置 (MB)
+# THRESHOLD_MB=500
+# THRESHOLD_BYTES=\$((THRESHOLD_MB * 1024 * 1024))
+THRESHOLD_BYTES=$((THRESHOLD_MB * 1024 * 1024))
+
+# 获取所有活动网络接口（排除lo本地接口）
+interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+
+# 初始化字典存储前一个状态的流量数据
+declare -A prev_rx_data
+declare -A prev_tx_data
+
+# 初始化接口流量数据
+for interface in \$interfaces; do
+    # 如果接口名称中包含 '@'，则仅保留 '@' 之前的部分
+    sanitized_interface=\${interface%@*}
+
+    rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
+    tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
+    prev_rx_data[\$sanitized_interface]=\$rx_bytes
+    prev_tx_data[\$sanitized_interface]=\$tx_bytes
+done
+
+# 循环检查
+while true; do
+    for interface in \$interfaces; do
+        # 如果接口名称中包含 '@'，则仅保留 '@' 之前的部分
+        sanitized_interface=\${interface%@*}
+
+        # 获取当前流量数据
+        current_rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
+        current_tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
+        
+        # 计算增量
+        rx_diff=\$((current_rx_bytes - prev_rx_data[\$sanitized_interface]))
+        tx_diff=\$((current_tx_bytes - prev_tx_data[\$sanitized_interface]))
+
+        # 调试使用(1分钟的流量增量)
+        echo "Interface: \$sanitized_interface RX_diff(BYTES): \$rx_diff TX_diff(BYTES): \$tx_diff"
+
+        # 调试使用(持续的流量增加)
+        echo "Interface: \$sanitized_interface Current_RX(BYTES): \$current_rx_bytes Current_TX(BYTES): \$current_tx_bytes"
+
+        # 检查是否超过阈值
+        if [ \$rx_diff -ge \$THRESHOLD_BYTES ] || [ \$tx_diff -ge \$THRESHOLD_BYTES ]; then
+            rx_mb=\$((rx_diff / 1024 / 1024))
+            tx_mb=\$((tx_diff / 1024 / 1024))
+        
+            message="❗️\$(hostname) \$sanitized_interface 流量已超标(> $THRESHOLD_MB MB)! \n已接收: \${rx_mb}MB\n已发送: \${tx_mb}MB"
+            curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
+        fi
+
+        # 更新前一个状态的流量数据
+        prev_rx_data[\$sanitized_interface]=\$current_rx_bytes
+        prev_tx_data[\$sanitized_interface]=\$current_tx_bytes
+    done
+
+    # 等待1分钟
+    sleep 60
+done
+EOF
+        chmod +x /root/.shfile/tg_flow.sh
+        pkill tg_flow.sh
+        pkill tg_flow.sh
+        nohup /root/.shfile/tg_flow.sh > /root/.shfile/tg_flow.log 2>&1 &
+        echo "@reboot bash /root/.shfile/tg_flow.sh" | crontab -
+        ShowContents "/root/.shfile/tg_flow.sh"
+        echo -e "$Inf FLOW 通知已经设置成功, 当流量使用达到 $THRESHOLD_MB 时, 你的 Telgram 将收到通知."
     else
         echo -e "$Err \"Telgram BOT Token\" 或 \"Chat ID\" 为空, 请设置(0选项)后再执行."
     fi
@@ -384,8 +471,9 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
  ${GR}2.${NC} 一键设置 ${GR}[开机]${NC} Telgram 通知
  ${GR}3.${NC} 一键设置 ${GR}[登陆]${NC} Telgram 通知
  ${GR}4.${NC} 一键设置 ${GR}[关机]${NC} Telgram 通知
- ${GR}5.${NC} 一键设置 ${GR}[CPU 使用率]${NC} Telgram 通知
- ${GR}6.${NC} 一键设置 ${GR}[Docker 变更]${NC} Telgram 通知
+ ${GR}5.${NC} 一键设置 ${GR}[CPU 报警(>70%)]${NC} Telgram 通知
+ ${GR}6.${NC} 一键设置 ${GR}[流量报警(500M)]${NC} Telgram 通知
+ ${GR}7.${NC} 一键设置 ${GR}[Docker 变更]${NC} Telgram 通知
  ———————————————————————————————————————
  ${GR}d.${NC} 一键取消并删除所有通知设置
 ———————————————————————————————————————
@@ -425,6 +513,11 @@ case "$num" in
     Pause
     ;;
     6)
+    CheckAndCreateFold
+    SetupFlow_TG
+    Pause
+    ;;
+    7)
     CheckAndCreateFold
     SetupDocker_TG
     Pause
