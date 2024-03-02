@@ -354,7 +354,7 @@ EOF
 
 SetupFlow_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-        THRESHOLD_MB=10
+        THRESHOLD_MB=500
         cat <<EOF > /root/.shfile/tg_flow.sh
 #!/bin/bash
 
@@ -408,15 +408,19 @@ while true; do
         
             message="❗️\$(hostname) \$sanitized_interface 流量已超标(> $THRESHOLD_MB MB)! \n已接收: \${rx_mb}MB\n已发送: \${tx_mb}MB"
             curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
+
+            # 更新前一个状态的流量数据
+            prev_rx_data[\$sanitized_interface]=\$current_rx_bytes
+            prev_tx_data[\$sanitized_interface]=\$current_tx_bytes
         fi
 
-        # 更新前一个状态的流量数据
-        prev_rx_data[\$sanitized_interface]=\$current_rx_bytes
-        prev_tx_data[\$sanitized_interface]=\$current_tx_bytes
+        # # 更新前一个状态的流量数据
+        # prev_rx_data[\$sanitized_interface]=\$current_rx_bytes
+        # prev_tx_data[\$sanitized_interface]=\$current_tx_bytes
     done
 
-    # 等待1分钟
-    sleep 60
+    # 等待30秒
+    sleep 30
 done
 EOF
         chmod +x /root/.shfile/tg_flow.sh
