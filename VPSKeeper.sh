@@ -385,8 +385,8 @@ EOF
         pkill tg_cpu.sh
         nohup /root/.shfile/tg_cpu.sh > /root/.shfile/tg_cpu.log 2>&1 &
         echo "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
-        ShowContents "/root/.shfile/tg_cpu.sh"
-        echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold 时, 你的 Telgram 将收到通知."
+        # ShowContents "/root/.shfile/tg_cpu.sh"
+        echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时, 你的 Telgram 将收到通知."
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
     fi
@@ -471,8 +471,8 @@ EOF
         pkill tg_flow.sh
         nohup /root/.shfile/tg_flow.sh > /root/.shfile/tg_flow.log 2>&1 &
         echo "@reboot bash /root/.shfile/tg_flow.sh" | crontab -
-        ShowContents "/root/.shfile/tg_flow.sh"
-        echo -e "$Inf FLOW 通知已经设置成功, 当流量使用达到 $FlowThreshold 时, 你的 Telgram 将收到通知."
+        # ShowContents "/root/.shfile/tg_flow.sh"
+        echo -e "$Inf FLOW 通知已经设置成功, 当流量使用达到 $FlowThreshold MB 时, 你的 Telgram 将收到通知."
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
     fi
