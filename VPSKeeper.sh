@@ -79,6 +79,71 @@ CheckSys() {
     fi
 }
 
+# 检测设置标记
+CheckSetup() {
+    echo "检测中..."
+    if [ -f /root/.shfile/tg_login.sh ]; then
+        if [ -f /etc/bash.bashrc ]; then
+            if grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
+                login_menu_tag="${GR}-> 已设置${NC}"
+            fi
+        elif [ -f /etc/profile ]; then
+            if grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/profile; then
+                login_menu_tag="${GR}-> 已设置${NC}"
+            fi
+        else
+            login_menu_tag=""
+        fi
+    else
+        login_menu_tag=""
+    fi
+    if [ -f /root/.shfile/tg_boot.sh ]; then
+        if [ -f /etc/systemd/system/tg_boot.service ]; then
+            boot_menu_tag="${GR}-> 已设置${NC}"
+        else
+            boot_menu_tag=""
+        fi
+    else
+        boot_menu_tag=""
+    fi
+    if [ -f /root/.shfile/tg_shutdown.sh ]; then
+        if [ -f /etc/systemd/system/tg_shutdown.service ]; then
+            shutdown_menu_tag="${GR}-> 已设置${NC}"
+        else
+            shutdown_menu_tag=""
+        fi
+    else
+        shutdown_menu_tag=""
+    fi
+    if [ -f /root/.shfile/tg_docker.sh ]; then
+        if crontab -l | grep -q '@reboot bash /root/.shfile/tg_docker.sh'; then
+            docker_menu_tag="${GR}-> 已设置${NC}"
+        else
+            docker_menu_tag=""
+        fi
+    else
+        docker_menu_tag=""
+    fi
+    if [ -f /root/.shfile/tg_cpu.sh ]; then
+        if crontab -l | grep -q '@reboot bash /root/.shfile/tg_cpu.sh'; then
+            cpu_menu_tag="${GR}-> 已设置${NC}"
+        else
+            cpu_menu_tag=""
+        fi
+    else
+        cpu_menu_tag=""
+    fi
+    if [ -f /root/.shfile/tg_flow.sh ]; then
+        if crontab -l | grep -q '@reboot bash /root/.shfile/tg_flow.sh'; then
+            flow_menu_tag="${GR}-> 已设置${NC}"
+        else
+            flow_menu_tag=""
+        fi
+    else
+        flow_menu_tag=""
+    fi
+}
+
 # 检查并安装依赖
 CheckRely() {
     # 检查并安装依赖
@@ -257,11 +322,12 @@ RemainAfterExit=true
 [Install]
 WantedBy=multi-user.target
 EOF
-            ShowContents "/root/.shfile/tg_boot.sh"
-            ShowContents "/etc/systemd/system/tg_boot.service"
-            if [ ! "$(systemctl is-active tg_boot.service)" = "active" ]; then
+            # ShowContents "/root/.shfile/tg_boot.sh"
+            # ShowContents "/etc/systemd/system/tg_boot.service"
+            # if [ ! "$(systemctl is-active tg_boot.service)" = "active" ]; then
                 systemctl enable tg_boot.service
-            fi
+            # fi
+            echo -e "$Inf 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
         else
             echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
         fi
@@ -281,16 +347,18 @@ SetupLogin_TG() {
             if ! grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
                 echo "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
                 echo -e "$Tip 指令已经添加进 /etc/bash.bashrc 文件"
+                echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
         elif [ -f /etc/profile ]; then
             if ! grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/profile; then
                 echo "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" >> /etc/profile
                 echo -e "$Tip 指令已经添加进 /etc/profile 文件"
+                echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
         else
             echo -e "$Err 未检测到对应文件, 无法设置登陆通知."
         fi
-        ShowContents "/root/.shfile/tg_login.sh"
+        # ShowContents "/root/.shfile/tg_login.sh"
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
     fi
@@ -318,11 +386,12 @@ TimeoutStartSec=0
 [Install]
 WantedBy=shutdown.target
 EOF
-            ShowContents "/root/.shfile/tg_shutdown.sh"
-            ShowContents "/etc/systemd/system/tg_shutdown.service"
+            # ShowContents "/root/.shfile/tg_shutdown.sh"
+            # ShowContents "/etc/systemd/system/tg_shutdown.service"
             # if [ ! "$(systemctl is-active tg_shutdown.service)" = "active" ]; then
                 systemctl enable tg_shutdown.service
             # fi
+            echo -e "$Inf 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
         else
             echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
         fi
@@ -350,8 +419,10 @@ while true; do
 done
 EOF
             chmod +x /root/.shfile/tg_docker.sh
-            echo "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
-            ShowContents "/root/.shfile/tg_docker.sh"
+            if ! crontab -l | grep -q '@reboot bash /root/.shfile/tg_docker.sh'; then
+                (crontab -l 2>/dev/null; echo "@reboot bash /root/.shfile/tg_docker.sh") | crontab -
+            fi
+            # ShowContents "/root/.shfile/tg_docker.sh"
             echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
         else
             echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
@@ -401,7 +472,9 @@ EOF
         pkill tg_cpu.sh
         pkill tg_cpu.sh
         nohup /root/.shfile/tg_cpu.sh > /root/.shfile/tg_cpu.log 2>&1 &
-        echo "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
+        if ! crontab -l | grep -q '@reboot bash /root/.shfile/tg_cpu.sh'; then
+            (crontab -l 2>/dev/null; echo "@reboot bash /root/.shfile/tg_cpu.sh") | crontab -
+        fi
         # ShowContents "/root/.shfile/tg_cpu.sh"
         echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时, 你的 Telgram 将收到通知."
     else
@@ -488,7 +561,9 @@ EOF
         pkill tg_flow.sh
         pkill tg_flow.sh
         nohup /root/.shfile/tg_flow.sh > /root/.shfile/tg_flow.log 2>&1 &
-        echo "@reboot bash /root/.shfile/tg_flow.sh" | crontab -
+        if ! crontab -l | grep -q '@reboot bash /root/.shfile/tg_flow.sh'; then
+            (crontab -l 2>/dev/null; echo "@reboot bash /root/.shfile/tg_flow.sh") | crontab -
+        fi
         # ShowContents "/root/.shfile/tg_flow.sh"
         echo -e "$Inf FLOW 通知已经设置成功, 当流量使用达到 $FlowThreshold MB 时, 你的 Telgram 将收到通知."
     else
@@ -536,6 +611,7 @@ UnsetupAll() {
 # 主程序
 CheckSys
 while true; do
+CheckSetup
 source /root/.shfile/TelgramBot.ini
 if [ -z "$CPUThreshold" ]; then
     CPUThreshold_tag="${RE}未设置${NC}"
@@ -553,12 +629,12 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
   
  ${GR}0.${NC} 检查依赖 / 设置参数
 ————————————
- ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知
- ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知
- ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知
- ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 - 阀值: $CPUThreshold_tag
- ${GR}5.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag
- ${GR}6.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知
+ ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知  $boot_menu_tag
+ ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知  $login_menu_tag
+ ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知  $shutdown_menu_tag
+ ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 - 阀值: $CPUThreshold_tag    $cpu_menu_tag
+ ${GR}5.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag   $flow_menu_tag
+ ${GR}6.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知            $docker_menu_tag
  ———————————————————————————————————————
  ${GR}t.${NC} 发送测试 - 用以检验 Telgram 的参数设置
  ${GR}h.${NC} 修改 Hostname
