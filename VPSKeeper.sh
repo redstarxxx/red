@@ -243,7 +243,7 @@ SetupThreshold() {
 
 # 用于显示内容（调试用）
 SourceAndShowINI() {
-    if [ -f /root/.shfile/TelgramBot.ini ]; then
+    if [ -f /root/.shfile/TelgramBot.ini ] && [ -s /root/.shfile/TelgramBot.ini ]; then
         source /root/.shfile/TelgramBot.ini
         echo "------------------------------------"
         cat /root/.shfile/TelgramBot.ini
