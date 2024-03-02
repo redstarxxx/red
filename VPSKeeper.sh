@@ -204,6 +204,17 @@ Update() {
     echo "升级脚本."
 }
 
+# 发送测试
+test() {
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="来自 $(hostname) 的测试信息" > /dev/null
+        echo -e "$Inf 测试信息已发出, 电报将收到一条\"来自 $(hostname) 的测试信息\"的信息."
+        echo -e "$Tip 如果没有收到测试信息, 请检查设置 (重新执行 0 选项)."
+    else
+        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
+    fi
+}
+
 # 修改Hostname
 ModifyHostname() {
     if command -v hostnamectl &>/dev/null; then
@@ -250,7 +261,7 @@ EOF
                 systemctl enable tg_boot.service
             fi
         else
-            echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
+            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
         fi
     else
         echo -e "$Err 系统未检测到 \"systemd\" 程序, 无法设置开机通知."
@@ -279,7 +290,7 @@ SetupLogin_TG() {
         fi
         ShowContents "/root/.shfile/tg_login.sh"
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
+        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
     fi
 }
 
@@ -311,7 +322,7 @@ EOF
                 systemctl enable tg_shutdown.service
             # fi
         else
-            echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
+            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
         fi
     else
         echo -e "$Err 系统未检测到 \"systemd\" 程序, 无法设置关机通知."
@@ -341,7 +352,7 @@ EOF
             ShowContents "/root/.shfile/tg_docker.sh"
             echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
         else
-            echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
+            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
         fi
     else
         echo -e "$Err 未检测到 \"Docker\" 程序."
@@ -392,7 +403,7 @@ EOF
         # ShowContents "/root/.shfile/tg_cpu.sh"
         echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时, 你的 Telgram 将收到通知."
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
+        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
     fi
 }
 
@@ -479,7 +490,7 @@ EOF
         # ShowContents "/root/.shfile/tg_flow.sh"
         echo -e "$Inf FLOW 通知已经设置成功, 当流量使用达到 $FlowThreshold MB 时, 你的 Telgram 将收到通知."
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (0选项)."
+        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
     fi
 }
 
@@ -547,6 +558,7 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
  ${GR}5.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag
  ${GR}6.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知
  ———————————————————————————————————————
+ ${GR}t.${NC} 发送测试 - 用以检验 Telgram 的参数设置
  ${GR}h.${NC} 修改 Hostname
  ${GR}d.${NC} 取消并删除所有通知设置
 ———————————————————————————————————————
@@ -562,10 +574,6 @@ case "$num" in
     SetupTelgramBot
     SetupThreshold
     SourceAndShowINI
-    Pause
-    ;;
-    h|H)
-    ModifyHostname
     Pause
     ;;
     1)
@@ -596,6 +604,15 @@ case "$num" in
     6)
     CheckAndCreateFold
     SetupDocker_TG
+    Pause
+    ;;
+    t|T)
+    CheckAndCreateFold
+    test
+    Pause
+    ;;
+    h|H)
+    ModifyHostname
     Pause
     ;;
     d|D)
