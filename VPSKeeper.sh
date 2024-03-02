@@ -641,12 +641,12 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
  ———————————————————————————————————————
  ${GR}t.${NC} 发送测试 - 用以检验 Telgram 的参数设置
  ${GR}h.${NC} 修改 Hostname
- ${GR}d.${NC} 取消并删除所有通知设置
+ ${GR}d.${NC} 取消 / 删除 通知设置
 ———————————————————————————————————————
  ${GR}x.${NC} 退出脚本
 ————————————
 $Tip 使用前请先执行 0 确保依赖完整和完成 Telgram 机器人设置." && echo
-read -e -p "请输入数字 [0-4]:" num
+read -e -p "请输入选项 [0-6,t,h,d]:" num
 case "$num" in
     0)
     CheckAndCreateFold
