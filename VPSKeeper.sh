@@ -108,6 +108,7 @@ CheckRely() {
     fi
 }
 
+# 设置电报机器人参数
 SetupTelgramBot() {
     # echo -e "$Tip Telgram BOT Token 即为电报机器人 Token,"
     echo -e "$Tip Token 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
@@ -141,6 +142,7 @@ SetupTelgramBot() {
     fi
 }
 
+# 设置报警阀值
 SetupThreshold() {
     read -p "请输入 CPU 报警阀值 (回车跳过): " threshold
     if [ ! -z "$threshold" ]; then
@@ -172,6 +174,7 @@ SetupThreshold() {
     fi
 }
 
+# 用于显示内容（调试用）
 SourceAndShowINI() {
     source /root/.shfile/TelgramBot.ini
     echo "------------------------------------"
@@ -190,7 +193,7 @@ ShowContents() {
     if [ -f "$1" ]; then
         cat "$1"
         echo -e "$Inf 上述内容已经写入: $1"
-        echo "----------------------------------------------"
+        echo "-------------------------------------------"
     else
         echo -e "$Err 文件不存在: $1"
     fi
@@ -220,8 +223,7 @@ ModifyHostname() {
     fi
 }
 
-# 设置登陆通知
-
+# 设置开机通知
 SetupBoot_TG() {
     echo "#!/bin/bash" > /root/.shfile/tg_boot.sh
     echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) 已启动.\"" \
@@ -255,6 +257,7 @@ EOF
     fi
 }
 
+# 设置登陆通知
 SetupLogin_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         echo "#!/bin/bash" > /root/.shfile/tg_login.sh
@@ -345,6 +348,7 @@ EOF
     fi
 }
 
+# 设置CPU报警
 SetupCPU_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${CPUThreshold}" ]]; then
         # CPUThreshold=70
@@ -392,6 +396,7 @@ EOF
     fi
 }
 
+# 设置流量报警
 SetupFlow_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${FlowThreshold}" ]]; then
         # FlowThreshold=500
@@ -515,7 +520,7 @@ UnsetupAll() {
     echo -e "$Tip 已经成功删除所有通知."
 }
 
-# 以下为主程序
+# 主程序
 # CheckSys
 while true; do
 source /root/.shfile/TelgramBot.ini
