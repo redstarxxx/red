@@ -195,7 +195,7 @@ SetupTelgramBot() {
     # echo -e "$Tip 显示的第二行 Id 即为你的用户 ID."
     read -p "请输入 Chat ID : (回车跳过)" cahtid
     if [ ! -z "$cahtid" ]; then
-        if [[ $threshold =~ ^[0-9]+$ ]]; then
+        if [[ $cahtid =~ ^[0-9]+$ ]]; then
             if grep -q "^ChatID_1=" /root/.shfile/TelgramBot.ini; then
                 sed -i "/^ChatID_1=/d" /root/.shfile/TelgramBot.ini
             fi
