@@ -540,12 +540,12 @@ source /root/.shfile/TelgramBot.ini
 if [ -z "$CPUThreshold" ]; then
     CPUThreshold_tag="${RE}未设置${NC}"
 else
-    CPUThreshold_tag=$CPUThreshold
+    CPUThreshold_tag=${GR}$CPUThreshold${NC}
 fi
 if [ -z "$FlowThreshold" ]; then
     FlowThreshold_tag="${RE}未设置${NC}"
 else
-    FlowThreshold_tag=$FlowThreshold
+    FlowThreshold_tag=${GR}$FlowThreshold${NC}
 fi
 CLS
 echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
