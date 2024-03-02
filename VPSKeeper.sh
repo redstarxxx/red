@@ -166,6 +166,7 @@ CheckRely() {
                 yum install -y "${missing_dependencies[@]}"
             else
                 echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
+                exit 1
             fi
         else
             echo -e "$Tip 已跳过安装."
@@ -186,7 +187,7 @@ SetupTelgramBot() {
             sed -i "/^TelgramBotToken=/d" /root/.shfile/TelgramBot.ini
         fi
         echo "TelgramBotToken=$bottoken" >> /root/.shfile/TelgramBot.ini
-        echo -e "$Tip 已将 Token 写入 /root/.shfile/TelgramBot.ini 文件中."
+        # echo -e "$Tip 已将 Token 写入 /root/.shfile/TelgramBot.ini 文件中."
     else
         echo -e "$Tip 输入为空, 跳过操作."
     fi
@@ -200,7 +201,7 @@ SetupTelgramBot() {
                 sed -i "/^ChatID_1=/d" /root/.shfile/TelgramBot.ini
             fi
             echo "ChatID_1=$cahtid" >> /root/.shfile/TelgramBot.ini
-            echo -e "$Tip 已将 Chat ID 写入 /root/.shfile/TelgramBot.ini 文件中."
+            # echo -e "$Tip 已将 Chat ID 写入 /root/.shfile/TelgramBot.ini 文件中."
         else
             echo -e "$Err 输入无效, Chat ID 必须是数字, 跳过操作."
         fi
@@ -218,7 +219,7 @@ SetupThreshold() {
                 sed -i "/^CPUThreshold=/d" /root/.shfile/TelgramBot.ini
             fi
             echo "CPUThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
-            echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
+            # echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
         else
             echo -e "$Err 输入无效, 报警阀值 必须是数字, 跳过操作."
         fi
@@ -232,7 +233,7 @@ SetupThreshold() {
                 sed -i "/^FlowThreshold=/d" /root/.shfile/TelgramBot.ini
             fi
             echo "FlowThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
-            echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
+            # echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
         else
             echo -e "$Err 输入无效, 报警阀值 必须是数字, 跳过操作."
         fi
@@ -257,7 +258,7 @@ SourceAndShowINI() {
 #     curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="$1" > /dev/null
 # }
 
-# 检查文件是否存在并显示内容
+# 检查文件是否存在并显示内容（调试用）
 ShowContents() {
     if [ -f "$1" ]; then
         cat "$1"
