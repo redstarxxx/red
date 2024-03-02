@@ -73,15 +73,17 @@ CheckSys() {
         release="ubuntu"
     elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
         release="centos"
+    else
+        echo -e "$Err 系统不支持."
+        exit 1
     fi
-    #bit=`uname -m`
 }
 
-# 检测依赖
+# 检查并安装依赖
 CheckRely() {
     # 检查并安装依赖
     echo "检查并安装依赖..."
-    declare -a dependencies=("sed" "grep" "hostnamectl" "systemd")
+    declare -a dependencies=("sed" "grep" "awk" "hostnamectl" "systemd")
     missing_dependencies=()
     for dep in "${dependencies[@]}"; do
         if ! command -v "$dep" &>/dev/null; then
@@ -532,7 +534,7 @@ UnsetupAll() {
 }
 
 # 主程序
-# CheckSys
+CheckSys
 while true; do
 source /root/.shfile/TelgramBot.ini
 if [ -z "$CPUThreshold" ]; then
@@ -547,7 +549,7 @@ else
 fi
 CLS
 echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
--- tse | vtse.eu.org --
+-- tse | vtse.eu.org | $release -- 
   
  ${GR}0.${NC} 检查依赖 / 设置参数
 ————————————
