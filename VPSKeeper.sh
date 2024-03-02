@@ -445,9 +445,13 @@ UnsetupAll() {
     # fi
     sleep 1
     rm -f /etc/systemd/system/tg_shutdown.service
-    pkill tg_cpu
+    pkill tg_cpu.sh
+    pkill tg_cpu.sh
+    pkill tg_flow.sh
+    pkill tg_flow.sh
     crontab -l | grep -v "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
     crontab -l | grep -v "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
+    crontab -l | grep -v "@reboot bash /root/.shfile/tg_flow.sh" | crontab -
     if [ -f /etc/bash.bashrc ]; then
         sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
     fi
