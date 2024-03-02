@@ -348,13 +348,13 @@ SetupLogin_TG() {
         if [ -f /etc/bash.bashrc ]; then
             if ! grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
                 echo "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
-                echo -e "$Tip 指令已经添加进 /etc/bash.bashrc 文件"
+                # echo -e "$Tip 指令已经添加进 /etc/bash.bashrc 文件"
                 echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
         elif [ -f /etc/profile ]; then
             if ! grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/profile; then
                 echo "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" >> /etc/profile
-                echo -e "$Tip 指令已经添加进 /etc/profile 文件"
+                # echo -e "$Tip 指令已经添加进 /etc/profile 文件"
                 echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
         else
@@ -567,7 +567,7 @@ EOF
             (crontab -l 2>/dev/null; echo "@reboot bash /root/.shfile/tg_flow.sh") | crontab -
         fi
         # ShowContents "/root/.shfile/tg_flow.sh"
-        echo -e "$Inf FLOW 通知已经设置成功, 当流量使用达到 $FlowThreshold MB 时, 你的 Telgram 将收到通知."
+        echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold MB 时, 你的 Telgram 将收到通知."
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
     fi
