@@ -61,20 +61,20 @@ Pause() {
 CheckSys() {
     if [[ -f /etc/redhat-release ]]; then
         release="centos"
-    elif cat /etc/issue | grep -q -E -i "debian"; then
+    elif cat /etc/issue 2>/dev/null | grep -q -E -i "debian"; then
         release="debian"
-    elif cat /etc/issue | grep -q -E -i "ubuntu"; then
+    elif cat /etc/issue 2>/dev/null | grep -q -E -i "ubuntu"; then
         release="ubuntu"
-    elif cat /etc/issue | grep -q -E -i "centos|red hat|redhat"; then
+    elif cat /etc/issue 2>/dev/null | grep -q -E -i "centos|red hat|redhat"; then
         release="centos"
-    elif cat /proc/version | grep -q -E -i "debian"; then
+    elif cat /proc/version 2>/dev/null | grep -q -E -i "debian"; then
         release="debian"
-    elif cat /proc/version | grep -q -E -i "ubuntu"; then
+    elif cat /proc/version 2>/dev/null | grep -q -E -i "ubuntu"; then
         release="ubuntu"
-    elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
+    elif cat /proc/version 2>/dev/null | grep -q -E -i "centos|red hat|redhat"; then
         release="centos"
     else
-        echo -e "$Err 系统不支持."
+        echo -e "$Err 系统不支持." >&2
         exit 1
     fi
 }
