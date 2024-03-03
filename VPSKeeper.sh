@@ -649,7 +649,7 @@ EOF
             (crontab -l 2>/dev/null; echo "@reboot bash /root/.shfile/tg_flow.sh") | crontab -
         fi
         # ShowContents "/root/.shfile/tg_flow.sh"
-        echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold MB 时, 你的 Telgram 将收到通知."
+        echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时, 你的 Telgram 将收到通知."
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
     fi
