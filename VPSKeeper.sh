@@ -85,11 +85,11 @@ CheckSetup() {
     if [ -f /root/.shfile/tg_login.sh ]; then
         if [ -f /etc/bash.bashrc ]; then
             if grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
-                login_menu_tag="${GR}-> 已设置${NC}"
+                login_menu_tag="-> 已设置"
             fi
         elif [ -f /etc/profile ]; then
             if grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/profile; then
-                login_menu_tag="${GR}-> 已设置${NC}"
+                login_menu_tag="-> 已设置"
             fi
         else
             login_menu_tag=""
@@ -99,7 +99,7 @@ CheckSetup() {
     fi
     if [ -f /root/.shfile/tg_boot.sh ]; then
         if [ -f /etc/systemd/system/tg_boot.service ]; then
-            boot_menu_tag="${GR}-> 已设置${NC}"
+            boot_menu_tag="-> 已设置"
         else
             boot_menu_tag=""
         fi
@@ -108,7 +108,7 @@ CheckSetup() {
     fi
     if [ -f /root/.shfile/tg_shutdown.sh ]; then
         if [ -f /etc/systemd/system/tg_shutdown.service ]; then
-            shutdown_menu_tag="${GR}-> 已设置${NC}"
+            shutdown_menu_tag="-> 已设置"
         else
             shutdown_menu_tag=""
         fi
@@ -117,7 +117,7 @@ CheckSetup() {
     fi
     if [ -f /root/.shfile/tg_docker.sh ]; then
         if crontab -l | grep -q '@reboot bash /root/.shfile/tg_docker.sh'; then
-            docker_menu_tag="${GR}-> 已设置${NC}"
+            docker_menu_tag="-> 已设置"
         else
             docker_menu_tag=""
         fi
@@ -126,7 +126,7 @@ CheckSetup() {
     fi
     if [ -f /root/.shfile/tg_cpu.sh ]; then
         if crontab -l | grep -q '@reboot bash /root/.shfile/tg_cpu.sh'; then
-            cpu_menu_tag="${GR}-> 已设置${NC}"
+            cpu_menu_tag="-> 已设置"
         else
             cpu_menu_tag=""
         fi
@@ -135,12 +135,17 @@ CheckSetup() {
     fi
     if [ -f /root/.shfile/tg_flow.sh ]; then
         if crontab -l | grep -q '@reboot bash /root/.shfile/tg_flow.sh'; then
-            flow_menu_tag="${GR}-> 已设置${NC}"
+            flow_menu_tag="-> 已设置"
         else
             flow_menu_tag=""
         fi
     else
         flow_menu_tag=""
+    fi
+    if [ -d "/root/.shfile" ]; then
+        folder_menu_tag="-> 文件夹存在"
+    else
+        folder_menu_tag=""
     fi
 }
 
@@ -176,13 +181,16 @@ CheckRely() {
     fi
 }
 
-# 设置电报机器人参数
-SetupTelgramBot() {
+# 设置ini参数文件
+SetupIniFile() {
+    # 设置电报机器人参数
     # echo -e "$Tip Telgram BOT Token 即为电报机器人 Token,"
     echo -e "$Tip Token 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
     # echo -e "$Tip 根据提示操作后最终获得电报机器人 Token"
-    read -p "请输入 Telgram BOT Token (回车跳过): " bottoken
-    if [ ! -z "$bottoken" ]; then
+    read -p "请输入 Telgram BOT Token (回车跳过 / 输入'x'退出设置): " bottoken
+    if [ "$bottoken" == "X" ] || [ "$bottoken" == "x" ]; then
+        return
+    elif [ ! -z "$bottoken" ]; then
         if grep -q "^TelgramBotToken=" /root/.shfile/TelgramBot.ini; then
             sed -i "/^TelgramBotToken=/d" /root/.shfile/TelgramBot.ini
         fi
@@ -194,8 +202,10 @@ SetupTelgramBot() {
     # echo -e "$Tip Chat ID 即为接收电报信息的用户 ID,"
     echo -e "$Tip ID 获取方法: 在 Telgram 中添加机器人 @userinfobot, 点击或输入: /start"
     # echo -e "$Tip 显示的第二行 Id 即为你的用户 ID."
-    read -p "请输入 Chat ID : (回车跳过)" cahtid
-    if [ ! -z "$cahtid" ]; then
+    read -p "请输入 Chat ID : (回车跳过 / 输入'x'退出设置)" cahtid
+    if [ "$cahtid" == "X" ] || [ "$cahtid" == "x" ]; then
+        return
+    elif [ ! -z "$cahtid" ]; then
         if [[ $cahtid =~ ^[0-9]+$ ]]; then
             if grep -q "^ChatID_1=" /root/.shfile/TelgramBot.ini; then
                 sed -i "/^ChatID_1=/d" /root/.shfile/TelgramBot.ini
@@ -208,34 +218,67 @@ SetupTelgramBot() {
     else
         echo -e "$Tip 输入为空, 跳过操作."
     fi
-}
 
-# 设置报警阀值
-SetupThreshold() {
-    read -p "请输入 CPU 报警阀值 (回车跳过): " threshold
-    if [ ! -z "$threshold" ]; then
-        if [[ $threshold =~ ^[0-9]+$ ]]; then
+    # 设置CPU报警阀值
+    read -p "请输入 CPU 报警阀值 (1-100%) (回车跳过 / 输入'x'退出设置): " threshold
+    if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
+        return
+    elif [ ! -z "$threshold" ]; then
+        if [[ $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
             if grep -q "^CPUThreshold=" /root/.shfile/TelgramBot.ini; then
                 sed -i "/^CPUThreshold=/d" /root/.shfile/TelgramBot.ini
             fi
             echo "CPUThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
             # echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
         else
-            echo -e "$Err 输入无效, 报警阀值 必须是数字, 跳过操作."
+            echo -e "$Err 输入无效, 报警阀值 必须是数字(1-100), 跳过操作."
         fi
     else
         echo -e "$Tip 输入为空, 跳过操作."
     fi
-    read -p "请输入 流量 报警阀值 (回车跳过): " threshold
-    if [ ! -z "$threshold" ]; then
-        if [[ $threshold =~ ^[0-9]+$ ]]; then
+
+    # 设置流量报警阀值
+    echo -e "$Tip 流量报警阀值输入格式: 数字|数字MB/数字GB, 可带 1 位小数"
+    read -p "请输入阀值 (回车跳过 / 输入'x'退出设置): " threshold
+    if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
+        return
+    elif [ ! -z "$threshold" ]; then
+        #if [[ $threshold =~ ^[0-9]+$ ]]; then
+        if [[ $threshold =~ ^[0-9]+(\.[0-9])?$ ]]; then
+            if [ "$threshold" -gt 1024 ]; then
+                # threshold=$(echo "scale=1; $threshold/1024" | bc)
+                threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
+                threshold="${threshold}GB" 
+            else
+                threshold="${threshold}MB"
+            fi
+            if grep -q "^FlowThreshold=" /root/.shfile/TelgramBot.ini; then
+                sed -i "/^FlowThreshold=/d" /root/.shfile/TelgramBot.ini
+            fi
+            echo "FlowThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
+            # echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
+        elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
+            threshold=${threshold%MB}
+            if [ "$threshold" -gt 1024 ]; then
+                # threshold=$(echo "scale=1; $threshold/1024" | bc)
+                threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
+                threshold="${threshold}GB" 
+            else
+                threshold="${threshold}MB"
+            fi
+            if grep -q "^FlowThreshold=" /root/.shfile/TelgramBot.ini; then
+                sed -i "/^FlowThreshold=/d" /root/.shfile/TelgramBot.ini
+            fi
+            echo "FlowThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
+            # echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
+        elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
             if grep -q "^FlowThreshold=" /root/.shfile/TelgramBot.ini; then
                 sed -i "/^FlowThreshold=/d" /root/.shfile/TelgramBot.ini
             fi
             echo "FlowThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
             # echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
         else
-            echo -e "$Err 输入无效, 报警阀值 必须是数字, 跳过操作."
+            echo -e "$Err 输入无效, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式, 跳过操作."
         fi
     else
         echo -e "$Tip 输入为空, 跳过操作."
@@ -422,6 +465,9 @@ while true; do
 done
 EOF
             chmod +x /root/.shfile/tg_docker.sh
+            pkill tg_docker.sh
+            pkill tg_docker.sh
+            nohup /root/.shfile/tg_docker.sh > /root/.shfile/tg_docker.log 2>&1 &
             if ! crontab -l | grep -q '@reboot bash /root/.shfile/tg_docker.sh'; then
                 (crontab -l 2>/dev/null; echo "@reboot bash /root/.shfile/tg_docker.sh") | crontab -
             fi
@@ -489,13 +535,22 @@ EOF
 SetupFlow_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${FlowThreshold}" ]]; then
         # FlowThreshold=500
+        FlowThreshold_U=$FlowThreshold
+        if [[ $FlowThreshold == *MB ]]; then
+            FlowThreshold=${FlowThreshold%MB}
+            FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value }')
+        elif [[ $FlowThreshold == *GB ]]; then
+            FlowThreshold=${FlowThreshold%GB}
+            FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value*1024 }')
+        fi
         cat <<EOF > /root/.shfile/tg_flow.sh
 #!/bin/bash
 
 # 流量阈值设置 (MB)
 # FlowThreshold=500
-# THRESHOLD_BYTES=\$((FlowThreshold * 1024 * 1024))
-THRESHOLD_BYTES=$((FlowThreshold * 1024 * 1024))
+# THRESHOLD_BYTES=\$((FlowThreshold * 1024 * 1024)) # 仅支持整数计算 (已经被下现一行代码替换)
+
+THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
 
 # 获取所有活动网络接口（排除lo本地接口）
 interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
@@ -526,24 +581,50 @@ while true; do
         current_tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
         
         all_rx_mb=\$((current_rx_bytes / 1024 / 1024))
+        if [ "\$all_rx_mb" -gt 1024 ]; then
+            all_rx_mb=\$(awk -v value=\$all_rx_mb 'BEGIN{printf "%.1f", value/1024}')
+            all_rx_mb="\${all_rx_mb}GB" 
+        else
+            all_rx_mb="\${all_rx_mb}MB"
+        fi
         all_tx_mb=\$((current_tx_bytes / 1024 / 1024))
+        if [ "\$all_tx_mb" -gt 1024 ]; then
+            all_tx_mb=\$(awk -v value=\$all_tx_mb 'BEGIN{printf "%.1f", value/1024}')
+            all_tx_mb="\${all_tx_mb}GB" 
+        else
+            all_tx_mb="\${all_tx_mb}MB"
+        fi
 
         # 计算增量
         rx_diff=\$((current_rx_bytes - prev_rx_data[\$sanitized_interface]))
         tx_diff=\$((current_tx_bytes - prev_tx_data[\$sanitized_interface]))
 
-        # 调试使用(1分钟的流量增量)
+        # 调试使用(30秒的流量增量)
         echo "Interface: \$sanitized_interface RX_diff(BYTES): \$rx_diff TX_diff(BYTES): \$tx_diff"
 
         # 调试使用(持续的流量增加)
         echo "Interface: \$sanitized_interface Current_RX(BYTES): \$current_rx_bytes Current_TX(BYTES): \$current_tx_bytes"
 
         # 检查是否超过阈值
-        if [ \$rx_diff -ge \$THRESHOLD_BYTES ] || [ \$tx_diff -ge \$THRESHOLD_BYTES ]; then
+        # if [ \$rx_diff -ge \$THRESHOLD_BYTES ] || [ \$tx_diff -ge \$THRESHOLD_BYTES ]; then # 仅支持整数计算 (已经被下面两行代码替换)
+        threshold_reached=\$(awk -v rx_diff="\$rx_diff" -v tx_diff="\$tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (rx_diff >= threshold) || (tx_diff >= threshold) ? 1 : 0}')
+        if [ "\$threshold_reached" -eq 1 ]; then
             rx_mb=\$((rx_diff / 1024 / 1024))
+            if [ "\$rx_mb" -gt 1024 ]; then
+                rx_mb=\$(awk -v value=\$rx_mb 'BEGIN{printf "%.1f", value/1024}')
+                rx_mb="\${rx_mb}GB" 
+            else
+                rx_mb="\${rx_mb}MB"
+            fi
             tx_mb=\$((tx_diff / 1024 / 1024))
+            if [ "\$tx_mb" -gt 1024 ]; then
+                tx_mb=\$(awk -v value=\$tx_mb 'BEGIN{printf "%.1f", value/1024}')
+                tx_mb="\${tx_mb}GB" 
+            else
+                tx_mb="\${tx_mb}MB"
+            fi
         
-            message="\$(hostname) \$sanitized_interface 流量已达阀值 - $FlowThreshold MB❗️"\$'\n'"已接收: \${rx_mb}MB  已发送: \${tx_mb}MB"\$'\n'"总接收: \${all_rx_mb}MB  总发送: \${all_tx_mb}MB"
+            message="\$(hostname) \$sanitized_interface 流量已达阀值❗️"\$'\n'"已设置阀值: $FlowThreshold_U"\$'\n'"已接收: \${rx_mb}  已发送: \${tx_mb}"\$'\n'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"
             curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
 
             # 更新前一个状态的流量数据
@@ -576,39 +657,190 @@ EOF
 
 # 卸载
 UnsetupAll() {
-    # if [ "$(systemctl is-active tg_boot.service)" = "active" ]; then
-        systemctl stop tg_boot.service > /dev/null 2>&1
-        systemctl disable tg_boot.service > /dev/null 2>&1
-    # fi
-    sleep 1
-    rm -f /etc/systemd/system/tg_boot.service
-    # if [ "$(systemctl is-active tg_shutdown.service)" = "active" ]; then
-        systemctl stop tg_shutdown.service > /dev/null 2>&1
-        systemctl disable tg_shutdown.service > /dev/null 2>&1
-    # fi
-    sleep 1
-    rm -f /etc/systemd/system/tg_shutdown.service
-    pkill tg_cpu.sh
-    pkill tg_cpu.sh
-    pkill tg_flow.sh
-    pkill tg_flow.sh
-    crontab -l | grep -v "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
-    crontab -l | grep -v "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
-    crontab -l | grep -v "@reboot bash /root/.shfile/tg_flow.sh" | crontab -
-    if [ -f /etc/bash.bashrc ]; then
-        sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
-    fi
-    if [ -f /etc/profile ]; then
-        sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
-    fi
-    read -p "是否要删除 /root/.shfile 文件夹? (建议保留) Y/其它 : " yorn
-    if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
-        rm -rf /root/.shfile
-        echo -e "$Tip /root/.shfile 文件夹已经删除."
+    while true; do
+    CheckSetup
+    source /root/.shfile/TelgramBot.ini
+    if [ -z "$CPUThreshold" ]; then
+        CPUThreshold_tag="${RE}未设置${NC}"
     else
-        echo -e "$Tip /root/.shfile 文件夹已经保留."
+        CPUThreshold_tag=${GR}$CPUThreshold${NC}
     fi
-    echo -e "$Tip 已经成功删除所有通知."
+    if [ -z "$FlowThreshold" ]; then
+        FlowThreshold_tag="${RE}未设置${NC}"
+    else
+        FlowThreshold_tag=${GR}$FlowThreshold${NC}
+    fi
+    CLS
+    echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
+-- tse | vtse.eu.org | $release -- 
+  
+ 取消 / 删除 模式
+———————————————————————
+ ${GR}1.${NC} ${RE}取消${NC} ${GR}[开机]${NC} Telgram 通知  ${GR}$boot_menu_tag${NC}
+ ${GR}2.${NC} ${RE}取消${NC} ${GR}[登陆]${NC} Telgram 通知  ${GR}$login_menu_tag${NC}
+ ${GR}3.${NC} ${RE}取消${NC} ${GR}[关机]${NC} Telgram 通知  ${GR}$shutdown_menu_tag${NC}
+ ${GR}4.${NC} ${RE}取消${NC} ${GR}[CPU 报警]${NC} Telgram 通知 - 阀值: $CPUThreshold_tag    ${GR}$cpu_menu_tag${NC}
+ ${GR}5.${NC} ${RE}取消${NC} ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag   ${GR}$flow_menu_tag${NC}
+ ${GR}6.${NC} ${RE}取消${NC} ${GR}[Docker 变更]${NC} Telgram 通知            ${GR}$docker_menu_tag${NC}
+ ———————————————————————————————————————————————————————
+ ${GR}a.${NC} ${RE}取消所有${NC} Telgram 通知
+ ——————————————————————————————————————
+ ${GR}f.${NC} ${RE}删除${NC} 脚本文件夹  ${GR}$folder_menu_tag${NC}
+ ——————————————————————————————————————
+ ${GR}b.${NC} 返回 普通模式
+ ——————————————————————————————————————
+ ${GR}x.${NC} 退出脚本
+————————————
+$Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && echo
+    read -e -p "请输入选项 [0-6|a|f|b|x]:" num
+    case "$num" in
+        1) # 开机
+        if [ "$boot_menu_tag" == "-> 已设置" ]; then
+            systemctl stop tg_boot.service > /dev/null 2>&1
+            systemctl disable tg_boot.service > /dev/null 2>&1
+            sleep 1
+            rm -f /etc/systemd/system/tg_boot.service
+            boot_menu_tag=""
+            # echo "已经取消 / 删除."
+            # Pause
+        fi
+        ;;
+        2) # 登陆
+        if [ "$login_menu_tag" == "-> 已设置" ]; then
+            if [ -f /etc/bash.bashrc ]; then
+                sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
+            fi
+            if [ -f /etc/profile ]; then
+                sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
+            fi
+            login_menu_tag=""
+            # echo "已经取消 / 删除."
+            # Pause
+        fi
+        ;;
+        3) # 关机
+        if [ "$shutdown_menu_tag" == "-> 已设置" ]; then
+            systemctl stop tg_shutdown.service > /dev/null 2>&1
+            systemctl disable tg_shutdown.service > /dev/null 2>&1
+            sleep 1
+            rm -f /etc/systemd/system/tg_shutdown.service
+            shutdown_menu_tag=""
+            # echo "已经取消 / 删除."
+            # Pause
+        fi
+        ;;
+        4) # CPU 报警
+        if [ "$cpu_menu_tag" == "-> 已设置" ]; then
+            pkill tg_cpu.sh
+            pkill tg_cpu.sh
+            crontab -l | grep -v "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
+            cpu_menu_tag=""
+            # echo "已经取消 / 删除."
+            # Pause
+        fi
+        ;;
+        5) # 流量 报警
+        if [ "$flow_menu_tag" == "-> 已设置" ]; then
+            pkill tg_flow.sh
+            pkill tg_flow.sh
+            crontab -l | grep -v "@reboot bash /root/.shfile/tg_flow.sh" | crontab -
+            flow_menu_tag=""
+            # echo "已经取消 / 删除."
+            # Pause
+        fi
+        ;;
+        6) # Docker 提示
+        if [ "$docker_menu_tag" == "-> 已设置" ]; then
+            pkill tg_docker.sh
+            pkill tg_docker.sh
+            crontab -l | grep -v "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
+            docker_menu_tag=""
+            # echo "已经取消 / 删除."
+            # Pause
+        fi
+        ;;
+        a|A)
+        untag=false
+        if [ "$boot_menu_tag" == "-> 已设置" ]; then
+            systemctl stop tg_boot.service > /dev/null 2>&1
+            systemctl disable tg_boot.service > /dev/null 2>&1
+            sleep 1
+            rm -f /etc/systemd/system/tg_boot.service
+            boot_menu_tag=""
+            untag=true
+        fi
+        if [ "$login_menu_tag" == "-> 已设置" ]; then
+            if [ -f /etc/bash.bashrc ]; then
+                sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
+            fi
+            if [ -f /etc/profile ]; then
+                sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
+            fi
+            login_menu_tag=""
+            untag=true
+        fi
+        if [ "$shutdown_menu_tag" == "-> 已设置" ]; then
+            systemctl stop tg_shutdown.service > /dev/null 2>&1
+            systemctl disable tg_shutdown.service > /dev/null 2>&1
+            sleep 1
+            rm -f /etc/systemd/system/tg_shutdown.service
+            shutdown_menu_tag=""
+            untag=true
+        fi
+        if [ "$cpu_menu_tag" == "-> 已设置" ]; then
+            pkill tg_cpu.sh
+            pkill tg_cpu.sh
+            crontab -l | grep -v "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
+            cpu_menu_tag=""
+            untag=true
+        fi
+        if [ "$flow_menu_tag" == "-> 已设置" ]; then
+            pkill tg_flow.sh
+            pkill tg_flow.sh
+            crontab -l | grep -v "@reboot bash /root/.shfile/tg_flow.sh" | crontab -
+            flow_menu_tag=""
+            untag=true
+        fi
+        if [ "$docker_menu_tag" == "-> 已设置" ]; then
+            pkill tg_docker.sh
+            pkill tg_docker.sh
+            crontab -l | grep -v "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
+            docker_menu_tag=""
+            untag=true
+        fi
+        if [ "$untag" == "true" ]; then
+            echo -e "$Tip 已取消 / 删除所有通知."
+            Pause
+        fi
+        ;;
+        f|F)
+        if [ "$boot_menu_tag" == "" ] && [ "$login_menu_tag" == "" ] && [ "$shutdown_menu_tag" == "" ] && [ "$cpu_menu_tag" == "" ] && [ "$flow_menu_tag" == "" ] && [ "$docker_menu_tag" == "" ]; then
+            if [ -d "/root/.shfile" ]; then
+                read -p "是否要删除 /root/.shfile 文件夹? (建议保留) Y/其它 : " yorn
+                if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
+                    rm -rf /root/.shfile
+                    folder_menu_tag=""
+                    echo -e "$Tip /root/.shfile 文件夹已经删除."
+                else
+                    echo -e "$Tip /root/.shfile 文件夹已经保留."
+                fi
+            fi
+        else
+            echo -e "$Err 请先取消所有通知后再删除文件夹."
+        fi
+        Pause
+        ;;
+        b|B)
+        break
+        ;;
+        x|X)
+        exit 0
+        ;;
+        *)
+        echo "请输入正确数字 [0-6|a|f|b|x]"
+        ;;
+    esac
+    done    
 }
 
 # 主程序
@@ -619,7 +851,7 @@ source /root/.shfile/TelgramBot.ini
 if [ -z "$CPUThreshold" ]; then
     CPUThreshold_tag="${RE}未设置${NC}"
 else
-    CPUThreshold_tag=${GR}$CPUThreshold${NC}
+    CPUThreshold_tag="${GR}$CPUThreshold %${NC}"
 fi
 if [ -z "$FlowThreshold" ]; then
     FlowThreshold_tag="${RE}未设置${NC}"
@@ -631,29 +863,30 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
 -- tse | vtse.eu.org | $release -- 
   
  ${GR}0.${NC} 检查依赖 / 设置参数
-————————————
- ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知  $boot_menu_tag
- ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知  $login_menu_tag
- ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知  $shutdown_menu_tag
- ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 - 阀值: $CPUThreshold_tag    $cpu_menu_tag
- ${GR}5.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag   $flow_menu_tag
- ${GR}6.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知            $docker_menu_tag
- ———————————————————————————————————————
+———————————————————————
+ ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知  ${GR}$boot_menu_tag${NC}
+ ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知  ${GR}$login_menu_tag${NC}
+ ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知  ${GR}$shutdown_menu_tag${NC}
+ ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 - 阀值: $CPUThreshold_tag  ${GR}$cpu_menu_tag${NC}
+ ${GR}5.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag   ${GR}$flow_menu_tag${NC}
+ ${GR}6.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知            ${GR}$docker_menu_tag${NC}
+ ———————————————————————————————————————————————————————
  ${GR}t.${NC} 测试 - 发送一条信息用以检验参数设置
+ ——————————————————————————————————————
  ${GR}h.${NC} 修改 - Hostname 以此作为主机标记
- ${GR}d.${NC} 取消 / 删除 通知设置
-———————————————————————————————————————
+ ——————————————————————————————————————
+ ${GR}d.${NC} ${RE}进入${NC} - 取消 / 删除 模式
+ ——————————————————————————————————————
  ${GR}x.${NC} 退出脚本
 ————————————
 $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && echo
-read -e -p "请输入选项 [0-6,t,h,d]:" num
+read -e -p "请输入选项 [0-6|t|h|d|x]:" num
 case "$num" in
     0)
     CheckAndCreateFold
     SourceAndShowINI
     CheckRely
-    SetupTelgramBot
-    SetupThreshold
+    SetupIniFile
     SourceAndShowINI
     Pause
     ;;
@@ -698,13 +931,12 @@ case "$num" in
     ;;
     d|D)
     UnsetupAll
-    exit 0
     ;;
     x|X)
     exit 0
     ;;
     *)
-    echo "请输入正确数字 [0-4]"
+    echo "请输入正确数字 [0-6|t|h|d|x]"
     ;;
 esac
 done
