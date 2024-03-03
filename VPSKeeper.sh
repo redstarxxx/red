@@ -679,9 +679,9 @@ UnsetupAll() {
  ${GR}1.${NC} ${RE}取消${NC} ${GR}[开机]${NC} Telgram 通知  ${GR}$boot_menu_tag${NC}
  ${GR}2.${NC} ${RE}取消${NC} ${GR}[登陆]${NC} Telgram 通知  ${GR}$login_menu_tag${NC}
  ${GR}3.${NC} ${RE}取消${NC} ${GR}[关机]${NC} Telgram 通知  ${GR}$shutdown_menu_tag${NC}
- ${GR}4.${NC} ${RE}取消${NC} ${GR}[CPU 报警]${NC} Telgram 通知 - 阀值: $CPUThreshold_tag    ${GR}$cpu_menu_tag${NC}
- ${GR}5.${NC} ${RE}取消${NC} ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag   ${GR}$flow_menu_tag${NC}
- ${GR}6.${NC} ${RE}取消${NC} ${GR}[Docker 变更]${NC} Telgram 通知            ${GR}$docker_menu_tag${NC}
+ ${GR}4.${NC} ${RE}取消${NC} ${GR}[CPU 报警]${NC} Telgram 通知 - 阀值: $CPUThreshold_tag     ${GR}$cpu_menu_tag${NC}
+ ${GR}5.${NC} ${RE}取消${NC} ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag  ${GR}$flow_menu_tag${NC}
+ ${GR}6.${NC} ${RE}取消${NC} ${GR}[Docker 变更]${NC} Telgram 通知             ${GR}$docker_menu_tag${NC}
  ———————————————————————————————————————————————————————
  ${GR}a.${NC} ${RE}取消所有${NC} Telgram 通知
  ——————————————————————————————————————
