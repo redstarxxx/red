@@ -867,9 +867,9 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
  ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知  ${GR}$boot_menu_tag${NC}
  ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知  ${GR}$login_menu_tag${NC}
  ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知  ${GR}$shutdown_menu_tag${NC}
- ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 - 阀值: $CPUThreshold_tag  ${GR}$cpu_menu_tag${NC}
- ${GR}5.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag   ${GR}$flow_menu_tag${NC}
- ${GR}6.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知            ${GR}$docker_menu_tag${NC}
+ ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 - 阀值: $CPUThreshold_tag   ${GR}$cpu_menu_tag${NC}
+ ${GR}5.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 - 阀值: $FlowThreshold_tag  ${GR}$flow_menu_tag${NC}
+ ${GR}6.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知             ${GR}$docker_menu_tag${NC}
  ———————————————————————————————————————————————————————
  ${GR}t.${NC} 测试 - 发送一条信息用以检验参数设置
  ——————————————————————————————————————
