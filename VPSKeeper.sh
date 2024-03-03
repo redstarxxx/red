@@ -9,7 +9,9 @@ export PATH
 #	Author: tse
 #	Blog: https://vtse.eu.org
 #=================================================
-sh_ver="1.0.0"
+sh_ver="1.0.1"
+FolderPath="/root/.shfile"
+ConfigFile="/root/.shfile/TelgramBot.ini"
 
 # 检测是否root用户
 if [ "$UID" -ne 0 ]; then
@@ -18,8 +20,8 @@ if [ "$UID" -ne 0 ]; then
 fi
 
 # 导入参数
-# if [ -f /root/.shfile/TelgramBot.ini ]; then
-#     source /root/.shfile/TelgramBot.ini
+# if [ -f $ConfigFile ]; then
+#     source $ConfigFile
 # fi
 
 # 颜色代码
@@ -29,14 +31,14 @@ Err="${RE}[错误]${NC}:"
 Tip="${GR}[提示]${NC}:"
 
 # 创建.shfile目录
-CheckAndCreateFold() {
-    if [ ! -d "/root/.shfile" ]; then
-        mkdir -p "/root/.shfile"
+CheckAndCreateFolder() {
+    if [ ! -d "$FolderPath" ]; then
+        mkdir -p "$FolderPath"
     fi
-    if [ -f /root/.shfile/TelgramBot.ini ]; then
-        source /root/.shfile/TelgramBot.ini
+    if [ -f $ConfigFile ]; then
+        source $ConfigFile
     else
-        touch /root/.shfile/TelgramBot.ini
+        touch $ConfigFile
     fi
 }
 
@@ -82,13 +84,13 @@ CheckSys() {
 # 检测设置标记
 CheckSetup() {
     echo "检测中..."
-    if [ -f /root/.shfile/tg_login.sh ]; then
+    if [ -f $FolderPath/tg_login.sh ]; then
         if [ -f /etc/bash.bashrc ]; then
-            if grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
+            if grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
                 login_menu_tag="-> 已设置"
             fi
         elif [ -f /etc/profile ]; then
-            if grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/profile; then
+            if grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/profile; then
                 login_menu_tag="-> 已设置"
             fi
         else
@@ -97,7 +99,7 @@ CheckSetup() {
     else
         login_menu_tag=""
     fi
-    if [ -f /root/.shfile/tg_boot.sh ]; then
+    if [ -f $FolderPath/tg_boot.sh ]; then
         if [ -f /etc/systemd/system/tg_boot.service ]; then
             boot_menu_tag="-> 已设置"
         else
@@ -106,7 +108,7 @@ CheckSetup() {
     else
         boot_menu_tag=""
     fi
-    if [ -f /root/.shfile/tg_shutdown.sh ]; then
+    if [ -f $FolderPath/tg_shutdown.sh ]; then
         if [ -f /etc/systemd/system/tg_shutdown.service ]; then
             shutdown_menu_tag="-> 已设置"
         else
@@ -115,8 +117,8 @@ CheckSetup() {
     else
         shutdown_menu_tag=""
     fi
-    if [ -f /root/.shfile/tg_docker.sh ]; then
-        if crontab -l | grep -q '@reboot bash /root/.shfile/tg_docker.sh'; then
+    if [ -f $FolderPath/tg_docker.sh ]; then
+        if crontab -l | grep -q "@reboot bash $FolderPath/tg_docker.sh"; then
             docker_menu_tag="-> 已设置"
         else
             docker_menu_tag=""
@@ -124,8 +126,8 @@ CheckSetup() {
     else
         docker_menu_tag=""
     fi
-    if [ -f /root/.shfile/tg_cpu.sh ]; then
-        if crontab -l | grep -q '@reboot bash /root/.shfile/tg_cpu.sh'; then
+    if [ -f $FolderPath/tg_cpu.sh ]; then
+        if crontab -l | grep -q "@reboot bash $FolderPath/tg_cpu.sh"; then
             cpu_menu_tag="-> 已设置"
         else
             cpu_menu_tag=""
@@ -133,8 +135,8 @@ CheckSetup() {
     else
         cpu_menu_tag=""
     fi
-    if [ -f /root/.shfile/tg_flow.sh ]; then
-        if crontab -l | grep -q '@reboot bash /root/.shfile/tg_flow.sh'; then
+    if [ -f $FolderPath/tg_flow.sh ]; then
+        if crontab -l | grep -q "@reboot bash $FolderPath/tg_flow.sh"; then
             flow_menu_tag="-> 已设置"
         else
             flow_menu_tag=""
@@ -142,7 +144,7 @@ CheckSetup() {
     else
         flow_menu_tag=""
     fi
-    if [ -d "/root/.shfile" ]; then
+    if [ -d "$FolderPath" ]; then
         folder_menu_tag="-> 文件夹存在"
     else
         folder_menu_tag=""
@@ -186,11 +188,13 @@ SetupIniFile() {
     old_TelgramBotToken=""
     old_ChatID_1=""
     old_CPUThreshold=""
+    old_CPUTools=""
     old_FlowThreshold=""
-    if [ -f /root/.shfile/TelgramBot.ini ] && [ -s /root/.shfile/TelgramBot.ini ]; then
+    if [ -f $ConfigFile ] && [ -s $ConfigFile ]; then
         old_TelgramBotToken=$TelgramBotToken
         old_ChatID_1=$ChatID_1
         old_CPUThreshold=$CPUThreshold
+        old_CPUTools=$CPUTools
         old_FlowThreshold=$FlowThreshold
     fi
     # 设置电报机器人参数
@@ -201,12 +205,10 @@ SetupIniFile() {
     read -p "请输入 BOT Token (回车跳过 / 输入'x'退出设置): " bottoken
     if [ "$bottoken" == "X" ] || [ "$bottoken" == "x" ]; then
         return
-    elif [ ! -z "$bottoken" ]; then
-        if grep -q "^TelgramBotToken=" /root/.shfile/TelgramBot.ini; then
-            sed -i "/^TelgramBotToken=/d" /root/.shfile/TelgramBot.ini
-        fi
-        echo "TelgramBotToken=$bottoken" >> /root/.shfile/TelgramBot.ini
-        # echo -e "$Tip 已将 Token 写入 /root/.shfile/TelgramBot.ini 文件中."
+    fi
+    if [ ! -z "$bottoken" ]; then
+        writeini "TelgramBotToken" "$bottoken"
+        # echo -e "$Tip 已将 Token 写入 $ConfigFile 文件中."
     else
         echo -e "$Tip 输入为空, 跳过操作."
     fi
@@ -217,13 +219,11 @@ SetupIniFile() {
     read -p "请输入 Chat ID (回车跳过 / 输入'x'退出设置): " cahtid
     if [ "$cahtid" == "X" ] || [ "$cahtid" == "x" ]; then
         return
-    elif [ ! -z "$cahtid" ]; then
+    fi
+    if [ ! -z "$cahtid" ]; then
         if [[ $cahtid =~ ^[0-9]+$ ]]; then
-            if grep -q "^ChatID_1=" /root/.shfile/TelgramBot.ini; then
-                sed -i "/^ChatID_1=/d" /root/.shfile/TelgramBot.ini
-            fi
-            echo "ChatID_1=$cahtid" >> /root/.shfile/TelgramBot.ini
-            # echo -e "$Tip 已将 Chat ID 写入 /root/.shfile/TelgramBot.ini 文件中."
+            writeini "ChatID_1" "$cahtid"
+            # echo -e "$Tip 已将 Chat ID 写入 $ConfigFile 文件中."
         else
             echo -e "$Err 输入无效, Chat ID 必须是数字, 跳过操作."
         fi
@@ -236,14 +236,12 @@ SetupIniFile() {
     read -p "请输入 CPU 阀值 (回车跳过 / 输入'x'退出设置): " threshold
     if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
         return
-    elif [ ! -z "$threshold" ]; then
+    fi
+    if [ ! -z "$threshold" ]; then
         threshold="${threshold//%/}"
         if [[ $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
-            if grep -q "^CPUThreshold=" /root/.shfile/TelgramBot.ini; then
-                sed -i "/^CPUThreshold=/d" /root/.shfile/TelgramBot.ini
-            fi
-            echo "CPUThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
-            # echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
+            writeini "CPUThreshold" "$threshold"
+            # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
         else
             echo -e "$Err 输入无效, 报警阀值 必须是数字(1-100), 跳过操作."
         fi
@@ -251,12 +249,34 @@ SetupIniFile() {
         echo -e "$Tip 输入为空, 跳过操作."
     fi
     echo "------------------------------------"
+
+    echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业)"
+    read -p "请输入序号 (回车默认选择 1.top / 输入'x'退出设置): " choice
+    if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
+        return
+    fi
+    if [ ! -z "$choice" ]; then
+        if [ "$choice" == "2" ]; then
+            CPUTools="sar"
+            writeini "CPUTools" "sar"
+        else
+            CPUTools="top"
+            writeini "CPUTools" "top"
+        fi
+    else
+        CPUTools="top"
+        writeini "CPUTools" "top"
+        echo -e "$Tip 输入为空, 默认选择 1.top"
+    fi
+    echo "------------------------------------"
+
     # 设置流量报警阀值
     echo -e "$Tip ${REB}流量报警${NC} 阀值输入格式: 数字|数字MB/数字GB, 可带 1 位小数"
     read -p "请输入 流量 阀值 (回车跳过): " threshold
     if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
         return
-    elif [ ! -z "$threshold" ]; then
+    fi
+    if [ ! -z "$threshold" ]; then
         #if [[ $threshold =~ ^[0-9]+$ ]]; then
         if [[ $threshold =~ ^[0-9]+(\.[0-9])?$ ]]; then
             if [ "$threshold" -gt 1023 ]; then
@@ -266,11 +286,8 @@ SetupIniFile() {
             else
                 threshold="${threshold}MB"
             fi
-            if grep -q "^FlowThreshold=" /root/.shfile/TelgramBot.ini; then
-                sed -i "/^FlowThreshold=/d" /root/.shfile/TelgramBot.ini
-            fi
-            echo "FlowThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
-            # echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
+            writeini "FlowThreshold" "$threshold"
+            # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
         elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
             threshold=${threshold%MB}
             if [ "$threshold" -gt 1023 ]; then
@@ -280,17 +297,11 @@ SetupIniFile() {
             else
                 threshold="${threshold}MB"
             fi
-            if grep -q "^FlowThreshold=" /root/.shfile/TelgramBot.ini; then
-                sed -i "/^FlowThreshold=/d" /root/.shfile/TelgramBot.ini
-            fi
-            echo "FlowThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
-            # echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
+            writeini "FlowThreshold" "$threshold"
+            # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
         elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
-            if grep -q "^FlowThreshold=" /root/.shfile/TelgramBot.ini; then
-                sed -i "/^FlowThreshold=/d" /root/.shfile/TelgramBot.ini
-            fi
-            echo "FlowThreshold=$threshold" >> /root/.shfile/TelgramBot.ini
-            # echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
+            writeini "FlowThreshold" "$threshold"
+            # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
         else
             echo -e "$Err 输入无效, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式, 跳过操作."
         fi
@@ -298,7 +309,7 @@ SetupIniFile() {
         echo -e "$Tip 输入为空, 跳过操作."
     fi
     if [ "$old_TelgramBotToken" != "" ] && [ "$old_ChatID_1" != "" ]; then
-        source /root/.shfile/TelgramBot.ini
+        source $ConfigFile
         if [ "$TelgramBotToken" != "$old_TelgramBotToken" ] || [ "$ChatID_1" != "$old_ChatID_1" ]; then
             if [ "$boot_menu_tag" == "-> 已设置" ]; then
                 writeini "reBootSet" "Reload"
@@ -320,16 +331,16 @@ SetupIniFile() {
             fi
         fi
     fi
-    if [ "$old_CPUThreshold" != "" ]; then
-        source /root/.shfile/TelgramBot.ini
-        if [ "$CPUThreshold" != "$old_CPUThreshold" ]; then
+    if [ "$old_CPUThreshold" != "" ] && [ "$old_CPUTools" != "" ]; then
+        source $ConfigFile
+        if [ "$CPUThreshold" != "$old_CPUThreshold" ] || [ "$CPUTools" != "$old_CPUTools" ]; then
             if [ "$cpu_menu_tag" == "-> 已设置" ]; then
                 writeini "reCPUSet" "Reload"
             fi
         fi
     fi
     if [ "$old_FlowThreshold" != "" ]; then
-        source /root/.shfile/TelgramBot.ini
+        source $ConfigFile
         if [ "$FlowThreshold" != "$old_FlowThreshold" ]; then
             if [ "$flow_menu_tag" == "-> 已设置" ]; then
                 writeini "reFlowSet" "Reload"
@@ -340,10 +351,10 @@ SetupIniFile() {
 
 # 用于显示内容（调试用）
 SourceAndShowINI() {
-    if [ -f /root/.shfile/TelgramBot.ini ] && [ -s /root/.shfile/TelgramBot.ini ]; then
-        source /root/.shfile/TelgramBot.ini
+    if [ -f $ConfigFile ] && [ -s $ConfigFile ]; then
+        source $ConfigFile
         echo "------------------------------------"
-        cat /root/.shfile/TelgramBot.ini
+        cat $ConfigFile
         echo "------------------------------------"
         echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可执行(0.选项)或手动修改参数."
     fi
@@ -351,15 +362,15 @@ SourceAndShowINI() {
 
 # 写入ini文件
 writeini() {
-    if grep -q "^$1=" /root/.shfile/TelgramBot.ini; then
-        sed -i "/^$1=/d" /root/.shfile/TelgramBot.ini
+    if grep -q "^$1=" $ConfigFile; then
+        sed -i "/^$1=/d" $ConfigFile
     fi
-    echo "$1=$2" >> /root/.shfile/TelgramBot.ini
+    echo "$1=$2" >> $ConfigFile
 }
 
 # 删除ini文件指定行
 delini() {
-    sed -i "/^$1=/d" /root/.shfile/TelgramBot.ini
+    sed -i "/^$1=/d" $ConfigFile
 }
 
 # 发送Telegram消息的函数
@@ -417,10 +428,10 @@ ModifyHostname() {
 SetupBoot_TG() {
     if command -v systemd &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-            echo "#!/bin/bash" > /root/.shfile/tg_boot.sh
+            echo "#!/bin/bash" > $FolderPath/tg_boot.sh
             echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) 已启动.\"" \
-            >> /root/.shfile/tg_boot.sh
-            chmod +x /root/.shfile/tg_boot.sh
+            >> $FolderPath/tg_boot.sh
+            chmod +x $FolderPath/tg_boot.sh
             cat <<EOF > /etc/systemd/system/tg_boot.service
 [Unit]
 Description=Run tg_boot.sh script at boot time
@@ -428,13 +439,13 @@ After=network.target
 
 [Service]
 Type=oneshot
-ExecStart=/root/.shfile/tg_boot.sh
+ExecStart=$FolderPath/tg_boot.sh
 RemainAfterExit=true
 
 [Install]
 WantedBy=multi-user.target
 EOF
-            # ShowContents "/root/.shfile/tg_boot.sh"
+            # ShowContents "$FolderPath/tg_boot.sh"
             # ShowContents "/etc/systemd/system/tg_boot.service"
             # if [ ! "$(systemctl is-active tg_boot.service)" = "active" ]; then
                 systemctl enable tg_boot.service
@@ -452,20 +463,20 @@ EOF
 # 设置登陆通知
 SetupLogin_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-        echo "#!/bin/bash" > /root/.shfile/tg_login.sh
+        echo "#!/bin/bash" > $FolderPath/tg_login.sh
         echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) \$(id -nu) 用户登陆成功.\"" \
-        >> /root/.shfile/tg_login.sh
-        chmod +x /root/.shfile/tg_login.sh
+        >> $FolderPath/tg_login.sh
+        chmod +x $FolderPath/tg_login.sh
         if [ -f /etc/bash.bashrc ]; then
-            if ! grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
-                echo "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
+            if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
+                echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
                 # echo -e "$Tip 指令已经添加进 /etc/bash.bashrc 文件"
                 echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
             delini "reLoginSet"
         elif [ -f /etc/profile ]; then
-            if ! grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/profile; then
-                echo "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" >> /etc/profile
+            if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/profile; then
+                echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/profile
                 # echo -e "$Tip 指令已经添加进 /etc/profile 文件"
                 echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
@@ -473,7 +484,7 @@ SetupLogin_TG() {
         else
             echo -e "$Err 未检测到对应文件, 无法设置登陆通知."
         fi
-        # ShowContents "/root/.shfile/tg_login.sh"
+        # ShowContents "$FolderPath/tg_login.sh"
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
     fi
@@ -483,10 +494,10 @@ SetupLogin_TG() {
 SetupShutdown_TG() {
     if command -v systemd &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-            echo "#!/bin/bash" > /root/.shfile/tg_shutdown.sh
+            echo "#!/bin/bash" > $FolderPath/tg_shutdown.sh
             echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) \$(id -nu) 正在执行关机...\"" \
-            >> /root/.shfile/tg_shutdown.sh
-            chmod +x /root/.shfile/tg_shutdown.sh
+            >> $FolderPath/tg_shutdown.sh
+            chmod +x $FolderPath/tg_shutdown.sh
             cat <<EOF > /etc/systemd/system/tg_shutdown.service
 [Unit]
 Description=tg_shutdown
@@ -495,13 +506,13 @@ Before=shutdown.target
 
 [Service]
 Type=oneshot
-ExecStart=/root/.shfile/tg_shutdown.sh
+ExecStart=$FolderPath/tg_shutdown.sh
 TimeoutStartSec=0
 
 [Install]
 WantedBy=shutdown.target
 EOF
-            # ShowContents "/root/.shfile/tg_shutdown.sh"
+            # ShowContents "$FolderPath/tg_shutdown.sh"
             # ShowContents "/etc/systemd/system/tg_shutdown.service"
             # if [ ! "$(systemctl is-active tg_shutdown.service)" = "active" ]; then
                 systemctl enable tg_shutdown.service
@@ -520,28 +531,29 @@ EOF
 SetupDocker_TG() {
     if command -v docker &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-            cat <<EOF > /root/.shfile/tg_docker.sh
+            cat <<EOF > $FolderPath/tg_docker.sh
 #!/bin/bash
 
 old_message=""
 while true; do
-    new_message=\$(docker ps --format '{{.Names}}' | tr '\n' "\n" | sed 's/|$//')
+    # new_message=\$(docker ps --format '{{.Names}}' | tr '\n' "\n" | sed 's/|$//')
+    new_message=\$(docker ps --format '{{.Names}}' | awk '{print NR". " \$0}')
     if [ "\$new_message" != "\$old_message" ]; then
         old_message=\$new_message
-        message="Docker List:"\$'\n'"\$new_message"
+        message="DOCKER 列表:"\$'\n'"\$new_message"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
     fi
     sleep 10
 done
 EOF
-            chmod +x /root/.shfile/tg_docker.sh
+            chmod +x $FolderPath/tg_docker.sh
             pkill tg_docker.sh
             pkill tg_docker.sh
-            nohup /root/.shfile/tg_docker.sh > /root/.shfile/tg_docker.log 2>&1 &
-            if ! crontab -l | grep -q '@reboot bash /root/.shfile/tg_docker.sh'; then
-                (crontab -l 2>/dev/null; echo "@reboot bash /root/.shfile/tg_docker.sh") | crontab -
+            nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &
+            if ! crontab -l | grep -q "@reboot bash $FolderPath/tg_docker.sh"; then
+                (crontab -l 2>/dev/null; echo "@reboot bash $FolderPath/tg_docker.sh") | crontab -
             fi
-            # ShowContents "/root/.shfile/tg_docker.sh"
+            # ShowContents "$FolderPath/tg_docker.sh"
             echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
             delini "reDockerSet"
         else
@@ -554,23 +566,48 @@ EOF
 
 # 设置CPU报警
 SetupCPU_TG() {
-    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${CPUThreshold}" ]]; then
-        # CPUThreshold=70
-        # if ! command -v sar &>/dev/null; then
-        #     echo "正在安装缺失的依赖 sar, 一个获取 CPU 工作状态的专业工具."
-        #     if [ -x "$(command -v apt)" ]; then
-        #         apt -y install sysstat
-        #     elif [ -x "$(command -v yum)" ]; then
-        #         yum -y install sysstat
-        #     else
-        #         echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
-        #     fi
-        # fi
-        cat <<EOF > /root/.shfile/tg_cpu.sh
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${CPUThreshold}" &&  ! -z "${CPUTools}" ]]; then
+        if [ "$CPUTools" == "sar" ]; then
+            if ! command -v sar &>/dev/null; then
+                echo "正在安装缺失的依赖 sar, 一个获取 CPU 工作状态的专业工具."
+                if [ -x "$(command -v apt)" ]; then
+                    apt -y install sysstat
+                elif [ -x "$(command -v yum)" ]; then
+                    yum -y install sysstat
+                else
+                    echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
+                fi
+            fi
+            cat <<EOF > $FolderPath/tg_cpu.sh
 #!/bin/bash
 
 count=0
 while true; do
+    SleepTime=900
+    cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$8 }')
+    # cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 1)))
+    if (( cpu_usage > $CPUThreshold )); then
+        (( count++ ))
+    else
+        count=0
+    fi
+    if (( count >= 5 )); then
+        message="CPU 使用率超过阀值❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage %"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60)) 分钟"
+        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
+        count=0  # 发送警告后重置计数器
+        sleep \$SleepTime   # 发送后等待10分钟再检测
+    fi
+    echo "程序正在运行中，目前 CPU 使用率为: \$cpu_usage%"
+    # sleep 5
+done
+EOF
+        elif [ "$CPUTools" == "top" ]; then
+            cat <<EOF > $FolderPath/tg_cpu.sh
+#!/bin/bash
+
+count=0
+while true; do
+    SleepTime=900
     # cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$8 }')
     cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 1)))
     if (( cpu_usage > $CPUThreshold )); then
@@ -579,23 +616,26 @@ while true; do
         count=0
     fi
     if (( count >= 3 )); then
-        message="\$(hostname) CPU 当前使用率为: \$cpu_usage% ❗️"
+        message="CPU 使用率超过阀值❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage %"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60)) 分钟"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
         count=0  # 发送警告后重置计数器
-        sleep 600   # 发送后等待10分钟再检测
+        sleep \$SleepTime   # 发送后等待10分钟再检测
     fi
     echo "程序正在运行中，目前 CPU 使用率为: \$cpu_usage%"
     # sleep 5
 done
 EOF
-        chmod +x /root/.shfile/tg_cpu.sh
-        pkill tg_cpu.sh
-        pkill tg_cpu.sh
-        nohup /root/.shfile/tg_cpu.sh > /root/.shfile/tg_cpu.log 2>&1 &
-        if ! crontab -l | grep -q '@reboot bash /root/.shfile/tg_cpu.sh'; then
-            (crontab -l 2>/dev/null; echo "@reboot bash /root/.shfile/tg_cpu.sh") | crontab -
+        else
+            echo -e "$Err 不应该出现的错误, 请重新选择 0 配置."
         fi
-        # ShowContents "/root/.shfile/tg_cpu.sh"
+        chmod +x $FolderPath/tg_cpu.sh
+        pkill tg_cpu.sh
+        pkill tg_cpu.sh
+        nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &
+        if ! crontab -l | grep -q "@reboot bash $FolderPath/tg_cpu.sh"; then
+            (crontab -l 2>/dev/null; echo "@reboot bash $FolderPath/tg_cpu.sh") | crontab -
+        fi
+        # ShowContents "$FolderPath/tg_cpu.sh"
         echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时, 你的 Telgram 将收到通知."
         delini "reCPUSet"
     else
@@ -615,7 +655,7 @@ SetupFlow_TG() {
             FlowThreshold=${FlowThreshold%GB}
             FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value*1024 }')
         fi
-        cat <<EOF > /root/.shfile/tg_flow.sh
+        cat <<EOF > $FolderPath/tg_flow.sh
 #!/bin/bash
 
 # 流量阈值设置 (MB)
@@ -696,7 +736,7 @@ while true; do
                 tx_mb="\${tx_mb}MB"
             fi
         
-            message="\$(hostname) \$sanitized_interface 流量已达阀值❗️"\$'\n'"已设置阀值: $FlowThreshold_U"\$'\n'"已接收: \${rx_mb}  已发送: \${tx_mb}"\$'\n'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"
+            message="流量已达到阀值❗️"\$'\n'"主机名: \$(hostname) 端口: \$sanitized_interface"\$'\n'"设置阀值: $FlowThreshold_U"\$'\n'"已接收: \${rx_mb}  已发送: \${tx_mb}"\$'\n'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"
             curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
 
             # 更新前一个状态的流量数据
@@ -713,14 +753,14 @@ while true; do
     sleep 30
 done
 EOF
-        chmod +x /root/.shfile/tg_flow.sh
+        chmod +x $FolderPath/tg_flow.sh
         pkill tg_flow.sh
         pkill tg_flow.sh
-        nohup /root/.shfile/tg_flow.sh > /root/.shfile/tg_flow.log 2>&1 &
-        if ! crontab -l | grep -q '@reboot bash /root/.shfile/tg_flow.sh'; then
-            (crontab -l 2>/dev/null; echo "@reboot bash /root/.shfile/tg_flow.sh") | crontab -
+        nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &
+        if ! crontab -l | grep -q "@reboot bash $FolderPath/tg_flow.sh"; then
+            (crontab -l 2>/dev/null; echo "@reboot bash $FolderPath/tg_flow.sh") | crontab -
         fi
-        # ShowContents "/root/.shfile/tg_flow.sh"
+        # ShowContents "$FolderPath/tg_flow.sh"
         echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时, 你的 Telgram 将收到通知."
         delini "reFlowSet"
     else
@@ -732,7 +772,7 @@ EOF
 UnsetupAll() {
     while true; do
     CheckSetup
-    source /root/.shfile/TelgramBot.ini
+    source $ConfigFile
     if [ -z "$CPUThreshold" ]; then
         CPUThreshold_tag="${RE}未设置${NC}"
     else
@@ -809,7 +849,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
         if [ "$cpu_menu_tag" == "-> 已设置" ]; then
             pkill tg_cpu.sh
             pkill tg_cpu.sh
-            crontab -l | grep -v "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
+            crontab -l | grep -v "@reboot bash $FolderPath/tg_cpu.sh" | crontab -
             cpu_menu_tag=""
             delini "reCPUSet"
             # echo "已经取消 / 删除."
@@ -820,7 +860,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
         if [ "$flow_menu_tag" == "-> 已设置" ]; then
             pkill tg_flow.sh
             pkill tg_flow.sh
-            crontab -l | grep -v "@reboot bash /root/.shfile/tg_flow.sh" | crontab -
+            crontab -l | grep -v "@reboot bash $FolderPath/tg_flow.sh" | crontab -
             flow_menu_tag=""
             delini "reFlowSet"
             # echo "已经取消 / 删除."
@@ -831,7 +871,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
         if [ "$docker_menu_tag" == "-> 已设置" ]; then
             pkill tg_docker.sh
             pkill tg_docker.sh
-            crontab -l | grep -v "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
+            crontab -l | grep -v "@reboot bash $FolderPath/tg_docker.sh" | crontab -
             docker_menu_tag=""
             delini "reDockerSet"
             # echo "已经取消 / 删除."
@@ -869,21 +909,21 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
         if [ "$cpu_menu_tag" == "-> 已设置" ]; then
             pkill tg_cpu.sh
             pkill tg_cpu.sh
-            crontab -l | grep -v "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
+            crontab -l | grep -v "@reboot bash $FolderPath/tg_cpu.sh" | crontab -
             cpu_menu_tag=""
             untag=true
         fi
         if [ "$flow_menu_tag" == "-> 已设置" ]; then
             pkill tg_flow.sh
             pkill tg_flow.sh
-            crontab -l | grep -v "@reboot bash /root/.shfile/tg_flow.sh" | crontab -
+            crontab -l | grep -v "@reboot bash $FolderPath/tg_flow.sh" | crontab -
             flow_menu_tag=""
             untag=true
         fi
         if [ "$docker_menu_tag" == "-> 已设置" ]; then
             pkill tg_docker.sh
             pkill tg_docker.sh
-            crontab -l | grep -v "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
+            crontab -l | grep -v "@reboot bash $FolderPath/tg_docker.sh" | crontab -
             docker_menu_tag=""
             untag=true
         fi
@@ -900,14 +940,14 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
         ;;
         f|F)
         if [ "$boot_menu_tag" == "" ] && [ "$login_menu_tag" == "" ] && [ "$shutdown_menu_tag" == "" ] && [ "$cpu_menu_tag" == "" ] && [ "$flow_menu_tag" == "" ] && [ "$docker_menu_tag" == "" ]; then
-            if [ -d "/root/.shfile" ]; then
-                read -p "是否要删除 /root/.shfile 文件夹? (建议保留) Y/其它 : " yorn
+            if [ -d "$FolderPath" ]; then
+                read -p "是否要删除 $FolderPath 文件夹? (建议保留) Y/其它 : " yorn
                 if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
-                    rm -rf /root/.shfile
+                    rm -rf $FolderPath
                     folder_menu_tag=""
-                    echo -e "$Tip /root/.shfile 文件夹已经删除."
+                    echo -e "$Tip $FolderPath 文件夹已经删除."
                 else
-                    echo -e "$Tip /root/.shfile 文件夹已经保留."
+                    echo -e "$Tip $FolderPath 文件夹已经保留."
                 fi
             fi
         else
@@ -939,7 +979,7 @@ reShutdownSet=""
 reCPUSet=""
 reFlowSet=""
 reDockerSet=""
-source /root/.shfile/TelgramBot.ini
+source $ConfigFile
 if [ "$reBootSet" == "" ] && [ "$reLoginSet" == "" ] && [ "$reShutdownSet" == "" ] && [ "$reCPUSet" == "" ] && [ "$reFlowSet" == "" ] && [ "$reDockerSet" == "" ]; then
     reset_menu_tag=""
 else
@@ -980,7 +1020,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
 read -e -p "请输入选项 [0-6|t|h|d|x]:" num
 case "$num" in
     0)
-    CheckAndCreateFold
+    CheckAndCreateFolder
     SourceAndShowINI
     CheckRely
     SetupIniFile
@@ -988,37 +1028,37 @@ case "$num" in
     Pause
     ;;
     1)
-    CheckAndCreateFold
+    CheckAndCreateFolder
     SetupBoot_TG
     Pause
     ;;
     2)
-    CheckAndCreateFold
+    CheckAndCreateFolder
     SetupLogin_TG
     Pause
     ;;
     3)
-    CheckAndCreateFold
+    CheckAndCreateFolder
     SetupShutdown_TG
     Pause
     ;;
     4)
-    CheckAndCreateFold
+    CheckAndCreateFolder
     SetupCPU_TG
     Pause
     ;;
     5)
-    CheckAndCreateFold
+    CheckAndCreateFolder
     SetupFlow_TG
     Pause
     ;;
     6)
-    CheckAndCreateFold
+    CheckAndCreateFolder
     SetupDocker_TG
     Pause
     ;;
     t|T)
-    CheckAndCreateFold
+    CheckAndCreateFolder
     test
     Pause
     ;;
