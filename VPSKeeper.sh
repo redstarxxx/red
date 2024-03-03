@@ -232,11 +232,12 @@ SetupIniFile() {
     fi
     echo "------------------------------------"
     # 设置CPU报警阀值
-    echo -e "$Tip ${REB}CPU 报警${NC} 阀值输入 (1-100)% 的百分比整数"
+    echo -e "$Tip ${REB}CPU 报警${NC} 阀值(%)输入 (1-100) 的整数"
     read -p "请输入 CPU 阀值 (回车跳过 / 输入'x'退出设置): " threshold
     if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
         return
     elif [ ! -z "$threshold" ]; then
+        threshold="${threshold//%/}"
         if [[ $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
             if grep -q "^CPUThreshold=" /root/.shfile/TelgramBot.ini; then
                 sed -i "/^CPUThreshold=/d" /root/.shfile/TelgramBot.ini
