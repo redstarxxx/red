@@ -331,7 +331,7 @@ SetupIniFile() {
             fi
         fi
     fi
-    if [ "$old_CPUThreshold" != "" ] && [ "$old_CPUTools" != "" ]; then
+    if [ "$old_CPUThreshold" != "" ]; then
         source $ConfigFile
         if [ "$CPUThreshold" != "$old_CPUThreshold" ] || [ "$CPUTools" != "$old_CPUTools" ]; then
             if [ "$cpu_menu_tag" == "-> 已设置" ]; then
