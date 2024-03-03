@@ -569,7 +569,7 @@ SetupCPU_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${CPUThreshold}" &&  ! -z "${CPUTools}" ]]; then
         if [ "$CPUTools" == "sar" ]; then
             if ! command -v sar &>/dev/null; then
-                echo "正在安装缺失的依赖 sar, 一个获取 CPU 工作状态的专业工具."
+                echo "正在安装缺失的依赖 sar, 一个检测 CPU 的专业工具."
                 if [ -x "$(command -v apt)" ]; then
                     apt -y install sysstat
                 elif [ -x "$(command -v yum)" ]; then
