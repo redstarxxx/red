@@ -194,10 +194,11 @@ SetupIniFile() {
         old_FlowThreshold=$FlowThreshold
     fi
     # 设置电报机器人参数
+    echo "------------------------------------"
     # echo -e "$Tip Telgram BOT Token 即为电报机器人 Token,"
-    echo -e "$Tip Token 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
+    echo -e "$Tip ${REB}BOT Token${NC} 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
     # echo -e "$Tip 根据提示操作后最终获得电报机器人 Token"
-    read -p "请输入 Telgram BOT Token (回车跳过 / 输入'x'退出设置): " bottoken
+    read -p "请输入 BOT Token (回车跳过 / 输入'x'退出设置): " bottoken
     if [ "$bottoken" == "X" ] || [ "$bottoken" == "x" ]; then
         return
     elif [ ! -z "$bottoken" ]; then
@@ -209,10 +210,11 @@ SetupIniFile() {
     else
         echo -e "$Tip 输入为空, 跳过操作."
     fi
+    echo "------------------------------------"
     # echo -e "$Tip Chat ID 即为接收电报信息的用户 ID,"
-    echo -e "$Tip ID 获取方法: 在 Telgram 中添加机器人 @userinfobot, 点击或输入: /start"
+    echo -e "$Tip ${REB}Chat ID${NC} 获取方法: 在 Telgram 中添加机器人 @userinfobot, 点击或输入: /start"
     # echo -e "$Tip 显示的第二行 Id 即为你的用户 ID."
-    read -p "请输入 Chat ID : (回车跳过 / 输入'x'退出设置)" cahtid
+    read -p "请输入 Chat ID (回车跳过 / 输入'x'退出设置): " cahtid
     if [ "$cahtid" == "X" ] || [ "$cahtid" == "x" ]; then
         return
     elif [ ! -z "$cahtid" ]; then
@@ -228,9 +230,10 @@ SetupIniFile() {
     else
         echo -e "$Tip 输入为空, 跳过操作."
     fi
-
+    echo "------------------------------------"
     # 设置CPU报警阀值
-    read -p "请输入 CPU 报警阀值 (1-100%) (回车跳过 / 输入'x'退出设置): " threshold
+    echo -e "$Tip ${REB}CPU报警${NC} 阀值输入 (1-100)% 的百分比整数"
+    read -p "请输入 CPU 阀值 (回车跳过 / 输入'x'退出设置): " threshold
     if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
         return
     elif [ ! -z "$threshold" ]; then
@@ -246,10 +249,10 @@ SetupIniFile() {
     else
         echo -e "$Tip 输入为空, 跳过操作."
     fi
-
+    echo "------------------------------------"
     # 设置流量报警阀值
-    echo -e "$Tip 流量报警阀值输入格式: 数字|数字MB/数字GB, 可带 1 位小数"
-    read -p "请输入阀值 (回车跳过 / 输入'x'退出设置): " threshold
+    echo -e "$Tip ${REB}流量报警${NC} 阀值输入格式: 数字|数字MB/数字GB, 可带 1 位小数"
+    read -p "请输入 流量 阀值 (回车跳过): " threshold
     if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
         return
     elif [ ! -z "$threshold" ]; then
