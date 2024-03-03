@@ -245,7 +245,7 @@ SetupIniFile() {
     elif [ ! -z "$threshold" ]; then
         #if [[ $threshold =~ ^[0-9]+$ ]]; then
         if [[ $threshold =~ ^[0-9]+(\.[0-9])?$ ]]; then
-            if [ "$threshold" -gt 1024 ]; then
+            if [ "$threshold" -gt 1023 ]; then
                 # threshold=$(echo "scale=1; $threshold/1024" | bc)
                 threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
                 threshold="${threshold}GB" 
@@ -259,7 +259,7 @@ SetupIniFile() {
             # echo -e "$Tip 已将 报警阀值 写入 /root/.shfile/TelgramBot.ini 文件中."
         elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
             threshold=${threshold%MB}
-            if [ "$threshold" -gt 1024 ]; then
+            if [ "$threshold" -gt 1023 ]; then
                 # threshold=$(echo "scale=1; $threshold/1024" | bc)
                 threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
                 threshold="${threshold}GB" 
@@ -581,14 +581,14 @@ while true; do
         current_tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
         
         all_rx_mb=\$((current_rx_bytes / 1024 / 1024))
-        if [ "\$all_rx_mb" -gt 1024 ]; then
+        if [ "\$all_rx_mb" -gt 1023 ]; then
             all_rx_mb=\$(awk -v value=\$all_rx_mb 'BEGIN{printf "%.1f", value/1024}')
             all_rx_mb="\${all_rx_mb}GB" 
         else
             all_rx_mb="\${all_rx_mb}MB"
         fi
         all_tx_mb=\$((current_tx_bytes / 1024 / 1024))
-        if [ "\$all_tx_mb" -gt 1024 ]; then
+        if [ "\$all_tx_mb" -gt 1023 ]; then
             all_tx_mb=\$(awk -v value=\$all_tx_mb 'BEGIN{printf "%.1f", value/1024}')
             all_tx_mb="\${all_tx_mb}GB" 
         else
@@ -610,14 +610,14 @@ while true; do
         threshold_reached=\$(awk -v rx_diff="\$rx_diff" -v tx_diff="\$tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (rx_diff >= threshold) || (tx_diff >= threshold) ? 1 : 0}')
         if [ "\$threshold_reached" -eq 1 ]; then
             rx_mb=\$((rx_diff / 1024 / 1024))
-            if [ "\$rx_mb" -gt 1024 ]; then
+            if [ "\$rx_mb" -gt 1023 ]; then
                 rx_mb=\$(awk -v value=\$rx_mb 'BEGIN{printf "%.1f", value/1024}')
                 rx_mb="\${rx_mb}GB" 
             else
                 rx_mb="\${rx_mb}MB"
             fi
             tx_mb=\$((tx_diff / 1024 / 1024))
-            if [ "\$tx_mb" -gt 1024 ]; then
+            if [ "\$tx_mb" -gt 1023 ]; then
                 tx_mb=\$(awk -v value=\$tx_mb 'BEGIN{printf "%.1f", value/1024}')
                 tx_mb="\${tx_mb}GB" 
             else
