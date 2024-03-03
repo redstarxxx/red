@@ -183,6 +183,16 @@ CheckRely() {
 
 # 设置ini参数文件
 SetupIniFile() {
+    old_TelgramBotToken=""
+    old_ChatID_1=""
+    old_CPUThreshold=""
+    old_FlowThreshold=""
+    if [ -f /root/.shfile/TelgramBot.ini ] && [ -s /root/.shfile/TelgramBot.ini ]; then
+        old_TelgramBotToken=$TelgramBotToken
+        old_ChatID_1=$ChatID_1
+        old_CPUThreshold=$CPUThreshold
+        old_FlowThreshold=$FlowThreshold
+    fi
     # 设置电报机器人参数
     # echo -e "$Tip Telgram BOT Token 即为电报机器人 Token,"
     echo -e "$Tip Token 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
@@ -283,6 +293,45 @@ SetupIniFile() {
     else
         echo -e "$Tip 输入为空, 跳过操作."
     fi
+    if [ "$old_TelgramBotToken" != "" ] && [ "$old_ChatID_1" != "" ]; then
+        source /root/.shfile/TelgramBot.ini
+        if [ "$TelgramBotToken" != "$old_TelgramBotToken" ] || [ "$ChatID_1" != "$old_ChatID_1" ]; then
+            if [ "$boot_menu_tag" == "-> 已设置" ]; then
+                writeini "reBootSet" "Reload"
+            fi
+            if [ "$login_menu_tag" == "-> 已设置" ]; then
+                writeini "reLoginSet" "Reload"
+            fi
+            if [ "$shutdown_menu_tag" == "-> 已设置" ]; then
+                writeini "reShutdownSet" "Reload"
+            fi
+            if [ "$cpu_menu_tag" == "-> 已设置" ]; then
+                writeini "reCPUSet" "Reload"
+            fi
+            if [ "$flow_menu_tag" == "-> 已设置" ]; then
+                writeini "reFlowSet" "Reload"
+            fi
+            if [ "$docker_menu_tag" == "-> 已设置" ]; then
+                writeini "reDockerSet" "Reload"
+            fi
+        fi
+    fi
+    if [ "$old_CPUThreshold" != "" ]; then
+        source /root/.shfile/TelgramBot.ini
+        if [ "$CPUThreshold" != "$old_CPUThreshold" ]; then
+            if [ "$cpu_menu_tag" == "-> 已设置" ]; then
+                writeini "reCPUSet" "Reload"
+            fi
+        fi
+    fi
+    if [ "$old_FlowThreshold" != "" ]; then
+        source /root/.shfile/TelgramBot.ini
+        if [ "$FlowThreshold" != "$old_FlowThreshold" ]; then
+            if [ "$flow_menu_tag" == "-> 已设置" ]; then
+                writeini "reFlowSet" "Reload"
+            fi
+        fi
+    fi
 }
 
 # 用于显示内容（调试用）
@@ -294,6 +343,14 @@ SourceAndShowINI() {
         echo "------------------------------------"
         echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可执行(0.选项)或手动修改参数."
     fi
+}
+
+# 写入ini文件
+writeini() {
+    if grep -q "^$1=" /root/.shfile/TelgramBot.ini; then
+        sed -i "/^$1=/d" /root/.shfile/TelgramBot.ini
+    fi
+    echo "$1=$2" >> /root/.shfile/TelgramBot.ini
 }
 
 # 发送Telegram消息的函数
@@ -349,12 +406,12 @@ ModifyHostname() {
 
 # 设置开机通知
 SetupBoot_TG() {
-    echo "#!/bin/bash" > /root/.shfile/tg_boot.sh
-    echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) 已启动.\"" \
-    >> /root/.shfile/tg_boot.sh
-    chmod +x /root/.shfile/tg_boot.sh
     if command -v systemd &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+            echo "#!/bin/bash" > /root/.shfile/tg_boot.sh
+            echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) 已启动.\"" \
+            >> /root/.shfile/tg_boot.sh
+            chmod +x /root/.shfile/tg_boot.sh
             cat <<EOF > /etc/systemd/system/tg_boot.service
 [Unit]
 Description=Run tg_boot.sh script at boot time
@@ -374,6 +431,7 @@ EOF
                 systemctl enable tg_boot.service
             # fi
             echo -e "$Inf 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
+            writeini "reBootSet" ""
         else
             echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
         fi
@@ -395,12 +453,14 @@ SetupLogin_TG() {
                 # echo -e "$Tip 指令已经添加进 /etc/bash.bashrc 文件"
                 echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
+            writeini "reLoginSet" ""
         elif [ -f /etc/profile ]; then
             if ! grep -q "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" /etc/profile; then
                 echo "bash /root/.shfile/tg_login.sh > /dev/null 2>&1" >> /etc/profile
                 # echo -e "$Tip 指令已经添加进 /etc/profile 文件"
                 echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
+            writeini "reLoginSet" ""
         else
             echo -e "$Err 未检测到对应文件, 无法设置登陆通知."
         fi
@@ -412,12 +472,12 @@ SetupLogin_TG() {
 
 # 设置关机通知
 SetupShutdown_TG() {
-    echo "#!/bin/bash" > /root/.shfile/tg_shutdown.sh
-    echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) \$(id -nu) 正在执行关机...\"" \
-    >> /root/.shfile/tg_shutdown.sh
-    chmod +x /root/.shfile/tg_shutdown.sh
     if command -v systemd &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+            echo "#!/bin/bash" > /root/.shfile/tg_shutdown.sh
+            echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) \$(id -nu) 正在执行关机...\"" \
+            >> /root/.shfile/tg_shutdown.sh
+            chmod +x /root/.shfile/tg_shutdown.sh
             cat <<EOF > /etc/systemd/system/tg_shutdown.service
 [Unit]
 Description=tg_shutdown
@@ -438,6 +498,7 @@ EOF
                 systemctl enable tg_shutdown.service
             # fi
             echo -e "$Inf 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
+            writeini "reShutdownSet" ""
         else
             echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
         fi
@@ -473,6 +534,7 @@ EOF
             fi
             # ShowContents "/root/.shfile/tg_docker.sh"
             echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
+            writeini "reDockerSet" ""
         else
             echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
         fi
@@ -526,6 +588,7 @@ EOF
         fi
         # ShowContents "/root/.shfile/tg_cpu.sh"
         echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时, 你的 Telgram 将收到通知."
+        writeini "reCPUSet" ""
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
     fi
@@ -650,6 +713,7 @@ EOF
         fi
         # ShowContents "/root/.shfile/tg_flow.sh"
         echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时, 你的 Telgram 将收到通知."
+        writeini "reFlowSet" ""
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
     fi
@@ -701,6 +765,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
             sleep 1
             rm -f /etc/systemd/system/tg_boot.service
             boot_menu_tag=""
+            writeini "reBootSet" ""
             # echo "已经取消 / 删除."
             # Pause
         fi
@@ -714,6 +779,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
                 sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
             fi
             login_menu_tag=""
+            writeini "reLoginSet" ""
             # echo "已经取消 / 删除."
             # Pause
         fi
@@ -725,6 +791,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
             sleep 1
             rm -f /etc/systemd/system/tg_shutdown.service
             shutdown_menu_tag=""
+            writeini "reShutdownSet" ""
             # echo "已经取消 / 删除."
             # Pause
         fi
@@ -735,6 +802,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
             pkill tg_cpu.sh
             crontab -l | grep -v "@reboot bash /root/.shfile/tg_cpu.sh" | crontab -
             cpu_menu_tag=""
+            writeini "reCPUSet" ""
             # echo "已经取消 / 删除."
             # Pause
         fi
@@ -745,6 +813,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
             pkill tg_flow.sh
             crontab -l | grep -v "@reboot bash /root/.shfile/tg_flow.sh" | crontab -
             flow_menu_tag=""
+            writeini "reFlowSet" ""
             # echo "已经取消 / 删除."
             # Pause
         fi
@@ -755,6 +824,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
             pkill tg_docker.sh
             crontab -l | grep -v "@reboot bash /root/.shfile/tg_docker.sh" | crontab -
             docker_menu_tag=""
+            writeini "reDockerSet" ""
             # echo "已经取消 / 删除."
             # Pause
         fi
@@ -809,6 +879,8 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
             untag=true
         fi
         if [ "$untag" == "true" ]; then
+            writeini "reCPUSet" ""
+            writeini "reFlowSet" ""
             echo -e "$Tip 已取消 / 删除所有通知."
             Pause
         fi
@@ -847,7 +919,19 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
 CheckSys
 while true; do
 CheckSetup
+reChatID_1=""
+reBootSet=""
+reLoginSet=""
+reShutdownSet=""
+reCPUSet=""
+reFlowSet=""
+reDockerSet=""
 source /root/.shfile/TelgramBot.ini
+if [ "$reBootSet" == "" ] && [ "$reLoginSet" == "" ] && [ "$reShutdownSet" == "" ] && [ "$reCPUSet" == "" ] && [ "$reFlowSet" == "" ] && [ "$reDockerSet" == "" ]; then
+    reset_menu_tag=""
+else
+    reset_menu_tag=">>>Reload 标记需要重新设置生效<<<"
+fi
 if [ -z "$CPUThreshold" ]; then
     CPUThreshold_tag="${RE}未设置${NC}"
 else
@@ -862,14 +946,14 @@ CLS
 echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
 -- tse | vtse.eu.org | $release -- 
   
- ${GR}0.${NC} 检查依赖 / 设置参数
+ ${GR}0.${NC} 检查依赖 / 设置参数  ${REB}$reset_menu_tag${NC}
 ———————————————————————
- ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知 \t\t\t${GR}$boot_menu_tag${NC}
- ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知 \t\t\t${GR}$login_menu_tag${NC}
- ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知 \t\t\t${GR}$shutdown_menu_tag${NC}
- ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 ${REB}阀值${NC}: $CPUThreshold_tag \t${GR}$cpu_menu_tag${NC}
- ${GR}5.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 ${REB}阀值${NC}: $FlowThreshold_tag \t${GR}$flow_menu_tag${NC}
- ${GR}6.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知 \t\t${GR}$docker_menu_tag${NC}
+ ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知 \t\t\t${GR}$boot_menu_tag${NC} ${REB}$reBootSet${NC}
+ ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知 \t\t\t${GR}$login_menu_tag${NC} ${REB}$reLoginSet${NC}
+ ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知 \t\t\t${GR}$shutdown_menu_tag${NC} ${REB}$reShutdownSet${NC}
+ ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 ${REB}阀值${NC}: $CPUThreshold_tag \t${GR}$cpu_menu_tag${NC} ${REB}$reCPUSet${NC}
+ ${GR}5.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 ${REB}阀值${NC}: $FlowThreshold_tag \t${GR}$flow_menu_tag${NC} ${REB}$reFlowSet${NC}
+ ${GR}6.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知 \t\t${GR}$docker_menu_tag${NC} ${REB}$reDockerSet${NC}
  ———————————————————————————————————————————————————————
  ${GR}t.${NC} 测试 - 发送一条信息用以检验参数设置
  ——————————————————————————————————————
