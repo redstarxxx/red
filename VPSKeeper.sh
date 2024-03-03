@@ -232,7 +232,7 @@ SetupIniFile() {
     fi
     echo "------------------------------------"
     # 设置CPU报警阀值
-    echo -e "$Tip ${REB}CPU报警${NC} 阀值输入 (1-100)% 的百分比整数"
+    echo -e "$Tip ${REB}CPU 报警${NC} 阀值输入 (1-100)% 的百分比整数"
     read -p "请输入 CPU 阀值 (回车跳过 / 输入'x'退出设置): " threshold
     if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
         return
