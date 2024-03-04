@@ -593,12 +593,11 @@ while true; do
         cpu_h1=\$(echo "\$top_output" | awk 'NR == 1 || \$9 > max { max = \$9; process = \$12 } END { print process }')
         cpu_h2=\$(echo "\$top_output" | awk 'NR == 2 || \$9 > max { max = \$9; process = \$12 } END { print process }')
         message="CPU 使用率超过阀值❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage %"\$'\n'"使用率排行: 1.\$cpu_h1 2.\$cpu_h2"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60)) 分钟"
-        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
-        echo "报警信息已经发出..."
+        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
+        echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
         sleep \$SleepTime   # 发送后等待10分钟再检测
     fi
-    echo "程序正在运行中，目前 CPU 使用率为: \$cpu_usage%"
     # sleep 5
 done
 EOF
@@ -635,12 +634,11 @@ while true; do
         cpu_h1=\$(echo "\$top_output" | awk 'NR == 1 || \$9 > max { max = \$9; process = \$12 } END { print process }')
         cpu_h2=\$(echo "\$top_output" | awk 'NR == 2 || \$9 > max { max = \$9; process = \$12 } END { print process }')
         message="CPU 使用率超过阀值❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage %"\$'\n'"使用率排行: 1.\$cpu_h1 2.\$cpu_h2"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60)) 分钟"
-        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
-        echo "报警信息已经发出..."
+        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
+        echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
         sleep \$SleepTime   # 发送后等待10分钟再检测
     fi
-    echo "程序正在运行中，目前 CPU 使用率为: \$cpu_usage%"
     # sleep 5
 done
 EOF
@@ -680,8 +678,8 @@ while true; do
         cpu_h1=\$(echo "\$top_output" | awk 'NR == 1 || \$9 > max { max = \$9; process = \$12 } END { print process }')
         cpu_h2=\$(echo "\$top_output" | awk 'NR == 2 || \$9 > max { max = \$9; process = \$12 } END { print process }')
         message="CPU 使用率超过阀值❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage %"\$'\n'"使用率排行: 1.\$cpu_h1 2.\$cpu_h2"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60)) 分钟"
-        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
-        echo "报警信息已经发出..."
+        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
+        echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
         sleep \$SleepTime   # 发送后等待10分钟再检测
     fi
