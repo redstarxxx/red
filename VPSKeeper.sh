@@ -598,7 +598,7 @@ while true; do
         mem_total=\$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", \$0); print int(\$2) }')
         mem_use_ratio=\$(awk -v used="\$mem_used" -v total="\$mem_total" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
 
-        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage%"\$'\n'"使用率排行: 1:\$cpu_h1 2:\$cpu_h2"\$'\n'"内存使用率: \$mem_use_ratio% \$mem_used/\$mem_total"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
+        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage%"\$'\n'"使用率排行: 1:\$cpu_h1 2:\$cpu_h2"\$'\n'"内存使用率: \$mem_use_ratio% \$mem_used/\$mem_total MB"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
         echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
@@ -645,7 +645,7 @@ while true; do
         mem_total=\$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", \$0); print int(\$2) }')
         mem_use_ratio=\$(awk -v used="\$mem_used" -v total="\$mem_total" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
 
-        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage%"\$'\n'"使用率排行: 1:\$cpu_h1 2:\$cpu_h2"\$'\n'"内存使用率: \$mem_use_ratio% \$mem_used/\$mem_total"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
+        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage%"\$'\n'"使用率排行: 1:\$cpu_h1 2:\$cpu_h2"\$'\n'"内存使用率: \$mem_use_ratio% \$mem_used/\$mem_total MB"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
         echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
@@ -695,7 +695,7 @@ while true; do
         mem_total=\$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", \$0); print int(\$2) }')
         mem_use_ratio=\$(awk -v used="\$mem_used" -v total="\$mem_total" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
 
-        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage%"\$'\n'"使用率排行: 1:\$cpu_h1 2:\$cpu_h2"\$'\n'"内存使用率: \$mem_use_ratio% \$mem_used/\$mem_total"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
+        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage%"\$'\n'"使用率排行: 1:\$cpu_h1 2:\$cpu_h2"\$'\n'"内存使用率: \$mem_use_ratio% \$mem_used/\$mem_total MB"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
         echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
