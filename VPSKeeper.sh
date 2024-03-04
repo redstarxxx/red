@@ -797,7 +797,7 @@ while true; do
                 tx_mb="\${tx_mb}MB"
             fi
         
-            message="流量已达到阀值❗️"\$'\n'"主机名: \$(hostname) 端口: \$sanitized_interface"\$'\n'"设置阀值: $FlowThreshold_U"\$'\n'"已接收: \${rx_mb}  已发送: \${tx_mb}"\$'\n'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"
+            message="流量已达到阀值❗️ (>$FlowThreshold_U%)"\$'\n'"主机名: \$(hostname) 端口: \$sanitized_interface"\$'\n'"已接收: \${rx_mb}  已发送: \${tx_mb}"\$'\n'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"
             curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
 
             # 更新前一个状态的流量数据
