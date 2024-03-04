@@ -118,7 +118,7 @@ CheckSetup() {
         shutdown_menu_tag=""
     fi
     if [ -f $FolderPath/tg_docker.sh ]; then
-        if crontab -l | grep -q "@reboot bash $FolderPath/tg_docker.sh"; then
+        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
             docker_menu_tag="-> 已设置"
         else
             docker_menu_tag=""
@@ -127,7 +127,7 @@ CheckSetup() {
         docker_menu_tag=""
     fi
     if [ -f $FolderPath/tg_cpu.sh ]; then
-        if crontab -l | grep -q "@reboot bash $FolderPath/tg_cpu.sh"; then
+        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
             cpu_menu_tag="-> 已设置"
         else
             cpu_menu_tag=""
@@ -136,7 +136,7 @@ CheckSetup() {
         cpu_menu_tag=""
     fi
     if [ -f $FolderPath/tg_flow.sh ]; then
-        if crontab -l | grep -q "@reboot bash $FolderPath/tg_flow.sh"; then
+        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
             flow_menu_tag="-> 已设置"
         else
             flow_menu_tag=""
@@ -250,7 +250,7 @@ SetupIniFile() {
     fi
     echo "------------------------------------"
 
-    echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业)"
+    echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业) 3.top+sar"
     read -p "请输入序号 (回车默认选择 1.top / 输入'x'退出设置): " choice
     if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
         return
@@ -259,6 +259,9 @@ SetupIniFile() {
         if [ "$choice" == "2" ]; then
             CPUTools="sar"
             writeini "CPUTools" "sar"
+        elif [ "$choice" == "3" ]; then
+            CPUTools="top+sar"
+            writeini "CPUTools" "top+sar"
         else
             CPUTools="top"
             writeini "CPUTools" "top"
@@ -550,8 +553,8 @@ EOF
             pkill tg_docker.sh
             pkill tg_docker.sh
             nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &
-            if ! crontab -l | grep -q "@reboot bash $FolderPath/tg_docker.sh"; then
-                (crontab -l 2>/dev/null; echo "@reboot bash $FolderPath/tg_docker.sh") | crontab -
+            if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
+                (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &") | crontab -
             fi
             # ShowContents "$FolderPath/tg_docker.sh"
             echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
@@ -567,7 +570,37 @@ EOF
 # 设置CPU报警
 SetupCPU_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${CPUThreshold}" &&  ! -z "${CPUTools}" ]]; then
-        if [ "$CPUTools" == "sar" ]; then
+        if [ "$CPUTools" == "top" ]; then
+            cat <<EOF > $FolderPath/tg_cpu.sh
+#!/bin/bash
+
+count=0
+while true; do
+    SleepTime=900
+    echo "正在检测 CPU 使用率..."
+    # cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$8 }')
+    cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    echo "top检测结果: \$cpu_usage | 日期: \$(date)"
+    if (( cpu_usage > $CPUThreshold )); then
+        (( count++ ))
+    else
+        count=0
+    fi
+    if (( count >= 3 )); then
+        top_output=\$(top -n 1 -b | awk 'NR > 7')
+        cpu_h1=\$(echo "\$top_output" | awk 'NR == 1 || \$9 > max { max = \$9; process = \$12 } END { print process }')
+        cpu_h2=\$(echo "\$top_output" | awk 'NR == 2 || \$9 > max { max = \$9; process = \$12 } END { print process }')
+        message="CPU 使用率超过阀值❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage %"\$'\n'"使用率排行: 1.\$cpu_h1 2.\$cpu_h2"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60)) 分钟"
+        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
+        echo "报警信息已经发出..."
+        count=0  # 发送警告后重置计数器
+        sleep \$SleepTime   # 发送后等待10分钟再检测
+    fi
+    echo "程序正在运行中，目前 CPU 使用率为: \$cpu_usage%"
+    # sleep 5
+done
+EOF
+        elif [ "$CPUTools" == "sar" ]; then
             if ! command -v sar &>/dev/null; then
                 echo "正在安装缺失的依赖 sar, 一个检测 CPU 的专业工具."
                 if [ -x "$(command -v apt)" ]; then
@@ -584,16 +617,22 @@ SetupCPU_TG() {
 count=0
 while true; do
     SleepTime=900
-    cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$8 }')
-    # cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 1)))
+    echo "正在检测 CPU 使用率..."
+    cpu_usage=\$(sar -u 3 5 | awk 'NR == 4 { printf "%.0f\n", 100 - \$8 }')
+    # cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    echo "sar检测结果: \$cpu_usage | 日期: \$(date)"
     if (( cpu_usage > $CPUThreshold )); then
         (( count++ ))
     else
         count=0
     fi
-    if (( count >= 5 )); then
-        message="CPU 使用率超过阀值❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage %"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60)) 分钟"
+    if (( count >= 3 )); then
+        top_output=\$(top -n 1 -b | awk 'NR > 7')
+        cpu_h1=\$(echo "\$top_output" | awk 'NR == 1 || \$9 > max { max = \$9; process = \$12 } END { print process }')
+        cpu_h2=\$(echo "\$top_output" | awk 'NR == 2 || \$9 > max { max = \$9; process = \$12 } END { print process }')
+        message="CPU 使用率超过阀值❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage %"\$'\n'"使用率排行: 1.\$cpu_h1 2.\$cpu_h2"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60)) 分钟"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
+        echo "报警信息已经发出..."
         count=0  # 发送警告后重置计数器
         sleep \$SleepTime   # 发送后等待10分钟再检测
     fi
@@ -601,27 +640,44 @@ while true; do
     # sleep 5
 done
 EOF
-        elif [ "$CPUTools" == "top" ]; then
+        elif [ "$CPUTools" == "top+sar" ]; then
+            if ! command -v sar &>/dev/null; then
+                echo "正在安装缺失的依赖 sar, 一个检测 CPU 的专业工具."
+                if [ -x "$(command -v apt)" ]; then
+                    apt -y install sysstat
+                elif [ -x "$(command -v yum)" ]; then
+                    yum -y install sysstat
+                else
+                    echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
+                fi
+            fi
             cat <<EOF > $FolderPath/tg_cpu.sh
 #!/bin/bash
 
 count=0
 while true; do
     SleepTime=900
-    # cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$8 }')
-    cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 1)))
+    echo "正在检测 CPU 使用率..."
+    cpu_usage_sar=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$8 }')
+    cpu_usage_top=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    # cpu_usage=\$(echo "scale=2; (\$cpu_usage_sar + \$cpu_usage_top) / 2" | bc)
+    cpu_usage=\$(awk -v sar="\$cpu_usage_sar" -v top="\$cpu_usage_top" 'BEGIN { printf "%.0f\n", (sar + top) / 2 }')
+    echo "sar检测结果: \$cpu_usage_sar | top检测结果: \$cpu_usage_top | 平均值: \$cpu_usage | 日期: \$(date)"
     if (( cpu_usage > $CPUThreshold )); then
         (( count++ ))
     else
         count=0
     fi
     if (( count >= 3 )); then
-        message="CPU 使用率超过阀值❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage %"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60)) 分钟"
+        top_output=\$(top -n 1 -b | awk 'NR > 7')
+        cpu_h1=\$(echo "\$top_output" | awk 'NR == 1 || \$9 > max { max = \$9; process = \$12 } END { print process }')
+        cpu_h2=\$(echo "\$top_output" | awk 'NR == 2 || \$9 > max { max = \$9; process = \$12 } END { print process }')
+        message="CPU 使用率超过阀值❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage %"\$'\n'"使用率排行: 1.\$cpu_h1 2.\$cpu_h2"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60)) 分钟"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
+        echo "报警信息已经发出..."
         count=0  # 发送警告后重置计数器
         sleep \$SleepTime   # 发送后等待10分钟再检测
     fi
-    echo "程序正在运行中，目前 CPU 使用率为: \$cpu_usage%"
     # sleep 5
 done
 EOF
@@ -632,8 +688,8 @@ EOF
         pkill tg_cpu.sh
         pkill tg_cpu.sh
         nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &
-        if ! crontab -l | grep -q "@reboot bash $FolderPath/tg_cpu.sh"; then
-            (crontab -l 2>/dev/null; echo "@reboot bash $FolderPath/tg_cpu.sh") | crontab -
+        if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
+            (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &") | crontab -
         fi
         # ShowContents "$FolderPath/tg_cpu.sh"
         echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时, 你的 Telgram 将收到通知."
@@ -757,8 +813,8 @@ EOF
         pkill tg_flow.sh
         pkill tg_flow.sh
         nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &
-        if ! crontab -l | grep -q "@reboot bash $FolderPath/tg_flow.sh"; then
-            (crontab -l 2>/dev/null; echo "@reboot bash $FolderPath/tg_flow.sh") | crontab -
+        if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
+            (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
         fi
         # ShowContents "$FolderPath/tg_flow.sh"
         echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时, 你的 Telgram 将收到通知."
@@ -849,7 +905,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
         if [ "$cpu_menu_tag" == "-> 已设置" ]; then
             pkill tg_cpu.sh
             pkill tg_cpu.sh
-            crontab -l | grep -v "@reboot bash $FolderPath/tg_cpu.sh" | crontab -
+            crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
             cpu_menu_tag=""
             delini "reCPUSet"
             # echo "已经取消 / 删除."
@@ -860,7 +916,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
         if [ "$flow_menu_tag" == "-> 已设置" ]; then
             pkill tg_flow.sh
             pkill tg_flow.sh
-            crontab -l | grep -v "@reboot bash $FolderPath/tg_flow.sh" | crontab -
+            crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
             flow_menu_tag=""
             delini "reFlowSet"
             # echo "已经取消 / 删除."
@@ -871,7 +927,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
         if [ "$docker_menu_tag" == "-> 已设置" ]; then
             pkill tg_docker.sh
             pkill tg_docker.sh
-            crontab -l | grep -v "@reboot bash $FolderPath/tg_docker.sh" | crontab -
+            crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
             docker_menu_tag=""
             delini "reDockerSet"
             # echo "已经取消 / 删除."
@@ -909,21 +965,21 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
         if [ "$cpu_menu_tag" == "-> 已设置" ]; then
             pkill tg_cpu.sh
             pkill tg_cpu.sh
-            crontab -l | grep -v "@reboot bash $FolderPath/tg_cpu.sh" | crontab -
+            crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
             cpu_menu_tag=""
             untag=true
         fi
         if [ "$flow_menu_tag" == "-> 已设置" ]; then
             pkill tg_flow.sh
             pkill tg_flow.sh
-            crontab -l | grep -v "@reboot bash $FolderPath/tg_flow.sh" | crontab -
+            crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
             flow_menu_tag=""
             untag=true
         fi
         if [ "$docker_menu_tag" == "-> 已设置" ]; then
             pkill tg_docker.sh
             pkill tg_docker.sh
-            crontab -l | grep -v "@reboot bash $FolderPath/tg_docker.sh" | crontab -
+            crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
             docker_menu_tag=""
             untag=true
         fi
