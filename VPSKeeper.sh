@@ -578,8 +578,10 @@ count=0
 while true; do
     SleepTime=900
     echo "正在检测 CPU 使用率..."
-    # cpu_usage=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$NF }')
-    cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    # cpu_usage=\$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f\n", 100 - \$NF }')
+    # 下面是两种方式
+    # cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    cpu_usage=\$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", \$0); idle+=\$5; count++ } END { printf "%.0f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
     echo "top检测结果: \$cpu_usage | 日期: \$(date)"
     if (( cpu_usage > $CPUThreshold )); then
         (( count++ ))
@@ -618,8 +620,10 @@ count=0
 while true; do
     SleepTime=900
     echo "正在检测 CPU 使用率..."
-    cpu_usage=\$(sar -u 3 5 | awk 'NR == 4 { printf "%.0f\n", 100 - \$NF }')
+    cpu_usage=\$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f\n", 100 - \$NF }')
+    # 下面是两种方式
     # cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    # cpu_usage=\$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", \$0); idle+=\$5; count++ } END { printf "%.0f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
     echo "sar检测结果: \$cpu_usage | 日期: \$(date)"
     if (( cpu_usage > $CPUThreshold )); then
         (( count++ ))
@@ -658,8 +662,11 @@ count=0
 while true; do
     SleepTime=900
     echo "正在检测 CPU 使用率..."
-    cpu_usage_sar=\$(sar -u 1 1 | awk 'NR == 4 { printf "%.0f\n", 100 - \$NF }')
-    cpu_usage_top=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    cpu_usage_sar=\$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f\n", 100 - \$NF }')
+    # 下面是两种方式
+    # cpu_usage_top=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    cpu_usage_top=\$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", \$0); idle+=\$5; count++ } END { printf "%.0f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    # 计算平均值
     # cpu_usage=\$(echo "scale=2; (\$cpu_usage_sar + \$cpu_usage_top) / 2" | bc)
     cpu_usage=\$(awk -v sar="\$cpu_usage_sar" -v top="\$cpu_usage_top" 'BEGIN { printf "%.0f\n", (sar + top) / 2 }')
     echo "sar检测结果: \$cpu_usage_sar | top检测结果: \$cpu_usage_top | 平均值: \$cpu_usage | 日期: \$(date)"
