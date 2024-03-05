@@ -847,9 +847,9 @@ while true; do
             else
                 tx_mb="\${tx_mb}MB"
             fi
-        
-            rx_speed=\$(awk "BEGIN { printf \"%.1f\", \$rx_diff / ( \$tt * 1024 ) }")KB
-            tx_speed=\$(awk "BEGIN { printf \"%.1f\", \$tx_diff / ( \$tt * 1024 ) }")KB
+
+            rx_speed=\$(awk "BEGIN { speed = \$rx_diff / (\$tt * 1024); if (speed > 1023) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+            tx_speed=\$(awk "BEGIN { speed = \$tx_diff / (\$tt * 1024); if (speed > 1023) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
 
             message="流量已达到阀值 > $FlowThreshold_U%❗️"\$'\n'"主机名: \$(hostname) 端口: \$sanitized_interface"\$'\n'"已接收: \${rx_mb}  已发送: \${tx_mb}"\$'\n'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"\$'\n'"网络⬇️: \${rx_speed}  网络⬆️: \${tx_speed}"
             curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
