@@ -630,23 +630,25 @@ GetInfo_now() {
     disk_use_ratio=$(df -h / | awk 'NR==2 {gsub("%", "", $5); print $5}')
 }
 
-# 将百分比生成进度条 function
 create_progress_bar() {
     local percentage=$1
     local used_symbol="▇"
     local free_symbol="▁"
     local progress_bar=""
     local used_count
+    local bar_width=10  # 默认进度条宽度为10
     if [[ $percentage -ge 1 && $percentage -le 100 ]]; then
-        used_count=$(($percentage / 10))
         if [[ $percentage -lt 10 ]]; then
             used_count=1
+        elif [[ $percentage -eq 100 ]]; then
+            used_count=10
+        else
+            used_count=${percentage:0:1}
         fi
-        for ((i=0; i<$used_count; i++)); do
+        for ((i=0; i<used_count; i++)); do
             progress_bar="${progress_bar}${used_symbol}"
         done
-        local free_count=$((10 - $used_count))
-        for ((i=0; i<$free_count; i++)); do
+        for ((i=used_count; i<bar_width; i++)); do
             progress_bar="${progress_bar}${free_symbol}"
         done
         echo "${progress_bar}"
@@ -696,7 +698,12 @@ while true; do
         swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
         disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
 
-        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU: \$cpu_usage_progress \$cpu_usage%"\$'\n'"内存: \$mem_use_progress \$mem_use_ratio%"\$'\n'"交换: \$mem_use_progress \$swap_use_ratio%"\$'\n'"磁盘: \$mem_use_progress \$disk_use_ratio%"\$'\n'"使用率排行:"\$'\n'"🧨  \$cpu_h1"\$'\n'"🧨  \$cpu_h2"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
+        echo "CPU_UR=\$cpu_usage"
+        echo "MEM_UR=\$mem_use_ratio"
+        echo "SWAP_UR=\$swap_use_ratio"
+        echo "DISK_UR=\$disk_use_ratio"
+
+        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU: \$cpu_usage_progress \$cpu_usage%"\$'\n'"内存: \$mem_use_progress \$mem_use_ratio%"\$'\n'"交换: \$swap_use_progress \$swap_use_ratio%"\$'\n'"磁盘: \$disk_use_progress \$disk_use_ratio%"\$'\n'"使用率排行:"\$'\n'"🧨  \$cpu_h1"\$'\n'"🧨  \$cpu_h2"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
         echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
@@ -738,7 +745,7 @@ SetupFlow_TG() {
 
 # 流量阈值设置 (MB)
 # FlowThreshold=500
-tt=30
+tt=10
 
 # THRESHOLD_BYTES=\$((FlowThreshold * 1024 * 1024)) # 仅支持整数计算 (已经被下现一行代码替换)
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
@@ -831,7 +838,7 @@ while true; do
         # prev_tx_data[\$sanitized_interface]=\$current_tx_bytes
     done
 
-    # 等待30秒
+    # 等待tt秒
     sleep \$tt
 done
 EOF
