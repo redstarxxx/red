@@ -39,6 +39,8 @@ CheckAndCreateFolder() {
         source $ConfigFile
     else
         touch $ConfigFile
+        writeini "TelgramBotToken" "7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
+        writeini "CPUTools" "top"
     fi
 }
 
@@ -57,6 +59,11 @@ CLS() {
 Pause() {
     echo -e "${Tip} 执行完成, 按 \"任意键\" 继续..."
     read -n 1 -s -r -p ""
+}
+
+# 分界线条
+divline() {
+    echo "————————————————————————————————————————————————"
 }
 
 # 检测系统
@@ -155,7 +162,7 @@ CheckSetup() {
 CheckRely() {
     # 检查并安装依赖
     echo "检查并安装依赖..."
-    declare -a dependencies=("sed" "grep" "awk" "hostnamectl" "systemd")
+    declare -a dependencies=("sed" "grep" "awk" "hostnamectl" "systemd" "curl")
     missing_dependencies=()
     for dep in "${dependencies[@]}"; do
         if ! command -v "$dep" &>/dev/null; then
@@ -172,7 +179,7 @@ CheckRely() {
             elif [ -x "$(command -v yum)" ]; then
                 yum install -y "${missing_dependencies[@]}"
             else
-                echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
+                echo -e "$Err 无法安装依赖, 未知的包管理器或系统版本不支持, 请手动安装所需依赖."
                 exit 1
             fi
         else
@@ -181,6 +188,27 @@ CheckRely() {
     else
         echo -e "$Tip 所有依赖已安装."
     fi
+}
+
+# 发送Telegram消息的函数
+send_telegram_message() {
+    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="$1" > /dev/null
+}
+
+# 获取VPS信息
+GetVPSInfo() {
+    cpu_total=$(lscpu | grep "^CPU(s):" | awk '{print $2}')
+    cpu_used=$(cat /proc/cpuinfo | grep "^core id" | wc -l)
+    if [ "$cpu_used" == "$cpu_total" ]; then
+        cpuusedOfcpus=$cpu_total
+    else
+        cpuusedOfcpus=$(cat /proc/cpuinfo | grep "^core id" | wc -l)/$(lscpu | grep "^CPU(s):" | awk '{print $2}')
+    fi
+    mem_total=$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
+    swap_total=$(top -bn1 | awk '/^MiB Swap/ { gsub(/Swap|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
+    disk_total=$(df -h / | awk 'NR==2 {print $2}')
+    disk_used=$(df -h / | awk 'NR==2 {print $3}')
+    # echo "主机名: $(hostname)"$'\n'"CPUs: $cpuusedOfcpus"$'\n'"内存: $mem_total"\$'\n'"交换: $swap_total"$'\n'"磁盘: $disk_total"
 }
 
 # 设置ini参数文件
@@ -198,119 +226,118 @@ SetupIniFile() {
         old_FlowThreshold=$FlowThreshold
     fi
     # 设置电报机器人参数
-    echo "------------------------------------"
-    # echo -e "$Tip Telgram BOT Token 即为电报机器人 Token,"
-    echo -e "$Tip ${REB}BOT Token${NC} 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
-    # echo -e "$Tip 根据提示操作后最终获得电报机器人 Token"
-    read -p "请输入 BOT Token (回车跳过 / 输入'x'退出设置): " bottoken
-    if [ "$bottoken" == "X" ] || [ "$bottoken" == "x" ]; then
-        return
-    fi
-    if [ ! -z "$bottoken" ]; then
-        writeini "TelgramBotToken" "$bottoken"
-        # echo -e "$Tip 已将 Token 写入 $ConfigFile 文件中."
-    else
-        echo -e "$Tip 输入为空, 跳过操作."
-    fi
-    echo "------------------------------------"
-    # echo -e "$Tip Chat ID 即为接收电报信息的用户 ID,"
-    echo -e "$Tip ${REB}Chat ID${NC} 获取方法: 在 Telgram 中添加机器人 @userinfobot, 点击或输入: /start"
-    # echo -e "$Tip 显示的第二行 Id 即为你的用户 ID."
-    read -p "请输入 Chat ID (回车跳过 / 输入'x'退出设置): " cahtid
-    if [ "$cahtid" == "X" ] || [ "$cahtid" == "x" ]; then
-        return
-    fi
-    if [ ! -z "$cahtid" ]; then
-        if [[ $cahtid =~ ^[0-9]+$ ]]; then
-            writeini "ChatID_1" "$cahtid"
-            # echo -e "$Tip 已将 Chat ID 写入 $ConfigFile 文件中."
-        else
-            echo -e "$Err 输入无效, Chat ID 必须是数字, 跳过操作."
-        fi
-    else
-        echo -e "$Tip 输入为空, 跳过操作."
-    fi
-    echo "------------------------------------"
-    # 设置CPU报警阀值
-    echo -e "$Tip ${REB}CPU 报警${NC} 阀值(%)输入 (1-100) 的整数"
-    read -p "请输入 CPU 阀值 (回车跳过 / 输入'x'退出设置): " threshold
-    if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
-        return
-    fi
-    if [ ! -z "$threshold" ]; then
-        threshold="${threshold//%/}"
-        if [[ $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
-            writeini "CPUThreshold" "$threshold"
-            # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
-        else
-            echo -e "$Err 输入无效, 报警阀值 必须是数字(1-100), 跳过操作."
-        fi
-    else
-        echo -e "$Tip 输入为空, 跳过操作."
-    fi
-    echo "------------------------------------"
-
-    echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业) 3.top+sar"
-    read -p "请输入序号 (回车默认选择 1.top / 输入'x'退出设置): " choice
-    if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
-        return
-    fi
-    if [ ! -z "$choice" ]; then
-        if [ "$choice" == "2" ]; then
-            CPUTools="sar"
-            writeini "CPUTools" "sar"
-        elif [ "$choice" == "3" ]; then
-            CPUTools="top+sar"
-            writeini "CPUTools" "top+sar"
-        else
-            CPUTools="top"
-            writeini "CPUTools" "top"
-        fi
-    else
-        CPUTools="top"
-        writeini "CPUTools" "top"
-        echo -e "$Tip 输入为空, 默认选择 1.top"
-    fi
-    echo "------------------------------------"
-
-    # 设置流量报警阀值
-    echo -e "$Tip ${REB}流量报警${NC} 阀值输入格式: 数字|数字MB/数字GB, 可带 1 位小数"
-    read -p "请输入 流量 阀值 (回车跳过): " threshold
-    if [ "$threshold" == "X" ] || [ "$threshold" == "x" ]; then
-        return
-    fi
-    if [ ! -z "$threshold" ]; then
-        #if [[ $threshold =~ ^[0-9]+$ ]]; then
-        if [[ $threshold =~ ^[0-9]+(\.[0-9])?$ ]]; then
-            if [ "$threshold" -gt 1023 ]; then
-                # threshold=$(echo "scale=1; $threshold/1024" | bc)
-                threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
-                threshold="${threshold}GB" 
-            else
-                threshold="${threshold}MB"
-            fi
-            writeini "FlowThreshold" "$threshold"
-            # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
-        elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
-            threshold=${threshold%MB}
-            if [ "$threshold" -gt 1023 ]; then
-                # threshold=$(echo "scale=1; $threshold/1024" | bc)
-                threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
-                threshold="${threshold}GB" 
-            else
-                threshold="${threshold}MB"
-            fi
-            writeini "FlowThreshold" "$threshold"
-            # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
-        elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
-            writeini "FlowThreshold" "$threshold"
-            # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
-        else
-            echo -e "$Err 输入无效, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式, 跳过操作."
-        fi
-    else
-        echo -e "$Tip 输入为空, 跳过操作."
-    fi
+    divline
+    while true; do
+        echo -e "$Tip 默认机器人: @iekeeperbot 使用前必须添加并点击 start"
+        echo -e "$Tip 使用自己的机器人按以下操作修改:"
+        echo -e "${GR}1${NC}.机器人Token ${GR}2${NC}.CHAT_ID(用户或群组 ID) ${GR}3${NC}.CPU报警 ${GR}4${NC}.流量报警 ${GR}回车${NC}.退出设置"
+        divline
+        read -p "请输入你的选择: " choice
+        case $choice in
+            1)
+                echo -e "$Tip ${REB}BOT Token${NC} 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
+                read -p "请输入 BOT Token (回车跳过修改 / 输入 R 使用默认机器人): " bottoken
+                if [ ! -z "$bottoken" ]; then
+                    writeini "TelgramBotToken" "$bottoken"
+                else
+                    echo -e "$Tip 输入为空, 跳过操作."
+                fi
+                if [ "$bottoken" == "r" ] || [ "$bottoken" == "R" ]; then
+                    writeini "TelgramBotToken" "7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
+                fi
+                divline
+                ;;
+            2)
+                echo -e "$Tip ${REB}Chat ID${NC} 获取方法: 在 Telgram 中添加机器人 @userinfobot, 点击或输入: /start"
+                read -p "请输入 Chat ID (回车跳过修改): " cahtid
+                if [ ! -z "$cahtid" ]; then
+                    if [[ $cahtid =~ ^[0-9]+$ ]]; then
+                        writeini "ChatID_1" "$cahtid"
+                    else
+                        echo -e "$Err 输入无效, Chat ID 必须是数字, 跳过操作."
+                    fi
+                else
+                    echo -e "$Tip 输入为空, 跳过操作."
+                fi
+                divline
+                ;;
+            3)
+                # 设置CPU报警阀值
+                echo -e "$Tip ${REB}CPU 报警${NC} 阀值(%)输入 (1-100) 的整数"
+                read -p "请输入 CPU 阀值 (回车跳过修改): " threshold
+                if [ ! -z "$threshold" ]; then
+                    threshold="${threshold//%/}"
+                    if [[ $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
+                        writeini "CPUThreshold" "$threshold"
+                    else
+                        echo -e "$Err 输入无效, 报警阀值 必须是数字(1-100), 跳过操作."
+                    fi
+                else
+                    echo -e "$Tip 输入为空, 跳过操作."
+                fi
+                divline
+                ;;
+            4)
+                # 设置流量报警阀值
+                echo -e "$Tip ${REB}流量报警${NC} 阀值输入格式: 数字|数字MB/数字GB, 可带 1 位小数"
+                read -p "请输入 流量 阀值 (回车跳过修改): " threshold
+                if [ ! -z "$threshold" ]; then
+                    #if [[ $threshold =~ ^[0-9]+$ ]]; then
+                    if [[ $threshold =~ ^[0-9]+(\.[0-9])?$ ]]; then
+                        if [ "$threshold" -gt 1023 ]; then
+                            # threshold=$(echo "scale=1; $threshold/1024" | bc)
+                            threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
+                            threshold="${threshold}GB" 
+                        else
+                            threshold="${threshold}MB"
+                        fi
+                        writeini "FlowThreshold" "$threshold"
+                        # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
+                    elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
+                        threshold=${threshold%MB}
+                        if [ "$threshold" -gt 1023 ]; then
+                            # threshold=$(echo "scale=1; $threshold/1024" | bc)
+                            threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
+                            threshold="${threshold}GB" 
+                        else
+                            threshold="${threshold}MB"
+                        fi
+                        writeini "FlowThreshold" "$threshold"
+                        # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
+                    elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
+                        writeini "FlowThreshold" "$threshold"
+                        # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
+                    else
+                        echo -e "$Err 输入无效, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式, 跳过操作."
+                    fi
+                else
+                    echo -e "$Tip 输入为空, 跳过操作."
+                fi
+                divline
+                echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业) 3.top+sar"
+                read -p "请输入序号 (默认采用 1.top / 回车跳过修改): " choice
+                if [ ! -z "$choice" ]; then
+                    if [ "$choice" == "1" ]; then
+                        CPUTools="top"
+                        writeini "CPUTools" "$CPUTools"
+                    elif [ "$choice" == "2" ]; then
+                        CPUTools="sar"
+                        writeini "CPUTools" "$CPUTools"
+                    elif [ "$choice" == "3" ]; then
+                        CPUTools="top_sar"
+                        writeini "CPUTools" "$CPUTools"
+                    fi
+                else
+                    echo -e "$Tip 输入为空, 跳过操作."
+                fi
+                divline
+                ;;
+            *)
+                echo "退出设置."
+                break
+            ;;
+        esac
+    done
     if [ "$old_TelgramBotToken" != "" ] && [ "$old_ChatID_1" != "" ]; then
         source $ConfigFile
         if [ "$TelgramBotToken" != "$old_TelgramBotToken" ] || [ "$ChatID_1" != "$old_ChatID_1" ]; then
@@ -356,10 +383,10 @@ SetupIniFile() {
 SourceAndShowINI() {
     if [ -f $ConfigFile ] && [ -s $ConfigFile ]; then
         source $ConfigFile
-        echo "------------------------------------"
+        divline
         cat $ConfigFile
-        echo "------------------------------------"
-        echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可执行(0.选项)或手动修改参数."
+        divline
+        echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可重新执行 ${GR}0${NC} 修改参数."
     fi
 }
 
@@ -375,11 +402,6 @@ writeini() {
 delini() {
     sed -i "/^$1=/d" $ConfigFile
 }
-
-# 发送Telegram消息的函数
-# send_telegram_message() {
-#     curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="$1" > /dev/null
-# }
 
 # 检查文件是否存在并显示内容（调试用）
 ShowContents() {
@@ -402,9 +424,9 @@ test() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="来自 $(hostname) 的测试信息" > /dev/null
         echo -e "$Inf 测试信息已发出, 电报将收到一条\"来自 $(hostname) 的测试信息\"的信息."
-        echo -e "$Tip 如果没有收到测试信息, 请检查设置 (重新执行 0 选项)."
+        echo -e "$Tip 如果没有收到测试信息, 请检查设置 (重新执行 ${GR}0${NC} 选项)."
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
+        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
@@ -453,10 +475,11 @@ EOF
             # if [ ! "$(systemctl is-active tg_boot.service)" = "active" ]; then
                 systemctl enable tg_boot.service
             # fi
+            send_telegram_message "设置成功: 流量报警通知"$'\n'"主机名: $(hostname)"$'\n'"💡当 开机 时你将收到通知."
             echo -e "$Inf 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
             delini "reBootSet"
         else
-            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
+            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
         fi
     else
         echo -e "$Err 系统未检测到 \"systemd\" 程序, 无法设置开机通知."
@@ -474,6 +497,7 @@ SetupLogin_TG() {
             if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
                 echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
                 # echo -e "$Tip 指令已经添加进 /etc/bash.bashrc 文件"
+                send_telegram_message "设置成功: 流量报警通知"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时你将收到通知."
                 echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
             delini "reLoginSet"
@@ -481,6 +505,7 @@ SetupLogin_TG() {
             if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/profile; then
                 echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/profile
                 # echo -e "$Tip 指令已经添加进 /etc/profile 文件"
+                send_telegram_message "设置成功: 流量报警通知"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时你将收到通知."
                 echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
             delini "reLoginSet"
@@ -489,7 +514,7 @@ SetupLogin_TG() {
         fi
         # ShowContents "$FolderPath/tg_login.sh"
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
+        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
@@ -520,10 +545,11 @@ EOF
             # if [ ! "$(systemctl is-active tg_shutdown.service)" = "active" ]; then
                 systemctl enable tg_shutdown.service
             # fi
+            send_telegram_message "设置成功: 关机通知"$'\n'"主机名: $(hostname)"$'\n'"💡当 关机 时你将收到通知."
             echo -e "$Inf 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
             delini "reShutdownSet"
         else
-            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
+            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
         fi
     else
         echo -e "$Err 系统未检测到 \"systemd\" 程序, 无法设置关机通知."
@@ -557,57 +583,83 @@ EOF
                 (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &") | crontab -
             fi
             # ShowContents "$FolderPath/tg_docker.sh"
+            send_telegram_message "设置成功: 流量报警通知"$'\n'"主机名: $(hostname)"$'\n'"💡当 Docker 发生变化时你将收到通知."
             echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
             delini "reDockerSet"
         else
-            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
+            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
         fi
     else
         echo -e "$Err 未检测到 \"Docker\" 程序."
     fi
 }
 
+CheckCPU_top() {
+    echo "正在检测 CPU 使用率..."
+    cpu_usage=$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", $0); idle+=$5; count++ } END { printf "%.0f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    echo "top检测结果: \$cpu_usage | 日期: \$(date)"
+}
+
+CheckCPU_sar() {
+    echo "正在检测 CPU 使用率..."
+    cpu_usage=$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f\n", 100 - $NF }')
+    echo "sar检测结果: \$cpu_usage | 日期: \$(date)"
+}
+
+CheckCPU_top_sar() {
+    echo "正在检测 CPU 使用率..."
+    cpu_usage_sar=$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f\n", 100 - $NF }')
+    cpu_usage_top=$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", $0); idle+=$5; count++ } END { printf "%.0f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    cpu_usage=$(awk -v sar="$cpu_usage_sar" -v top="$cpu_usage_top" 'BEGIN { printf "%.0f\n", (sar + top) / 2 }')
+    echo "sar检测结果: $cpu_usage_sar | top检测结果: $cpu_usage_top | 平均值: $cpu_usage | 日期: $(date)"
+}
+
+# 获取系统信息
+GetInfo_now() {
+    top_output=$(top -n 1 -b | awk 'NR > 7')
+    cpu_h1=$(echo "$top_output" | awk 'NR == 1 || $9 > max { max = $9; process = $12 } END { print process }')
+    cpu_h2=$(echo "$top_output" | awk 'NR == 2 || $9 > max { max = $9; process = $12 } END { print process }')
+    mem_total=$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
+    mem_used=$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($4) }')
+    mem_use_ratio=$(awk -v used="$mem_used" -v total="$mem_total" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
+    swap_total=$(top -bn1 | awk '/^MiB Swap/ { gsub(/Swap|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
+    swap_used=$(top -bn1 | awk '/^MiB Swap/ { gsub(/Swap|total,|free,|used,|buff\/cache|:/, " ", $0); print int($4) }')
+    swap_use_ratio=$(awk -v used="$swap_used" -v total="$swap_total" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
+    disk_total=$(df -h / | awk 'NR==2 {print $2}')
+    disk_used=$(df -h / | awk 'NR==2 {print $3}')
+    disk_use_ratio=$(df -h / | awk 'NR==2 {gsub("%", "", $5); print $5}')
+}
+
+# 将百分比生成进度条 function
+create_progress_bar() {
+    local percentage=$1
+    local used_symbol="▇"
+    local free_symbol="▁"
+    local progress_bar=""
+    local used_count
+    if [[ $percentage -ge 1 && $percentage -le 100 ]]; then
+        used_count=$(($percentage / 10))
+        if [[ $percentage -lt 10 ]]; then
+            used_count=1
+        fi
+        for ((i=0; i<$used_count; i++)); do
+            progress_bar="${progress_bar}${used_symbol}"
+        done
+        local free_count=$((10 - $used_count))
+        for ((i=0; i<$free_count; i++)); do
+            progress_bar="${progress_bar}${free_symbol}"
+        done
+        echo "${progress_bar}"
+    else
+        echo "错误: 参数无效, 必须为 1-100 之间的值."
+        return 1
+    fi
+}
+
 # 设置CPU报警
 SetupCPU_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${CPUThreshold}" &&  ! -z "${CPUTools}" ]]; then
-        if [ "$CPUTools" == "top" ]; then
-            cat <<EOF > $FolderPath/tg_cpu.sh
-#!/bin/bash
-
-count=0
-while true; do
-    SleepTime=900
-    echo "正在检测 CPU 使用率..."
-    # cpu_usage=\$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f\n", 100 - \$NF }')
-    # 下面是两种方式
-    # cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 3)))
-    cpu_usage=\$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", \$0); idle+=\$5; count++ } END { printf "%.0f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
-    echo "top检测结果: \$cpu_usage | 日期: \$(date)"
-    if (( cpu_usage > $CPUThreshold )); then
-        (( count++ ))
-    else
-        count=0
-    fi
-    if (( count >= 3 )); then
-
-        # 获取并计算其它参数
-        top_output=\$(top -n 1 -b | awk 'NR > 7')
-        cpu_h1=\$(echo "\$top_output" | awk 'NR == 1 || \$9 > max { max = \$9; process = \$12 } END { print process }')
-        cpu_h2=\$(echo "\$top_output" | awk 'NR == 2 || \$9 > max { max = \$9; process = \$12 } END { print process }')
-        mem_used=\$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", \$0); print int(\$4) }')
-        mem_total=\$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", \$0); print int(\$2) }')
-        mem_use_ratio=\$(awk -v used="\$mem_used" -v total="\$mem_total" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
-
-        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage%"\$'\n'"使用率排行: 1:\$cpu_h1 2:\$cpu_h2"\$'\n'"内存使用率: \$mem_use_ratio% \$mem_used/\$mem_total MB"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
-        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
-        echo "报警信息已发出..."
-        count=0  # 发送警告后重置计数器
-        sleep \$SleepTime   # 发送后等待10分钟再检测
-    fi
-    # sleep 5
-done
-EOF
-        elif [ "$CPUTools" == "sar" ]; then
+        if [ "$CPUTools" == "sar" ] || [ "$CPUTools" == "top_sar" ]; then
             if ! command -v sar &>/dev/null; then
                 echo "正在安装缺失的依赖 sar, 一个检测 CPU 的专业工具."
                 if [ -x "$(command -v apt)" ]; then
@@ -618,95 +670,41 @@ EOF
                     echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
                 fi
             fi
-            cat <<EOF > $FolderPath/tg_cpu.sh
-#!/bin/bash
-
-count=0
-while true; do
-    SleepTime=900
-    echo "正在检测 CPU 使用率..."
-    cpu_usage=\$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f\n", 100 - \$NF }')
-    # 下面是两种方式
-    # cpu_usage=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 3)))
-    # cpu_usage=\$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", \$0); idle+=\$5; count++ } END { printf "%.0f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
-    echo "sar检测结果: \$cpu_usage | 日期: \$(date)"
-    if (( cpu_usage > $CPUThreshold )); then
-        (( count++ ))
-    else
-        count=0
-    fi
-    if (( count >= 3 )); then
-
-        # 获取并计算其它参数
-        top_output=\$(top -n 1 -b | awk 'NR > 7')
-        cpu_h1=\$(echo "\$top_output" | awk 'NR == 1 || \$9 > max { max = \$9; process = \$12 } END { print process }')
-        cpu_h2=\$(echo "\$top_output" | awk 'NR == 2 || \$9 > max { max = \$9; process = \$12 } END { print process }')
-        mem_used=\$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", \$0); print int(\$4) }')
-        mem_total=\$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", \$0); print int(\$2) }')
-        mem_use_ratio=\$(awk -v used="\$mem_used" -v total="\$mem_total" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
-
-        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage%"\$'\n'"使用率排行: 1:\$cpu_h1 2:\$cpu_h2"\$'\n'"内存使用率: \$mem_use_ratio% \$mem_used/\$mem_total MB"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
-        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
-        echo "报警信息已发出..."
-        count=0  # 发送警告后重置计数器
-        sleep \$SleepTime   # 发送后等待10分钟再检测
-    fi
-    # sleep 5
-done
-EOF
-        elif [ "$CPUTools" == "top+sar" ]; then
-            if ! command -v sar &>/dev/null; then
-                echo "正在安装缺失的依赖 sar, 一个检测 CPU 的专业工具."
-                if [ -x "$(command -v apt)" ]; then
-                    apt -y install sysstat
-                elif [ -x "$(command -v yum)" ]; then
-                    yum -y install sysstat
-                else
-                    echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
-                fi
-            fi
-            cat <<EOF > $FolderPath/tg_cpu.sh
-#!/bin/bash
-
-count=0
-while true; do
-    SleepTime=900
-    echo "正在检测 CPU 使用率..."
-    cpu_usage_sar=\$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f\n", 100 - \$NF }')
-    # 下面是两种方式
-    # cpu_usage_top=\$(awk '{idle+=\$8; count++} END {printf "%.0f", 100 - (idle / count)}' <(grep "Cpu(s)" <(top -bn5 -d 3)))
-    cpu_usage_top=\$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", \$0); idle+=\$5; count++ } END { printf "%.0f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
-    # 计算平均值
-    # cpu_usage=\$(echo "scale=2; (\$cpu_usage_sar + \$cpu_usage_top) / 2" | bc)
-    cpu_usage=\$(awk -v sar="\$cpu_usage_sar" -v top="\$cpu_usage_top" 'BEGIN { printf "%.0f\n", (sar + top) / 2 }')
-    echo "sar检测结果: \$cpu_usage_sar | top检测结果: \$cpu_usage_top | 平均值: \$cpu_usage | 日期: \$(date)"
-    if (( cpu_usage > $CPUThreshold )); then
-        (( count++ ))
-    else
-        count=0
-    fi
-    if (( count >= 3 )); then
-
-        # 获取并计算其它参数
-        top_output=\$(top -n 1 -b | awk 'NR > 7')
-        cpu_h1=\$(echo "\$top_output" | awk 'NR == 1 || \$9 > max { max = \$9; process = \$12 } END { print process }')
-        cpu_h2=\$(echo "\$top_output" | awk 'NR == 2 || \$9 > max { max = \$9; process = \$12 } END { print process }')
-        mem_used=\$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", \$0); print int(\$4) }')
-        mem_total=\$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", \$0); print int(\$2) }')
-        mem_use_ratio=\$(awk -v used="\$mem_used" -v total="\$mem_total" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
-
-        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU 当前使用率: \$cpu_usage%"\$'\n'"使用率排行: 1:\$cpu_h1 2:\$cpu_h2"\$'\n'"内存使用率: \$mem_use_ratio% \$mem_used/\$mem_total MB"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
-        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
-        echo "报警信息已发出..."
-        count=0  # 发送警告后重置计数器
-        sleep \$SleepTime   # 发送后等待10分钟再检测
-    fi
-    # sleep 5
-done
-EOF
-        else
-            echo -e "$Err 不应该出现的错误, 请重新选择 0 配置."
         fi
+            cat <<EOF > "$FolderPath/tg_cpu.sh"
+#!/bin/bash
+
+$(declare -f CheckCPU_$CPUTools)
+$(declare -f GetInfo_now)
+$(declare -f create_progress_bar)
+count=0
+while true; do
+    SleepTime=900
+    CheckCPU_$CPUTools
+    if (( cpu_usage > $CPUThreshold )); then
+        (( count++ ))
+    else
+        count=0
+    fi
+    if (( count >= 3 )); then
+
+        # 获取并计算其它参数
+        GetInfo_now
+
+        cpu_usage_progress=\$(create_progress_bar "\$cpu_usage")
+        mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
+        swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
+        disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
+
+        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU: \$cpu_usage_progress \$cpu_usage%"\$'\n'"内存: \$mem_use_progress \$mem_use_ratio%"\$'\n'"交换: \$mem_use_progress \$swap_use_ratio%"\$'\n'"磁盘: \$mem_use_progress \$disk_use_ratio%"\$'\n'"使用率排行:"\$'\n'"🧨  \$cpu_h1"\$'\n'"🧨  \$cpu_h2"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
+        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
+        echo "报警信息已发出..."
+        count=0  # 发送警告后重置计数器
+        sleep \$SleepTime   # 发送后等待SleepTime分钟后再检测
+    fi
+    sleep 5
+done
+EOF
         chmod +x $FolderPath/tg_cpu.sh
         pkill tg_cpu.sh
         pkill tg_cpu.sh
@@ -715,10 +713,11 @@ EOF
             (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &") | crontab -
         fi
         # ShowContents "$FolderPath/tg_cpu.sh"
-        echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时, 你的 Telgram 将收到通知."
+        send_telegram_message "设置成功: CPU 报警通知"$'\n'"主机名: $(hostname)"$'\n'"CPU: $cpuusedOfcpus"$'\n'"内存: ${mem_total}MB"$'\n'"交换: ${swap_total}MB"$'\n'"磁盘: ${disk_total}B     已使用: ${disk_used}B"$'\n'"检测工具: $CPUTools"$'\n'"💡当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
+        echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
         delini "reCPUSet"
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
+        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
@@ -739,8 +738,9 @@ SetupFlow_TG() {
 
 # 流量阈值设置 (MB)
 # FlowThreshold=500
-# THRESHOLD_BYTES=\$((FlowThreshold * 1024 * 1024)) # 仅支持整数计算 (已经被下现一行代码替换)
+tt=30
 
+# THRESHOLD_BYTES=\$((FlowThreshold * 1024 * 1024)) # 仅支持整数计算 (已经被下现一行代码替换)
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
 
 # 获取所有活动网络接口（排除lo本地接口）
@@ -815,7 +815,10 @@ while true; do
                 tx_mb="\${tx_mb}MB"
             fi
         
-            message="流量已达到阀值 > $FlowThreshold_U%❗️"\$'\n'"主机名: \$(hostname) 端口: \$sanitized_interface"\$'\n'"已接收: \${rx_mb}  已发送: \${tx_mb}"\$'\n'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"
+            rx_speed=\$(awk "BEGIN { printf \"%.1f\", \$rx_diff / ( \$tt * 1024 ) }")KB
+            tx_speed=\$(awk "BEGIN { printf \"%.1f\", \$tx_diff / ( \$tt * 1024 ) }")KB
+
+            message="流量已达到阀值 > $FlowThreshold_U%❗️"\$'\n'"主机名: \$(hostname) 端口: \$sanitized_interface"\$'\n'"已接收: \${rx_mb}  已发送: \${tx_mb}"\$'\n'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"\$'\n'"网络⬇️: \${rx_speed}  网络⬆️: \${tx_speed}"
             curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
 
             # 更新前一个状态的流量数据
@@ -829,7 +832,7 @@ while true; do
     done
 
     # 等待30秒
-    sleep 30
+    sleep \$tt
 done
 EOF
         chmod +x $FolderPath/tg_flow.sh
@@ -840,10 +843,11 @@ EOF
             (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
         fi
         # ShowContents "$FolderPath/tg_flow.sh"
-        echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时, 你的 Telgram 将收到通知."
+        send_telegram_message "设置成功: 流量报警通知"$'\n'"主机名: $(hostname)"$'\n'"💡当流量每到达阀值 $FlowThreshold_U 时你将收到通知."
+        echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时你将收到通知."
         delini "reFlowSet"
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 0 选项)."
+        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
@@ -883,7 +887,7 @@ UnsetupAll() {
  ——————————————————————————————————————
  ${GR}x.${NC} 退出脚本
 ————————————
-$Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && echo
+$Tip 使用前请先执行 ${GR}0${NC} 确保依赖完整并完成相关参数设置." && echo
     read -e -p "请输入选项 [0-6|a|f|b|x]:" num
     case "$num" in
         1) # 开机
@@ -1051,6 +1055,7 @@ $Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && 
 CheckSys
 while true; do
 CheckSetup
+GetVPSInfo
 reChatID_1=""
 reBootSet=""
 reLoginSet=""
@@ -1095,7 +1100,7 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
  ——————————————————————————————————————
  ${GR}x.${NC} 退出脚本
 ————————————
-$Tip 使用前请先执行 0 确保依赖完整并完成相关参数设置." && echo
+$Tip 使用前请先执行 ${GR}0${NC} 确保依赖完整并完成相关参数设置." && echo
 read -e -p "请输入选项 [0-6|t|h|d|x]:" num
 case "$num" in
     0)
