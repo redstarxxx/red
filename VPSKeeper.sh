@@ -701,14 +701,16 @@ while true; do
         else
             cpu_usage=\${cpu_usage}%
         fi
+
         mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             mem_use_progress="🚫"
             mem_use_ratio=""
-        esle
+        else
             mem_use_ratio=\${mem_use_ratio}%
         fi
+
         swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
@@ -717,12 +719,13 @@ while true; do
         else
             swap_use_ratio=\${swap_use_ratio}%
         fi
+
         disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             disk_use_progress="🚫"
             disk_use_ratio=""
-        esle
+        else
             disk_use_ratio=\${disk_use_ratio}%
         fi
 
