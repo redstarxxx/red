@@ -475,7 +475,7 @@ EOF
             # if [ ! "$(systemctl is-active tg_boot.service)" = "active" ]; then
                 systemctl enable tg_boot.service
             # fi
-            send_telegram_message "设置成功: 流量报警通知"$'\n'"主机名: $(hostname)"$'\n'"💡当 开机 时将收到通知."
+            send_telegram_message "设置成功: 开机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 开机 时将收到通知."
             echo -e "$Inf 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
             delini "reBootSet"
         else
@@ -497,7 +497,7 @@ SetupLogin_TG() {
             if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
                 echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
                 # echo -e "$Tip 指令已经添加进 /etc/bash.bashrc 文件"
-                send_telegram_message "设置成功: 流量报警通知"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知."
+                send_telegram_message "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知."
                 echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
             delini "reLoginSet"
@@ -505,7 +505,7 @@ SetupLogin_TG() {
             if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/profile; then
                 echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/profile
                 # echo -e "$Tip 指令已经添加进 /etc/profile 文件"
-                send_telegram_message "设置成功: 流量报警通知"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知."
+                send_telegram_message "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知."
                 echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
             delini "reLoginSet"
@@ -545,7 +545,7 @@ EOF
             # if [ ! "$(systemctl is-active tg_shutdown.service)" = "active" ]; then
                 systemctl enable tg_shutdown.service
             # fi
-            send_telegram_message "设置成功: 关机通知"$'\n'"主机名: $(hostname)"$'\n'"💡当 关机 时将收到通知."
+            send_telegram_message "设置成功: 关机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 关机 时将收到通知."
             echo -e "$Inf 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
             delini "reShutdownSet"
         else
@@ -583,7 +583,7 @@ EOF
                 (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &") | crontab -
             fi
             # ShowContents "$FolderPath/tg_docker.sh"
-            send_telegram_message "设置成功: 流量报警通知"$'\n'"主机名: $(hostname)"$'\n'"💡当 Docker 列表变更时将收到通知."
+            send_telegram_message "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 Docker 列表变更时将收到通知."
             echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
             delini "reDockerSet"
         else
@@ -746,7 +746,7 @@ EOF
             (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &") | crontab -
         fi
         # ShowContents "$FolderPath/tg_cpu.sh"
-        send_telegram_message "设置成功: CPU 报警通知"$'\n'"主机名: $(hostname)"$'\n'"CPU: $cpuusedOfcpus"$'\n'"内存: ${mem_total}MB"$'\n'"交换: ${swap_total}MB"$'\n'"磁盘: ${disk_total}B     已使用: ${disk_used}B"$'\n'"检测工具: $CPUTools"$'\n'"💡当 CPU 使用达 $CPUThreshold % 时将收到通知."
+        send_telegram_message "设置成功: CPU 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"CPU: $cpuusedOfcpus"$'\n'"内存: ${mem_total}MB"$'\n'"交换: ${swap_total}MB"$'\n'"磁盘: ${disk_total}B     已使用: ${disk_used}B"$'\n'"检测工具: $CPUTools"$'\n'"💡当 CPU 使用达 $CPUThreshold % 时将收到通知."
         echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
         delini "reCPUSet"
     else
@@ -876,7 +876,7 @@ EOF
             (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
         fi
         # ShowContents "$FolderPath/tg_flow.sh"
-        send_telegram_message "设置成功: 流量报警通知"$'\n'"主机名: $(hostname)"$'\n'"💡当流量达阀值 $FlowThreshold_U 时将收到通知."
+        send_telegram_message "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当流量达阀值 $FlowThreshold_U 时将收到通知."
         echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
         delini "reFlowSet"
     else
