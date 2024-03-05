@@ -697,33 +697,32 @@ while true; do
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             cpu_usage_progress="🚫"
-            cpu_usage=0
+            cpu_usage=""
         fi
+        cpu_usage=\${cpu_usage}%
         mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             mem_use_progress="🚫"
-            mem_use_ratio=0
+            mem_use_ratio=""
         fi
+        mem_use_ratio=\${mem_use_ratio}%
         swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             swap_use_progress="🚫"
-            swap_use_ratio=0
+            swap_use_ratio=""
         fi
+        swap_use_ratio=\${swap_use_ratio}%
         disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             disk_use_progress="🚫"
-            disk_use_ratio=0
+            disk_use_ratio=""
         fi
+        disk_use_ratio=\${disk_use_ratio}%
 
-        echo "CPU_UR=\$cpu_usage"
-        echo "MEM_UR=\$mem_use_ratio"
-        echo "SWAP_UR=\$swap_use_ratio"
-        echo "DISK_UR=\$disk_use_ratio"
-
-        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU: \$cpu_usage_progress \$cpu_usage%"\$'\n'"内存: \$mem_use_progress \$mem_use_ratio%"\$'\n'"交换: \$swap_use_progress \$swap_use_ratio%"\$'\n'"磁盘: \$disk_use_progress \$disk_use_ratio%"\$'\n'"使用率排行:"\$'\n'"🧨  \$cpu_h1"\$'\n'"🧨  \$cpu_h2"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
+        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"\$'\n'"主机名: \$(hostname)"\$'\n'"CPU: \$cpu_usage_progress \$cpu_usage"\$'\n'"内存: \$mem_use_progress \$mem_use_ratio"\$'\n'"交换: \$swap_use_progress \$swap_use_ratio"\$'\n'"磁盘: \$disk_use_progress \$disk_use_ratio"\$'\n'"使用率排行:"\$'\n'"🧨  \$cpu_h1"\$'\n'"🧨  \$cpu_h2"\$'\n'"检测工具: $CPUTools"\$'\n'"休眠时间: \$((SleepTime / 60))分钟"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
         echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
