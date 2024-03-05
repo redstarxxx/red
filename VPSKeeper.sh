@@ -694,9 +694,29 @@ while true; do
         GetInfo_now
 
         cpu_usage_progress=\$(create_progress_bar "\$cpu_usage")
+        return_code=\$?
+        if [ \$return_code -eq 1 ]; then
+            cpu_usage_progress="🚫"
+            cpu_usage=0
+        fi
         mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
+        return_code=\$?
+        if [ \$return_code -eq 1 ]; then
+            mem_use_progress="🚫"
+            mem_use_ratio=0
+        fi
         swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
+        return_code=\$?
+        if [ \$return_code -eq 1 ]; then
+            swap_use_progress="🚫"
+            swap_use_ratio=0
+        fi
         disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
+        return_code=\$?
+        if [ \$return_code -eq 1 ]; then
+            disk_use_progress="🚫"
+            disk_use_ratio=0
+        fi
 
         echo "CPU_UR=\$cpu_usage"
         echo "MEM_UR=\$mem_use_ratio"
