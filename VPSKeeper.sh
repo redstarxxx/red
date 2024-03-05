@@ -454,7 +454,7 @@ SetupBoot_TG() {
     if command -v systemd &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
             echo "#!/bin/bash" > $FolderPath/tg_boot.sh
-            echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) 已启动.\"" \
+            echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) 已启动❗️\"" \
             >> $FolderPath/tg_boot.sh
             chmod +x $FolderPath/tg_boot.sh
             cat <<EOF > /etc/systemd/system/tg_boot.service
@@ -490,7 +490,7 @@ EOF
 SetupLogin_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         echo "#!/bin/bash" > $FolderPath/tg_login.sh
-        echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) \$(id -nu) 用户登陆成功.\"" \
+        echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) \$(id -nu) 用户登陆成功❗️\"" \
         >> $FolderPath/tg_login.sh
         chmod +x $FolderPath/tg_login.sh
         if [ -f /etc/bash.bashrc ]; then
@@ -523,7 +523,7 @@ SetupShutdown_TG() {
     if command -v systemd &>/dev/null; then
         if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
             echo "#!/bin/bash" > $FolderPath/tg_shutdown.sh
-            echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) \$(id -nu) 正在执行关机...\"" \
+            echo "curl -s -X POST \"https://api.telegram.org/bot$TelgramBotToken/sendMessage\" -d chat_id=\"$ChatID_1\" -d text=\"\$(hostname) \$(id -nu) 正在执行关机...❗️\"" \
             >> $FolderPath/tg_shutdown.sh
             chmod +x $FolderPath/tg_shutdown.sh
             cat <<EOF > /etc/systemd/system/tg_shutdown.service
@@ -569,7 +569,7 @@ while true; do
     new_message=\$(docker ps --format '{{.Names}}' | awk '{print NR". " \$0}')
     if [ "\$new_message" != "\$old_message" ]; then
         old_message=\$new_message
-        message="DOCKER 列表:"\$'\n'"\$new_message"
+        message="DOCKER 列表变更❗️"\$'\n'"\$new_message"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" -d chat_id="$ChatID_1" -d text="\$message"
     fi
     sleep 10
