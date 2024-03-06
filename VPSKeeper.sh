@@ -293,21 +293,25 @@ EOF
         fi
         # cront_regex='^([0-5]?[0-9]|*|*/[0-5]?[0-9]) ([01]?[0-9]|2[0-3]|*|*/[01]?[0-9]|2[0-3]) ([0-2]?[0-9]|3[0-1]|*|*/[0-2]?[0-9]|3[0-1]) ([0]?[1-9]|1[0-2]|*|*/[0]?[1-9]|1[0-2]) ([0-6]|*|*/[0-6])$'
         # if [[ "$cront" =~ $cront_regex ]]; then
-            if ! crontab -l | grep -q "$cront bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &"; then
-                (crontab -l 2>/dev/null; echo "$cront bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &") | crontab -
+            if crontab -l | grep -q "bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &"; then
+                crontab -l | grep -v "bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &" | crontab -
             fi
+            (crontab -l 2>/dev/null; echo "$cront bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &") | crontab -
+            crontt=$(echo "$cront" | awk '{$1 = ($1 + 1) % 60; print}')
             echo -e "开启 ${REB}静音模式${NC} 更新时你将不会收到提醒通知, 是否要开启静音模式?"
             read -p "请输入你的选择 Y.开启   回车.(跳过/不开启): " choice
             if [ "$choice" == "Y" ] || [ "$choice" == "y" ]; then
-                if ! crontab -l | grep -q "$cront bash $FolderPath/VPSKeeper.sh "auto" "mute" 2>&1 &"; then
-                    (crontab -l 2>/dev/null; echo "$cront bash $FolderPath/VPSKeeper.sh "auto" "mute" 2>&1 &") | crontab -
+                if crontab -l | grep -q "bash $FolderPath/VPSKeeper.sh"; then
+                    crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
                 fi
+                (crontab -l 2>/dev/null; echo "$crontt bash $FolderPath/VPSKeeper.sh \"auto\" \"mute\" 2>&1 &") | crontab -
                 mute="静音模式"
             else
                 bash $FolderPath/VPSKeeper.sh "auto"
-                if ! crontab -l | grep -q "$cront bash $FolderPath/VPSKeeper.sh "auto" 2>&1 &"; then
-                    (crontab -l 2>/dev/null; echo "$cront bash $FolderPath/VPSKeeper.sh "auto" 2>&1 &") | crontab -
+                if crontab -l | grep -q "bash $FolderPath/VPSKeeper.sh"; then
+                    crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
                 fi
+                (crontab -l 2>/dev/null; echo "$crontt bash $FolderPath/VPSKeeper.sh \"auto\" 2>&1 &") | crontab -
                 mute=""
             fi
             crontab -l | grep "tg_autoupdate.sh"
@@ -320,13 +324,11 @@ EOF
     elif [ "$yorn" == "N" ] || [ "$yorn" == "n" ]; then
         rm -f $FolderPath/tg_autoupdate.sh
         crontab -l | grep -v "bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &" | crontab -
-        crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh "auto" "mute" 2>&1 &" | crontab -
-        crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh "auto" 2>&1 &" | crontab -
+        crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
         echo "自动更新已经取消."
     else
         echo "跳过设置."
     fi
-
 }
 
 # 发送Telegram消息的函数
