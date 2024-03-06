@@ -307,7 +307,6 @@ EOF
                 (crontab -l 2>/dev/null; echo "$crontt bash $FolderPath/VPSKeeper.sh \"auto\" \"mute\" 2>&1 &") | crontab -
                 mute="静音模式"
             else
-                bash $FolderPath/VPSKeeper.sh "auto"
                 if crontab -l | grep -q "bash $FolderPath/VPSKeeper.sh"; then
                     crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
                 fi
