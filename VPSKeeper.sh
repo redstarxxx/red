@@ -29,6 +29,8 @@ GR="\033[32m" && RE="\033[31m" && GRB="\033[42;37m" && REB="\033[41;37m" && NC="
 Inf="${GR}[信息]${NC}:"
 Err="${RE}[错误]${NC}:"
 Tip="${GR}[提示]${NC}:"
+SETTAG="${GR}-> 已设置${NC}"
+UNSETTAG="${RE}-> 未设置${NC}"
 
 # 创建.shfile目录
 CheckAndCreateFolder() {
@@ -95,85 +97,89 @@ CheckSetup() {
     if [ -f $FolderPath/tg_login.sh ]; then
         if [ -f /etc/bash.bashrc ]; then
             if grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
-                login_menu_tag="-> 已设置"
+                login_menu_tag="$SETTAG"
+            else
+                login_menu_tag="$UNSETTAG"
             fi
         elif [ -f /etc/profile ]; then
             if grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/profile; then
-                login_menu_tag="-> 已设置"
+                login_menu_tag="$SETTAG"
+            else
+                login_menu_tag="$UNSETTAG"
             fi
         else
-            login_menu_tag=""
+            login_menu_tag="$UNSETTAG"
         fi
     else
-        login_menu_tag=""
+        login_menu_tag="$UNSETTAG"
     fi
     if [ -f $FolderPath/tg_boot.sh ]; then
         if [ -f /etc/systemd/system/tg_boot.service ]; then
-            boot_menu_tag="-> 已设置"
+            boot_menu_tag="$SETTAG"
         else
-            boot_menu_tag=""
+            boot_menu_tag="$UNSETTAG"
         fi
     else
-        boot_menu_tag=""
+        boot_menu_tag="$UNSETTAG"
     fi
     if [ -f $FolderPath/tg_shutdown.sh ]; then
         if [ -f /etc/systemd/system/tg_shutdown.service ]; then
-            shutdown_menu_tag="-> 已设置"
+            shutdown_menu_tag="$SETTAG"
         else
-            shutdown_menu_tag=""
+            shutdown_menu_tag="$UNSETTAG"
         fi
     else
-        shutdown_menu_tag=""
+        shutdown_menu_tag="$UNSETTAG"
     fi
     if [ -f $FolderPath/tg_docker.sh ]; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
-            docker_menu_tag="-> 已设置"
+            docker_menu_tag="$SETTAG"
         else
-            docker_menu_tag=""
+            docker_menu_tag="$UNSETTAG"
         fi
     else
-        docker_menu_tag=""
+        docker_menu_tag="$UNSETTAG"
     fi
     if [ -f $FolderPath/tg_cpu.sh ]; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
-            cpu_menu_tag="-> 已设置"
+            cpu_menu_tag="$SETTAG"
         else
-            cpu_menu_tag=""
+            cpu_menu_tag="$UNSETTAG"
         fi
     else
-        cpu_menu_tag=""
+        cpu_menu_tag="$UNSETTAG"
     fi
     if [ -f $FolderPath/tg_mem.sh ]; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
-            mem_menu_tag="-> 已设置"
+            mem_menu_tag="$SETTAG"
         else
-            mem_menu_tag=""
+            mem_menu_tag="$UNSETTAG"
         fi
     else
-        mem_menu_tag=""
+        mem_menu_tag="$UNSETTAG"
     fi
     if [ -f $FolderPath/tg_disk.sh ]; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
-            disk_menu_tag="-> 已设置"
+            disk_menu_tag="$SETTAG"
         else
-            disk_menu_tag=""
+            disk_menu_tag="$UNSETTAG"
         fi
     else
-        disk_menu_tag=""
+        disk_menu_tag="$UNSETTAG"
     fi
     if [ -f $FolderPath/tg_flow.sh ]; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
-            flow_menu_tag="-> 已设置"
+            flow_menu_tag="$SETTAG"
         else
-            flow_menu_tag=""
+            flow_menu_tag="$UNSETTAG"
         fi
     else
-        flow_menu_tag=""
+        flow_menu_tag="$UNSETTAG"
     fi
     if [ -d "$FolderPath" ]; then
-        folder_menu_tag="-> 文件夹存在"
+        folder_menu_tag="${GR}-> 文件夹存在${NC}"
     else
-        folder_menu_tag=""
+        folder_menu_tag="${RE}-> 文件夹不存在${NC}"
     fi
 }
 
@@ -286,8 +292,8 @@ if [ -f "$FolderPath/VPSKeeper_old.sh" ]; then
 fi
 EOF
         chmod +x $FolderPath/tg_autoupdate.sh
-        echo -e "输入定时模式, 采用 crontab 格式, 默认: 1 1 * * * 即第天 ${GR}01:01${NC} 分"
-        read -p "请输入定时模式  (回车.采用默认模式): " cront
+        echo -e "输入定时模式, 采用 crontab 格式, 默认: 1 1 * * * 即每天 ${GR}01${NC} 时 ${GR}01${NC} 分"
+        read -p "请输入定时模式  (回车.采用默认定时模式): " cront
         if [ -z "$cront" ]; then
             cront="1 1 * * *"
         fi
@@ -316,6 +322,7 @@ EOF
             crontab -l | grep "tg_autoupdate.sh"
             crontab -l | grep "VPSKeeper.sh"
             echo -e "自动更新设置成功. ${GR}$mute${NC}"
+            tips="$Tip 自动更新设置成功. ${GR}$mute${NC}"
         # else
         #     echo "错误: 定时模式不符合 crontab 格式"
         #     rm -f $FolderPath/tg_autoupdate.sh
@@ -325,8 +332,10 @@ EOF
         crontab -l | grep -v "bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &" | crontab -
         crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
         echo "自动更新已经取消."
+        tips=""
     else
         echo "跳过设置."
+        tips=""
     fi
 }
 
@@ -397,6 +406,7 @@ SetupIniFile() {
                     writeini "TelgramBotToken" "$bottoken"
                 else
                     echo -e "$Tip 输入为空, 跳过操作."
+                    tips=""
                 fi
                 if [ "$bottoken" == "r" ] || [ "$bottoken" == "R" ]; then
                     writeini "TelgramBotToken" "7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
@@ -414,6 +424,7 @@ SetupIniFile() {
                     fi
                 else
                     echo -e "$Tip 输入为空, 跳过操作."
+                    tips=""
                 fi
                 ;;
             3)
@@ -429,6 +440,13 @@ SetupIniFile() {
                     fi
                 else
                     echo -e "$Tip 输入为空, 跳过操作."
+                    tips=""
+                fi
+                # 设置后马上启动
+                if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+                    source $ConfigFile
+                    old_CPUThreshold=$CPUThreshold
+                    SetupCPU_TG
                 fi
                 ;;
             4)
@@ -444,6 +462,13 @@ SetupIniFile() {
                     fi
                 else
                     echo -e "$Tip 输入为空, 跳过操作."
+                    tips=""
+                fi
+                # 设置后马上启动
+                if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+                    source $ConfigFile
+                    old_MEMThreshold=$MEMThreshold
+                    SetupMEM_TG
                 fi
                 ;;
             5)
@@ -459,6 +484,13 @@ SetupIniFile() {
                     fi
                 else
                     echo -e "$Tip 输入为空, 跳过操作."
+                    tips=""
+                fi
+                # 设置后马上启动
+                if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+                    source $ConfigFile
+                    old_DISKThreshold=$DISKThreshold
+                    SetupDISK_TG
                 fi
                 ;;
             6)
@@ -539,9 +571,18 @@ SetupIniFile() {
                     fi
                 else
                     echo -e "$Tip 输入为空, 跳过操作."
+                    tips=""
+                fi
+                # 设置后马上启动
+                if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+                    source $ConfigFile
+                    old_FlowThreshold=$FlowThreshold
+                    old_FlowThresholdMAX=$FlowThresholdMAX
+                    SetupFlow_TG
                 fi
                 ;;
             7)
+                # 设置CPU检测工具
                 echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业) 3.top+sar"
                 read -p "请输入序号 (默认采用 1.top / 回车跳过修改): " choice
                 if [ ! -z "$choice" ]; then
@@ -557,10 +598,12 @@ SetupIniFile() {
                     fi
                 else
                     echo -e "$Tip 输入为空, 跳过操作."
+                    tips=""
                 fi
                 ;;
             *)
                 echo "退出设置."
+                tips=""
                 break
             ;;
         esac
@@ -568,28 +611,28 @@ SetupIniFile() {
     if [ "$old_TelgramBotToken" != "" ] && [ "$old_ChatID_1" != "" ]; then
         source $ConfigFile
         if [ "$TelgramBotToken" != "$old_TelgramBotToken" ] || [ "$ChatID_1" != "$old_ChatID_1" ]; then
-            if [ "$boot_menu_tag" == "-> 已设置" ]; then
+            if [ "$boot_menu_tag" == "$SETTAG" ]; then
                 writeini "reBootSet" "Reload"
             fi
-            if [ "$login_menu_tag" == "-> 已设置" ]; then
+            if [ "$login_menu_tag" == "$SETTAG" ]; then
                 writeini "reLoginSet" "Reload"
             fi
-            if [ "$shutdown_menu_tag" == "-> 已设置" ]; then
+            if [ "$shutdown_menu_tag" == "$SETTAG" ]; then
                 writeini "reShutdownSet" "Reload"
             fi
-            if [ "$cpu_menu_tag" == "-> 已设置" ]; then
+            if [ "$cpu_menu_tag" == "$SETTAG" ]; then
                 writeini "reCPUSet" "Reload"
             fi
-            if [ "$mem_menu_tag" == "-> 已设置" ]; then
-                writeini "reCPUSet" "Reload"
+            if [ "$mem_menu_tag" == "$SETTAG" ]; then
+                writeini "reMEMSet" "Reload"
             fi
-            if [ "$disk_menu_tag" == "-> 已设置" ]; then
-                writeini "reCPUSet" "Reload"
+            if [ "$disk_menu_tag" == "$SETTAG" ]; then
+                writeini "reDISKSet" "Reload"
             fi
-            if [ "$flow_menu_tag" == "-> 已设置" ]; then
+            if [ "$flow_menu_tag" == "$SETTAG" ]; then
                 writeini "reFlowSet" "Reload"
             fi
-            if [ "$docker_menu_tag" == "-> 已设置" ]; then
+            if [ "$docker_menu_tag" == "$SETTAG" ]; then
                 writeini "reDockerSet" "Reload"
             fi
         fi
@@ -597,7 +640,7 @@ SetupIniFile() {
     if [ "$old_CPUThreshold" != "" ]; then
         source $ConfigFile
         if [ "$CPUThreshold" != "$old_CPUThreshold" ] || [ "$CPUTools" != "$old_CPUTools" ]; then
-            if [ "$cpu_menu_tag" == "-> 已设置" ]; then
+            if [ "$cpu_menu_tag" == "$SETTAG" ]; then
                 writeini "reCPUSet" "Reload"
             fi
         fi
@@ -605,7 +648,7 @@ SetupIniFile() {
     if [ "$old_MEMThreshold" != "" ]; then
         source $ConfigFile
         if [ "$MEMThreshold" != "$old_MEMThreshold" ] || [ "$CPUTools" != "$old_CPUTools" ]; then
-            if [ "$mem_menu_tag" == "-> 已设置" ]; then
+            if [ "$mem_menu_tag" == "$SETTAG" ]; then
                 writeini "reMEMSet" "Reload"
             fi
         fi
@@ -613,7 +656,7 @@ SetupIniFile() {
     if [ "$old_DISKThreshold" != "" ]; then
         source $ConfigFile
         if [ "$DISKThreshold" != "$old_DISKThreshold" ] || [ "$CPUTools" != "$old_CPUTools" ]; then
-            if [ "$disk_menu_tag" == "-> 已设置" ]; then
+            if [ "$disk_menu_tag" == "$SETTAG" ]; then
                 writeini "reDISKSet" "Reload"
             fi
         fi
@@ -621,7 +664,7 @@ SetupIniFile() {
     if [ "$old_FlowThreshold" != "" ]; then
         source $ConfigFile
         if [ "$FlowThreshold" != "$old_FlowThreshold" ] || [ "$FlowThresholdMAX" != "$old_FlowThresholdMAX" ]; then
-            if [ "$flow_menu_tag" == "-> 已设置" ]; then
+            if [ "$flow_menu_tag" == "$SETTAG" ]; then
                 writeini "reFlowSet" "Reload"
             fi
         fi
@@ -674,7 +717,6 @@ test() {
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="来自 $(hostname) 的测试信息" > /dev/null
         echo -e "$Inf 测试信息已发出, 电报将收到一条\"来自 $(hostname) 的测试信息\"的信息."
-        echo -e "$Tip 如果没有收到测试信息, 请检查设置 (重新执行 ${GR}0${NC} 选项)."
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
@@ -723,12 +765,13 @@ EOF
             # ShowContents "$FolderPath/tg_boot.sh"
             # ShowContents "/etc/systemd/system/tg_boot.service"
             # if [ ! "$(systemctl is-active tg_boot.service)" = "active" ]; then
-                systemctl enable tg_boot.service
+                systemctl enable tg_boot.service > /dev/null
             # fi
             if [ "$mute" != "true" ]; then
                 send_telegram_message "设置成功: 开机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 开机 时将收到通知."
             fi
-            echo -e "$Inf 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
+            # echo -e "$Inf 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
+            tips="$Tip 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
             delini "reBootSet"
         else
             echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -752,7 +795,8 @@ SetupLogin_TG() {
                 if [ "$mute" != "true" ]; then
                     send_telegram_message "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知."
                 fi
-                echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
+                # echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
+                tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
             delini "reLoginSet"
         elif [ -f /etc/profile ]; then
@@ -762,7 +806,8 @@ SetupLogin_TG() {
                 if [ "$mute" != "true" ]; then
                     send_telegram_message "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知."
                 fi
-                echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
+                # echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
+                tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
             delini "reLoginSet"
         else
@@ -799,12 +844,13 @@ EOF
             # ShowContents "$FolderPath/tg_shutdown.sh"
             # ShowContents "/etc/systemd/system/tg_shutdown.service"
             # if [ ! "$(systemctl is-active tg_shutdown.service)" = "active" ]; then
-                systemctl enable tg_shutdown.service
+                systemctl enable tg_shutdown.service > /dev/null
             # fi
             if [ "$mute" != "true" ]; then
                 send_telegram_message "设置成功: 关机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 关机 时将收到通知."
             fi
-            echo -e "$Inf 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
+            # echo -e "$Inf 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
+            tips="$Tip 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
             delini "reShutdownSet"
         else
             echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -845,7 +891,8 @@ EOF
             if [ "$mute" != "true" ]; then
                 send_telegram_message "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 Docker 列表变更时将收到通知."
             fi
-            echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
+            # echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
+            tips="$Tip Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
             delini "reDockerSet"
         else
             echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1058,7 +1105,8 @@ EOF
 '"检测工具: $CPUTools"'
 '"💡当 CPU 使用达 $CPUThreshold % 时将收到通知."
         fi
-        echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
+        # echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
+        tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
         delini "reCPUSet"
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1174,7 +1222,8 @@ EOF
 '"检测工具: $CPUTools"'
 '"💡当 内存 使用达 $MEMThreshold % 时将收到通知."
         fi
-        echo -e "$Inf 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
+        # echo -e "$Inf 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
+        tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
         delini "reMEMSet"
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1290,7 +1339,8 @@ EOF
 '"检测工具: $CPUTools"'
 '"💡当 磁盘 使用达 $DISKThreshold % 时将收到通知."
         fi
-        echo -e "$Inf 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
+        # echo -e "$Inf 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
+        tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
         delini "reDISKSet"
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1492,7 +1542,8 @@ EOF
         if [ "$mute" != "true" ]; then
             send_telegram_message "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当流量达阀值 $FlowThreshold_U 时将收到通知."
         fi
-        echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
+        # echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
+        tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
         delini "reFlowSet"
     else
         echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1500,253 +1551,204 @@ EOF
 }
 
 # 卸载
-UnsetupAll() {
-    while true; do
-    CheckSetup
-    source $ConfigFile
-    if [ -z "$CPUThreshold" ]; then
-        CPUThreshold_tag="${RE}未设置${NC}"
-    else
-        CPUThreshold_tag="${GR}$CPUThreshold %${NC}"
+
+# 卸载开启通知
+UN_SetupBoot_TG() {
+    if [ "$boot_menu_tag" == "$SETTAG" ]; then
+        systemctl stop tg_boot.service > /dev/null 2>&1
+        systemctl disable tg_boot.service > /dev/null 2>&1
+        sleep 1
+        rm -f /etc/systemd/system/tg_boot.service
+        boot_menu_tag=""
+        delini "reBootSet"
+        tips="机开通知 已经取消 / 删除."
+        # Pause
     fi
-    if [ -z "$MEMThreshold" ]; then
-        MEMThreshold_tag="${RE}未设置${NC}"
-    else
-        MEMThreshold_tag="${GR}$MEMThreshold %${NC}"
+}
+UN_SetupLogin_TG() {
+    if [ "$login_menu_tag" == "$SETTAG" ]; then
+        if [ -f /etc/bash.bashrc ]; then
+            sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
+        fi
+        if [ -f /etc/profile ]; then
+            sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
+        fi
+        login_menu_tag=""
+        delini "reLoginSet"
+        tips="登陆通知 已经取消 / 删除."
+        # Pause
     fi
-    if [ -z "$DISKThreshold" ]; then
-        DISKThreshold_tag="${RE}未设置${NC}"
-    else
-        DISKThreshold_tag="${GR}$DISKThreshold %${NC}"
+}
+UN_SetupShutdown_TG() {
+    if [ "$shutdown_menu_tag" == "$SETTAG" ]; then
+        systemctl stop tg_shutdown.service > /dev/null 2>&1
+        systemctl disable tg_shutdown.service > /dev/null 2>&1
+        sleep 1
+        rm -f /etc/systemd/system/tg_shutdown.service
+        shutdown_menu_tag=""
+        delini "reShutdownSet"
+        tips="关机通知 已经取消 / 删除."
+        # Pause
     fi
-    if [ -z "$FlowThreshold" ]; then
-        FlowThreshold_tag="${RE}未设置${NC}"
-    else
-        FlowThreshold_tag="${GR}$FlowThreshold${NC}"
+}
+UN_SetupCPU_TG() {
+    if [ "$cpu_menu_tag" == "$SETTAG" ]; then
+        pkill tg_cpu.sh
+        pkill tg_cpu.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
+        cpu_menu_tag=""
+        delini "reCPUSet"
+        tips="CPU报警 已经取消 / 删除."
+        # Pause
     fi
-    CLS
-    echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
--- tse | vtse.eu.org | $release -- 
-  
- 取消 / 删除 模式
-———————————————————————
- ${GR}1.${NC} ${RE}取消${NC} ${GR}[开机]${NC} Telgram 通知 \t\t\t${GR}$boot_menu_tag${NC}
- ${GR}2.${NC} ${RE}取消${NC} ${GR}[登陆]${NC} Telgram 通知 \t\t\t${GR}$login_menu_tag${NC}
- ${GR}3.${NC} ${RE}取消${NC} ${GR}[关机]${NC} Telgram 通知 \t\t\t${GR}$shutdown_menu_tag${NC}
- ${GR}4.${NC} ${RE}取消${NC} ${GR}[CPU 报警]${NC} Telgram 通知 ${REB}阀值${NC}: $CPUThreshold_tag \t${GR}$cpu_menu_tag${NC}
- ${GR}5.${NC} ${RE}取消${NC} ${GR}[内存报警]${NC} Telgram 通知 ${REB}阀值${NC}: $MEMThreshold_tag \t${GR}$mem_menu_tag${NC}
- ${GR}6.${NC} ${RE}取消${NC} ${GR}[磁盘报警]${NC} Telgram 通知 ${REB}阀值${NC}: $DISKThreshold_tag \t${GR}$disk_menu_tag${NC}
- ${GR}7.${NC} ${RE}取消${NC} ${GR}[流量报警]${NC} Telgram 通知 ${REB}阀值${NC}: $FlowThreshold_tag \t${GR}$flow_menu_tag${NC}
- ${GR}8.${NC} ${RE}取消${NC} ${GR}[Docker 变更]${NC} Telgram 通知 \t\t${GR}$docker_menu_tag${NC}
- ———————————————————————————————————————————————————————
- ${GR}a.${NC} ${RE}取消所有${NC} Telgram 通知
- ——————————————————————————————————————
- ${GR}f.${NC} ${RE}删除${NC} 脚本文件夹 \t${GR}$folder_menu_tag${NC}
- ——————————————————————————————————————
- ${GR}b.${NC} 返回 普通模式
- ——————————————————————————————————————
- ${GR}x.${NC} 退出脚本
-————————————
-$Tip 使用前请先执行 ${GR}0${NC} 确保依赖完整并完成相关参数设置." && echo
-    read -e -p "请输入选项 [0-6|a|f|b|x]:" num
-    case "$num" in
-        1) # 开机
-        if [ "$boot_menu_tag" == "-> 已设置" ]; then
-            systemctl stop tg_boot.service > /dev/null 2>&1
-            systemctl disable tg_boot.service > /dev/null 2>&1
-            sleep 1
-            rm -f /etc/systemd/system/tg_boot.service
-            boot_menu_tag=""
-            delini "reBootSet"
-            # echo "已经取消 / 删除."
-            # Pause
+}
+UN_SetupMEM_TG() {
+    if [ "$mem_menu_tag" == "$SETTAG" ]; then
+        pkill tg_mem.sh
+        pkill tg_mem.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &" | crontab -
+        mem_menu_tag=""
+        delini "reMEMSet"
+        tips="内存报警 已经取消 / 删除."
+        # Pause
+    fi
+}
+UN_SetupDISK_TG() {
+    if [ "$disk_menu_tag" == "$SETTAG" ]; then
+        pkill tg_disk.sh
+        pkill tg_disk.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &" | crontab -
+        disk_menu_tag=""
+        delini "reDISKSet"
+        tips="磁盘报警 已经取消 / 删除."
+        # Pause
+    fi
+}
+UN_SetupFlow_TG() {
+    if [ "$flow_menu_tag" == "$SETTAG" ]; then
+        pkill tg_flow.sh
+        pkill tg_flow.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
+        flow_menu_tag=""
+        delini "reFlowSet"
+        tips="流量报警 已经取消 / 删除."
+        # Pause
+    fi
+}
+UN_SetupDocker_TG() {
+    if [ "$docker_menu_tag" == "$SETTAG" ]; then
+        pkill tg_docker.sh
+        pkill tg_docker.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
+        docker_menu_tag=""
+        delini "reDockerSet"
+        tips="Docker变更通知 已经取消 / 删除."
+        # Pause
+    fi
+}
+UN_ALL() {
+    UN_SetupBoot_TG
+    UN_SetupLogin_TG
+    UN_SetupShutdown_TG
+    UN_SetupCPU_TG
+    UN_SetupMEM_TG
+    UN_SetupDISK_TG
+    UN_SetupFlow_TG
+    UN_SetupDocker_TG
+    tips="$Tip 已取消 / 删除所有通知."
+}
+
+UN_ALL_2() {
+    untag=false
+    if [ "$boot_menu_tag" == "$SETTAG" ]; then
+        systemctl stop tg_boot.service > /dev/null 2>&1
+        systemctl disable tg_boot.service > /dev/null 2>&1
+        sleep 1
+        rm -f /etc/systemd/system/tg_boot.service
+        boot_menu_tag=""
+        untag=true
+    fi
+    if [ "$login_menu_tag" == "$SETTAG" ]; then
+        if [ -f /etc/bash.bashrc ]; then
+            sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
         fi
-        ;;
-        2) # 登陆
-        if [ "$login_menu_tag" == "-> 已设置" ]; then
-            if [ -f /etc/bash.bashrc ]; then
-                sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
-            fi
-            if [ -f /etc/profile ]; then
-                sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
-            fi
-            login_menu_tag=""
-            delini "reLoginSet"
-            # echo "已经取消 / 删除."
-            # Pause
+        if [ -f /etc/profile ]; then
+            sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
         fi
-        ;;
-        3) # 关机
-        if [ "$shutdown_menu_tag" == "-> 已设置" ]; then
-            systemctl stop tg_shutdown.service > /dev/null 2>&1
-            systemctl disable tg_shutdown.service > /dev/null 2>&1
-            sleep 1
-            rm -f /etc/systemd/system/tg_shutdown.service
-            shutdown_menu_tag=""
-            delini "reShutdownSet"
-            # echo "已经取消 / 删除."
-            # Pause
-        fi
-        ;;
-        4) # CPU 报警
-        if [ "$cpu_menu_tag" == "-> 已设置" ]; then
-            pkill tg_cpu.sh
-            pkill tg_cpu.sh
-            crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
-            cpu_menu_tag=""
-            delini "reCPUSet"
-            # echo "已经取消 / 删除."
-            # Pause
-        fi
-        ;;
-        5) # 内存报警
-        if [ "$mem_menu_tag" == "-> 已设置" ]; then
-            pkill tg_mem.sh
-            pkill tg_mem.sh
-            crontab -l | grep -v "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &" | crontab -
-            mem_menu_tag=""
-            delini "reMEMSet"
-            # echo "已经取消 / 删除."
-            # Pause
-        fi
-        ;;
-        6) # 磁盘报警
-        if [ "$disk_menu_tag" == "-> 已设置" ]; then
-            pkill tg_disk.sh
-            pkill tg_disk.sh
-            crontab -l | grep -v "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &" | crontab -
-            disk_menu_tag=""
-            delini "reDISKSet"
-            # echo "已经取消 / 删除."
-            # Pause
-        fi
-        ;;
-        7) # 流量 报警
-        if [ "$flow_menu_tag" == "-> 已设置" ]; then
-            pkill tg_flow.sh
-            pkill tg_flow.sh
-            crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
-            flow_menu_tag=""
-            delini "reFlowSet"
-            # echo "已经取消 / 删除."
-            # Pause
-        fi
-        ;;
-        8) # Docker 提示
-        if [ "$docker_menu_tag" == "-> 已设置" ]; then
-            pkill tg_docker.sh
-            pkill tg_docker.sh
-            crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
-            docker_menu_tag=""
-            delini "reDockerSet"
-            # echo "已经取消 / 删除."
-            # Pause
-        fi
-        ;;
-        a|A)
-        untag=false
-        if [ "$boot_menu_tag" == "-> 已设置" ]; then
-            systemctl stop tg_boot.service > /dev/null 2>&1
-            systemctl disable tg_boot.service > /dev/null 2>&1
-            sleep 1
-            rm -f /etc/systemd/system/tg_boot.service
-            boot_menu_tag=""
-            untag=true
-        fi
-        if [ "$login_menu_tag" == "-> 已设置" ]; then
-            if [ -f /etc/bash.bashrc ]; then
-                sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
-            fi
-            if [ -f /etc/profile ]; then
-                sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
-            fi
-            login_menu_tag=""
-            untag=true
-        fi
-        if [ "$shutdown_menu_tag" == "-> 已设置" ]; then
-            systemctl stop tg_shutdown.service > /dev/null 2>&1
-            systemctl disable tg_shutdown.service > /dev/null 2>&1
-            sleep 1
-            rm -f /etc/systemd/system/tg_shutdown.service
-            shutdown_menu_tag=""
-            untag=true
-        fi
-        if [ "$cpu_menu_tag" == "-> 已设置" ]; then
-            pkill tg_cpu.sh
-            pkill tg_cpu.sh
-            crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
-            cpu_menu_tag=""
-            untag=true
-        fi
-        if [ "$mem_menu_tag" == "-> 已设置" ]; then
-            pkill tg_mem.sh
-            pkill tg_mem.sh
-            crontab -l | grep -v "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &" | crontab -
-            mem_menu_tag=""
-            untag=true
-        fi
-        if [ "$disk_menu_tag" == "-> 已设置" ]; then
-            pkill tg_disk.sh
-            pkill tg_disk.sh
-            crontab -l | grep -v "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &" | crontab -
-            disk_menu_tag=""
-            untag=true
-        fi
-        if [ "$flow_menu_tag" == "-> 已设置" ]; then
-            pkill tg_flow.sh
-            pkill tg_flow.sh
-            crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
-            flow_menu_tag=""
-            untag=true
-        fi
-        if [ "$docker_menu_tag" == "-> 已设置" ]; then
-            pkill tg_docker.sh
-            pkill tg_docker.sh
-            crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
-            docker_menu_tag=""
-            untag=true
-        fi
-        if [ "$untag" == "true" ]; then
-            delini "reBootSet"
-            delini "reLoginSet"
-            delini "reShutdownSet"
-            delini "reCPUSet"
-            delini "reMEMSet"
-            delini "reDISKSet"
-            delini "reFlowSet"
-            delini "reDockerSet"
-            echo -e "$Tip 已取消 / 删除所有通知."
-            Pause
-        fi
-        ;;
-        f|F)
-        if [ "$boot_menu_tag" == "" ] && [ "$login_menu_tag" == "" ] && [ "$shutdown_menu_tag" == "" ] && [ "$cpu_menu_tag" == "" ] && [ "$mem_menu_tag" == "" ] && [ "$disk_menu_tag" == "" ] && [ "$flow_menu_tag" == "" ] && [ "$docker_menu_tag" == "" ]; then
-            if [ -d "$FolderPath" ]; then
-                read -p "是否要删除 $FolderPath 文件夹? (建议保留) Y/其它 : " yorn
-                if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
-                    rm -rf $FolderPath
-                    folder_menu_tag=""
-                    echo -e "$Tip $FolderPath 文件夹已经删除."
-                else
-                    echo -e "$Tip $FolderPath 文件夹已经保留."
-                fi
-            fi
-        else
-            echo -e "$Err 请先取消所有通知后再删除文件夹."
-        fi
+        login_menu_tag=""
+        untag=true
+    fi
+    if [ "$shutdown_menu_tag" == "$SETTAG" ]; then
+        systemctl stop tg_shutdown.service > /dev/null 2>&1
+        systemctl disable tg_shutdown.service > /dev/null 2>&1
+        sleep 1
+        rm -f /etc/systemd/system/tg_shutdown.service
+        shutdown_menu_tag=""
+        untag=true
+    fi
+    if [ "$cpu_menu_tag" == "$SETTAG" ]; then
+        pkill tg_cpu.sh
+        pkill tg_cpu.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
+        cpu_menu_tag=""
+        untag=true
+    fi
+    if [ "$mem_menu_tag" == "$SETTAG" ]; then
+        pkill tg_mem.sh
+        pkill tg_mem.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &" | crontab -
+        mem_menu_tag=""
+        untag=true
+    fi
+    if [ "$disk_menu_tag" == "$SETTAG" ]; then
+        pkill tg_disk.sh
+        pkill tg_disk.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &" | crontab -
+        disk_menu_tag=""
+        untag=true
+    fi
+    if [ "$flow_menu_tag" == "$SETTAG" ]; then
+        pkill tg_flow.sh
+        pkill tg_flow.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
+        flow_menu_tag=""
+        untag=true
+    fi
+    if [ "$docker_menu_tag" == "$SETTAG" ]; then
+        pkill tg_docker.sh
+        pkill tg_docker.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
+        docker_menu_tag=""
+        untag=true
+    fi
+    if [ "$untag" == "true" ]; then
+        delini "reBootSet"
+        delini "reLoginSet"
+        delini "reShutdownSet"
+        delini "reCPUSet"
+        delini "reMEMSet"
+        delini "reDISKSet"
+        delini "reFlowSet"
+        delini "reDockerSet"
+        tips="$Tip 已取消 / 删除所有通知."
         Pause
-        ;;
-        b|B)
-        break
-        ;;
-        x|X)
-        exit 0
-        ;;
-        *)
-        echo "请输入正确数字 [0-6|a|f|b|x]"
-        ;;
-    esac
-    done    
+    fi
+}
+DELFOLDER() {
+    if [ "$boot_menu_tag" == "$UNSETTAG" ] && [ "$login_menu_tag" == "$UNSETTAG" ] && [ "$shutdown_menu_tag" == "$UNSETTAG" ] && [ "$cpu_menu_tag" == "$UNSETTAG" ] && [ "$mem_menu_tag" == "$UNSETTAG" ] && [ "$disk_menu_tag" == "$UNSETTAG" ] && [ "$flow_menu_tag" == "$UNSETTAG" ] && [ "$docker_menu_tag" == "$UNSETTAG" ]; then
+        if [ -d "$FolderPath" ]; then
+            read -p "是否要删除 $FolderPath 文件夹? (建议保留) Y/其它 : " yorn
+            if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
+                rm -rf $FolderPath
+                folder_menu_tag=""
+                tips="$Tip $FolderPath 文件夹已经${RE}删除${NC}."
+            else
+                tips="$Tip $FolderPath 文件夹已经${GR}保留${NC}."
+            fi
+        fi
+    else
+        tips="$Err 请先取消所有通知后再删除文件夹."
+    fi
 }
 
 # 主程序
@@ -1759,34 +1761,35 @@ if [ "$1" == "auto" ]; then
     CheckAndCreateFolder
     CheckSetup
     GetVPSInfo
-    if [ "$boot_menu_tag" == "-> 已设置" ]; then
+    if [ "$boot_menu_tag" == "$SETTAG" ]; then
         SetupBoot_TG
     fi
-    if [ "$login_menu_tag" == "-> 已设置" ]; then
+    if [ "$login_menu_tag" == "$SETTAG" ]; then
         SetupLogin_TG
     fi
-    if [ "$shutdown_menu_tag" == "-> 已设置" ]; then
+    if [ "$shutdown_menu_tag" == "$SETTAG" ]; then
         SetupShutdown_TG
     fi
-    if [ "$cpu_menu_tag" == "-> 已设置" ]; then
+    if [ "$cpu_menu_tag" == "$SETTAG" ]; then
         SetupCPU_TG
     fi
-    if [ "$mem_menu_tag" == "-> 已设置" ]; then
+    if [ "$mem_menu_tag" == "$SETTAG" ]; then
         SetupMEM_TG
     fi
-    if [ "$disk_menu_tag" == "-> 已设置" ]; then
+    if [ "$disk_menu_tag" == "$SETTAG" ]; then
         SetupDISK_TG
     fi
-    if [ "$flow_menu_tag" == "-> 已设置" ]; then
+    if [ "$flow_menu_tag" == "$SETTAG" ]; then
         SetupFlow_TG
     fi
-    if [ "$docker_menu_tag" == "-> 已设置" ]; then
+    if [ "$docker_menu_tag" == "$SETTAG" ]; then
         SetupDocker_TG
     fi
     echo "自动模式执行完成."
     exit 0
 fi
 mute=""
+tips=""
 while true; do
 CheckSetup
 GetVPSInfo
@@ -1826,9 +1829,9 @@ else
     FlowThreshold_tag="${GR}$FlowThreshold${NC}"
 fi
 if crontab -l | grep -q "tg_autoupdate.sh"; then
-    crontab_menu_tag="-> 已设置"
+    crontab_menu_tag="$SETTAG"
 else
-    crontab_menu_tag=""
+    crontab_menu_tag="$UNSETTAG"
 fi
 CLS
 echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
@@ -1836,27 +1839,33 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
   
  ${GR}0.${NC} 检查依赖 / 设置参数 \t$reset_menu_tag
 ———————————————————————
- ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知 \t\t\t${GR}$boot_menu_tag${NC} ${REB}$reBootSet${NC}
- ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知 \t\t\t${GR}$login_menu_tag${NC} ${REB}$reLoginSet${NC}
- ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知 \t\t\t${GR}$shutdown_menu_tag${NC} ${REB}$reShutdownSet${NC}
- ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 ${REB}阀值${NC}: $CPUThreshold_tag \t${GR}$cpu_menu_tag${NC} ${REB}$reCPUSet${NC}
- ${GR}5.${NC} 设置 ${GR}[内存报警]${NC} Telgram 通知 ${REB}阀值${NC}: $MEMThreshold_tag \t${GR}$mem_menu_tag${NC} ${REB}$reMEMSet${NC}
- ${GR}6.${NC} 设置 ${GR}[磁盘报警]${NC} Telgram 通知 ${REB}阀值${NC}: $DISKThreshold_tag \t${GR}$disk_menu_tag${NC} ${REB}$reDISKSet${NC}
- ${GR}7.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 ${REB}阀值${NC}: $FlowThreshold_tag \t${GR}$flow_menu_tag${NC} ${REB}$reFlowSet${NC}
- ${GR}8.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知 \t\t${GR}$docker_menu_tag${NC} ${REB}$reDockerSet${NC}
+ ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知 \t\t\t$boot_menu_tag ${REB}$reBootSet${NC}
+ ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知 \t\t\t$login_menu_tag ${REB}$reLoginSet${NC}
+ ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知 \t\t\t$shutdown_menu_tag ${REB}$reShutdownSet${NC}
+ ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 ${REB}阀值${NC}: $CPUThreshold_tag \t$cpu_menu_tag ${REB}$reCPUSet${NC}
+ ${GR}5.${NC} 设置 ${GR}[内存报警]${NC} Telgram 通知 ${REB}阀值${NC}: $MEMThreshold_tag \t$mem_menu_tag ${REB}$reMEMSet${NC}
+ ${GR}6.${NC} 设置 ${GR}[磁盘报警]${NC} Telgram 通知 ${REB}阀值${NC}: $DISKThreshold_tag \t$disk_menu_tag ${REB}$reDISKSet${NC}
+ ${GR}7.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 ${REB}阀值${NC}: $FlowThreshold_tag \t$flow_menu_tag ${REB}$reFlowSet${NC}
+ ${GR}8.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知 \t\t$docker_menu_tag${NC} ${REB}$reDockerSet${NC}
  ———————————————————————————————————————————————————————
  ${GR}t.${NC} 测试 - 发送一条信息用以检验参数设置
  ——————————————————————————————————————
  ${GR}h.${NC} 修改 - Hostname 以此作为主机标记
  ——————————————————————————————————————
- ${GR}d.${NC} ${RE}进入${NC} - 取消 / 删除 模式
- ——————————————————————————————————————
- ${GR}u.${NC} 设置自动更新脚本 \t${GR}$crontab_menu_tag${NC}
+ ${GR}o.${NC} ${GRB}一键${NC} ${GR}开启${NC} 所有通知
+ ${GR}c.${NC} ${GRB}一键${NC} ${RE}取消 / 删除${NC} 所有通知
+ ${GR}f.${NC} ${GRB}一键${NC} ${RE}删除${NC} 所有脚本子文件 \t${GR}$folder_menu_tag${NC}
+ ———————————————————————————————————————————————
+ ${GR}u.${NC} 设置自动更新脚本 \t$crontab_menu_tag
  ——————————————————————————————————————
  ${GR}x.${NC} 退出脚本
-————————————
-$Tip 使用前请先执行 ${GR}0${NC} 确保依赖完整并完成相关参数设置." && echo
-read -e -p "请输入选项 [0-6|t|h|d|x]:" num
+————————————"
+if [ "$tips" = "" ]; then
+    echo -e "$Tip 使用前先执行 0 进入参数设置, 启动后再次选择则为取消." && echo
+else
+    echo -e "$tips" && echo
+fi
+read -e -p "请输入选项 [0-8|t|h|o|c|f|u|x]:" num
 case "$num" in
     0)
     CheckAndCreateFolder
@@ -1868,55 +1877,107 @@ case "$num" in
     ;;
     1)
     CheckAndCreateFolder
-    SetupBoot_TG
-    Pause
+    if [ "$boot_menu_tag" == "$SETTAG" ] && [ "$reBootSet" == "" ]; then
+        UN_SetupBoot_TG
+    else
+        SetupBoot_TG
+    fi
     ;;
     2)
     CheckAndCreateFolder
-    SetupLogin_TG
-    Pause
+    if [ "$login_menu_tag" == "$SETTAG" ] && [ "$reLoginSet" == "" ]; then
+        UN_SetupLogin_TG
+    else
+        SetupLogin_TG
+    fi
     ;;
     3)
     CheckAndCreateFolder
-    SetupShutdown_TG
-    Pause
+    if [ "$shutdown_menu_tag" == "$SETTAG" ] && [ "$reShutdownSet" == "" ]; then
+        UN_SetupShutdown_TG
+    else
+        SetupShutdown_TG
+    fi
     ;;
     4)
     CheckAndCreateFolder
-    SetupCPU_TG
-    Pause
+    if [ "$cpu_menu_tag" == "$SETTAG" ] && [ "$reCPUSet" == "" ]; then
+        UN_SetupCPU_TG
+    else
+        SetupCPU_TG
+    fi
     ;;
     5)
     CheckAndCreateFolder
-    SetupMEM_TG
-    Pause
+    if [ "$mem_menu_tag" == "$SETTAG" ] && [ "$reMEMSet" == "" ]; then
+        UN_SetupMEM_TG
+    else
+        SetupMEM_TG
+    fi
     ;;
     6)
     CheckAndCreateFolder
-    SetupDISK_TG
-    Pause
+    if [ "$disk_menu_tag" == "$SETTAG" ] && [ "$reDISKSet" == "" ]; then
+        UN_SetupDISK_TG
+    else
+        SetupDISK_TG
+    fi
     ;;
     7)
     CheckAndCreateFolder
-    SetupFlow_TG
-    Pause
+    if [ "$flow_menu_tag" == "$SETTAG" ] && [ "$reFlowSet" == "" ]; then
+        UN_SetupFlow_TG
+    else
+        SetupFlow_TG
+    fi
     ;;
     8)
     CheckAndCreateFolder
-    SetupDocker_TG
-    Pause
+    if [ "$docker_menu_tag" == "$SETTAG" ] && [ "$reDockerSet" == "" ]; then
+        UN_SetupDocker_TG
+    else
+        SetupDocker_TG
+    fi
     ;;
     t|T)
     CheckAndCreateFolder
     test
-    Pause
     ;;
     h|H)
     ModifyHostname
+    tips=""
     Pause
     ;;
-    d|D)
-    UnsetupAll
+    o|O)
+    mute=true
+    SetupBoot_TG
+    SetupLogin_TG
+    SetupShutdown_TG
+    writeini "CPUThreshold" "60"
+    writeini "MEMThreshold" "60"
+    writeini "DISKThreshold" "60"
+    writeini "FlowThreshold" "1GB"
+    source $ConfigFile
+    SetupCPU_TG
+    SetupMEM_TG
+    SetupDISK_TG
+    SetupFlow_TG
+    send_telegram_message "已经启动以下通知 ☎️"'
+'"开机通知"'
+'"登陆通知"'
+'"关机通知"'
+'"CPU使用率超 $CPUThreshold 报警"'
+'"内存使用率超 $MEMThreshold 报警"'
+'"磁盘使用率超 $DISKThreshold 报警"'
+'"流量使用率超 $FlowThreshold_U 报警"
+    tips="已经启动所有通知 (除了Docker 变更通知)."
+    mute=""
+    ;;
+    c|C)
+    UN_ALL
+    ;;
+    f|F)
+    DELFOLDER
     ;;
     u|U)
     CheckAndCreateFolder
@@ -1927,7 +1988,7 @@ case "$num" in
     exit 0
     ;;
     *)
-    echo "请输入正确数字 [0-6|t|h|d|x]"
+    tips="请输入正确数字或字母."
     ;;
 esac
 done
