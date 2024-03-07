@@ -1768,7 +1768,8 @@ if [ -z "$ChatID_1" ]; then
     if [ ! -z "$cahtid" ]; then
         if [[ $cahtid =~ ^[0-9]+$ ]]; then
             writeini "ChatID_1" "$cahtid"
-            source $ConfigFile
+            ChatID_1=$cahtid
+            # source $ConfigFile
         else
             echo -e "$Err ${REB}输入无效${NC}, Chat ID 必须是数字, 退出操作."
             exit 1
