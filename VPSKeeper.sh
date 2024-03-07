@@ -254,7 +254,7 @@ if [ ! -s "$FolderPath/VPSKeeper.sh" ]; then
     echo "尝试从备用镜像地址下载..."
     retry=0
     while [ \$retry -lt \$mirror_retries ]; do
-        download_file "https://mirror.ghporxy.com/https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh"
+        download_file "https://mirror.ghproxy.com/https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh"
         if [ -s "$FolderPath/VPSKeeper.sh" ]; then
             echo "备用镜像下载成功"
             break
