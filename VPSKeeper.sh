@@ -5,11 +5,11 @@ export PATH
 #=================================================
 #	System Required: CentOS/Debian/Ubuntu
 #	Description: VPS keeper for telgram
-#	Version: 1.0.0
+#	Version: 1.0.2
 #	Author: tse
 #	Blog: https://vtse.eu.org
 #=================================================
-sh_ver="1.0.1"
+sh_ver="1.0.2"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 
@@ -392,15 +392,21 @@ SetupIniFile() {
     echo -e "$Tip 默认机器人: @iekeeperbot 使用前必须添加并点击 start"
     while true; do
         divline
-        echo -e "${GR}1${NC}.修改机器人Token ${GR}2${NC}.CHAT ID (接收信息的用户或群组 ID)"
-        echo -e "${GR}3${NC}.CPU报警阀值 ${GR}4${NC}.内存报警阀值 ${GR}5${NC}.磁盘报警阀值 ${GR}6${NC}.流量报警阀值"
-        echo -e "${GR}7${NC}.CPU检测工具设置 (默认使用 top) ${GR}回车${NC}.完成 / 退出设置"
+        echo -e "${GR}1${NC}.修改机器人Token ${GR}2${NC}.CHAT ID (接收信息的用户或群组 ID) ${GR}3${NC}.CPU检测工具设置 (默认使用 top)"
+        echo -e "${GR}4${NC}.CPU报警阀值 ${GR}5${NC}.内存报警阀值 ${GR}6${NC}.磁盘报警阀值 ${GR}7${NC}.流量报警阀值 ${GR}回车${NC}.完成 / 退出设置"
         divline
         read -p "请输入你的选择: " choice
         case $choice in
             1)
                 # 设置BOT Token
                 echo -e "$Tip ${REB}BOT Token${NC} 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
+                divline
+                if [ "$TelgramBotToken" != "" ]; then
+                    echo -e "当前${GR}[BOT Token]${NC}: $TelgramBotToken"
+                else
+                    echo -e "当前${GR}[BOT Token]${NC}: 空"
+                fi
+                divline
                 read -p "请输入 BOT Token (回车跳过修改 / 输入 R 使用默认机器人): " bottoken
                 if [ ! -z "$bottoken" ]; then
                     writeini "TelgramBotToken" "$bottoken"
@@ -415,6 +421,13 @@ SetupIniFile() {
             2)
                 # 设置Chat ID
                 echo -e "$Tip ${REB}Chat ID${NC} 获取方法: 在 Telgram 中添加机器人 @userinfobot, 点击或输入: /start"
+                divline
+                if [ "$ChatID_1" != "" ]; then
+                    echo -e "当前${GR}[CHAT ID]${NC}: $ChatID_1"
+                else
+                    echo -e "当前${GR}[CHAT ID]${NC}: 空"
+                fi
+                divline
                 read -p "请输入 Chat ID (回车跳过修改): " cahtid
                 if [ ! -z "$cahtid" ]; then
                     if [[ $cahtid =~ ^[0-9]+$ ]]; then
@@ -428,8 +441,42 @@ SetupIniFile() {
                 fi
                 ;;
             3)
+                # 设置CPU检测工具
+                echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业) 3.top+sar"
+                divline
+                if [ "$CPUTools" != "" ]; then
+                    echo -e "当前${GR}[CPU 检测工具]${NC}: $CPUTools"
+                else
+                    echo -e "当前${GR}[CPU 检测工具]${NC}: 空"
+                fi
+                divline
+                read -p "请输入序号 (默认采用 1.top / 回车跳过修改): " choice
+                if [ ! -z "$choice" ]; then
+                    if [ "$choice" == "1" ]; then
+                        CPUTools="top"
+                        writeini "CPUTools" "$CPUTools"
+                    elif [ "$choice" == "2" ]; then
+                        CPUTools="sar"
+                        writeini "CPUTools" "$CPUTools"
+                    elif [ "$choice" == "3" ]; then
+                        CPUTools="top_sar"
+                        writeini "CPUTools" "$CPUTools"
+                    fi
+                else
+                    echo -e "$Tip 输入为空, 跳过操作."
+                    tips=""
+                fi
+                ;;
+            4)
                 # 设置CPU报警阀值
                 echo -e "$Tip ${REB}CPU 报警${NC} 阀值(%)输入 (1-100) 的整数"
+                divline
+                if [ "$CPUThreshold" != "" ]; then
+                    echo -e "当前${GR}[CPU 报警阀值]${NC}: $CPUThreshold"
+                else
+                    echo -e "当前${GR}[CPU 报警阀值]${NC}: 空"
+                fi
+                divline
                 read -p "请输入 CPU 报警阀值 (回车跳过修改): " threshold
                 if [ ! -z "$threshold" ]; then
                     threshold="${threshold//%/}"
@@ -449,9 +496,16 @@ SetupIniFile() {
                     SetupCPU_TG
                 fi
                 ;;
-            4)
+            5)
                 # 设置内存报警阀值
                 echo -e "$Tip ${REB}内存报警${NC} 阀值(%)输入 (1-100) 的整数"
+                divline
+                if [ "$MEMThreshold" != "" ]; then
+                    echo -e "当前${GR}[内存报警阀值]${NC}: $MEMThreshold"
+                else
+                    echo -e "当前${GR}[内存报警阀值]${NC}: 空"
+                fi
+                divline
                 read -p "请输入 内存阀值 (回车跳过修改): " threshold
                 if [ ! -z "$threshold" ]; then
                     threshold="${threshold//%/}"
@@ -471,9 +525,16 @@ SetupIniFile() {
                     SetupMEM_TG
                 fi
                 ;;
-            5)
+            6)
                 # 设置磁盘报警阀值
                 echo -e "$Tip ${REB}磁盘报警${NC} 阀值(%)输入 (1-100) 的整数"
+                divline
+                if [ "$DISKThreshold" != "" ]; then
+                    echo -e "当前${GR}[磁盘报警阀值]${NC}: $DISKThreshold"
+                else
+                    echo -e "当前${GR}[磁盘报警阀值]${NC}: 空"
+                fi
+                divline
                 read -p "请输入 磁盘报警阀值 (回车跳过修改): " threshold
                 if [ ! -z "$threshold" ]; then
                     threshold="${threshold//%/}"
@@ -493,9 +554,21 @@ SetupIniFile() {
                     SetupDISK_TG
                 fi
                 ;;
-            6)
+            7)
                 # 设置流量报警阀值
                 echo -e "$Tip ${REB}流量报警${NC} 阀值输入格式: 数字|数字MB/数字GB/数字TB, 可带 1 位小数"
+                divline
+                if [ "$FlowThreshold" != "" ]; then
+                    echo -e "当前${GR}[流量报警阀值]${NC}: $FlowThreshold"
+                else
+                    echo -e "当前${GR}[流量报警阀值]${NC}: 空"
+                fi
+                if [ "$FlowThresholdMAX" != "" ]; then
+                    echo -e "当前${GR}[流量上限]${NC}: $FlowThresholdMAX"
+                else
+                    echo -e "当前${GR}[流量上限]${NC}: 空"
+                fi
+                divline
                 read -p "请输入 流量报警阀值 (回车跳过修改): " threshold
                 if [ ! -z "$threshold" ]; then
                     #if [[ $threshold =~ ^[0-9]+$ ]]; then
@@ -581,26 +654,6 @@ SetupIniFile() {
                     SetupFlow_TG
                 fi
                 ;;
-            7)
-                # 设置CPU检测工具
-                echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业) 3.top+sar"
-                read -p "请输入序号 (默认采用 1.top / 回车跳过修改): " choice
-                if [ ! -z "$choice" ]; then
-                    if [ "$choice" == "1" ]; then
-                        CPUTools="top"
-                        writeini "CPUTools" "$CPUTools"
-                    elif [ "$choice" == "2" ]; then
-                        CPUTools="sar"
-                        writeini "CPUTools" "$CPUTools"
-                    elif [ "$choice" == "3" ]; then
-                        CPUTools="top_sar"
-                        writeini "CPUTools" "$CPUTools"
-                    fi
-                else
-                    echo -e "$Tip 输入为空, 跳过操作."
-                    tips=""
-                fi
-                ;;
             *)
                 echo "退出设置."
                 tips=""
@@ -672,15 +725,15 @@ SetupIniFile() {
 }
 
 # 用于显示内容（调试用）
-SourceAndShowINI() {
-    if [ -f $ConfigFile ] && [ -s $ConfigFile ]; then
-        source $ConfigFile
-        divline
-        cat $ConfigFile
-        divline
-        echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可重新执行 ${GR}0${NC} 修改参数."
-    fi
-}
+# SourceAndShowINI() {
+#     if [ -f $ConfigFile ] && [ -s $ConfigFile ]; then
+#         source $ConfigFile
+#         divline
+#         cat $ConfigFile
+#         divline
+#         echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可重新执行 ${GR}0${NC} 修改参数."
+#     fi
+# }
 
 # 写入ini文件
 writeini() {
@@ -768,7 +821,7 @@ EOF
                 systemctl enable tg_boot.service > /dev/null
             # fi
             if [ "$mute" != "true" ]; then
-                send_telegram_message "设置成功: 开机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 开机 时将收到通知."
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 开机 时将收到通知." &
             fi
             # echo -e "$Inf 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
             tips="$Tip 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
@@ -793,7 +846,7 @@ SetupLogin_TG() {
                 echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
                 # echo -e "$Tip 指令已经添加进 /etc/bash.bashrc 文件"
                 if [ "$mute" != "true" ]; then
-                    send_telegram_message "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知."
+                    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知." &
                 fi
                 # echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
                 tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
@@ -804,7 +857,7 @@ SetupLogin_TG() {
                 echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/profile
                 # echo -e "$Tip 指令已经添加进 /etc/profile 文件"
                 if [ "$mute" != "true" ]; then
-                    send_telegram_message "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知."
+                    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知." &
                 fi
                 # echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
                 tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
@@ -847,7 +900,7 @@ EOF
                 systemctl enable tg_shutdown.service > /dev/null
             # fi
             if [ "$mute" != "true" ]; then
-                send_telegram_message "设置成功: 关机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 关机 时将收到通知."
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 关机 时将收到通知." &
             fi
             # echo -e "$Inf 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
             tips="$Tip 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
@@ -889,7 +942,7 @@ EOF
             fi
             # ShowContents "$FolderPath/tg_docker.sh"
             if [ "$mute" != "true" ]; then
-                send_telegram_message "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 Docker 列表变更时将收到通知."
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 Docker 列表变更时将收到通知." &
             fi
             # echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
             tips="$Tip Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
@@ -1031,40 +1084,72 @@ while true; do
         # 获取并计算其它参数
         GetInfo_now
 
+        if awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            cpu_usage_ratio=1
+            cpu_usage_lessone=true
+        fi
         cpu_usage_progress=\$(create_progress_bar "\$cpu_usage_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             cpu_usage_progress="🚫"
             cpu_usage_ratio=""
         else
-            cpu_usage_ratio=\${cpu_usage_ratio}%
+            if [ "\$cpu_usage_lessone" == "true" ]; then
+                cpu_usage_ratio=\${cpu_usage_ratio}%🔽
+            else
+                cpu_usage_ratio=\${cpu_usage_ratio}%
+            fi
         fi
 
+        if awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            mem_use_ratio=1
+            mem_use_lessone=true
+        fi
         mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             mem_use_progress="🚫"
             mem_use_ratio=""
         else
-            mem_use_ratio=\${mem_use_ratio}%
+            if [ "\$mem_use_lessone" == "true" ]; then
+                mem_use_ratio=\${mem_use_ratio}%🔽
+            else
+                mem_use_ratio=\${mem_use_ratio}%
+            fi
         fi
 
+        if awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            swap_use_ratio=1
+            swap_use_lessone=true
+        fi
         swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             swap_use_progress="🚫"
             swap_use_ratio=""
         else
-            swap_use_ratio=\${swap_use_ratio}%
+            if [ "\$swap_use_lessone" == "true" ]; then
+                swap_use_ratio=\${swap_use_ratio}%🔽
+            else
+                swap_use_ratio=\${swap_use_ratio}%
+            fi
         fi
 
+        if awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            disk_use_ratio=1
+            disk_use_lessone=true
+        fi
         disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             disk_use_progress="🚫"
             disk_use_ratio=""
         else
-            disk_use_ratio=\${disk_use_ratio}%
+            if [ "\$disk_use_lessone" == "true" ]; then
+                disk_use_ratio=\${disk_use_ratio}%🔽
+            else
+                disk_use_ratio=\${disk_use_ratio}%
+            fi
         fi
 
         message="CPU 使用率超过阀值 > $CPUThreshold%❗️"'
@@ -1096,14 +1181,14 @@ EOF
         fi
         # ShowContents "$FolderPath/tg_cpu.sh"
         if [ "$mute" != "true" ]; then
-            send_telegram_message "设置成功: CPU 报警通知⚙️"'
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: CPU 报警通知⚙️"'
 '"主机名: $(hostname)"'
 '"CPU: $cpuusedOfcpus"'
 '"内存: ${mem_total}MB"'
 '"交换: ${swap_total}MB"'
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 '"检测工具: $CPUTools"'
-'"💡当 CPU 使用达 $CPUThreshold % 时将收到通知."
+'"💡当 CPU 使用达 $CPUThreshold % 时将收到通知." &
         fi
         # echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
         tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
@@ -1148,40 +1233,72 @@ while true; do
         # 获取并计算其它参数
         CheckCPU_$CPUTools
 
+        if awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            cpu_usage_ratio=1
+            cpu_usage_lessone=true
+        fi
         cpu_usage_progress=\$(create_progress_bar "\$cpu_usage_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             cpu_usage_progress="🚫"
             cpu_usage_ratio=""
         else
-            cpu_usage_ratio=\${cpu_usage_ratio}%
+            if [ "\$cpu_usage_lessone" == "true" ]; then
+                cpu_usage_ratio=\${cpu_usage_ratio}%🔽
+            else
+                cpu_usage_ratio=\${cpu_usage_ratio}%
+            fi
         fi
 
+        if awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            mem_use_ratio=1
+            mem_use_lessone=true
+        fi
         mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             mem_use_progress="🚫"
             mem_use_ratio=""
         else
-            mem_use_ratio=\${mem_use_ratio}%
+            if [ "\$mem_use_lessone" == "true" ]; then
+                mem_use_ratio=\${mem_use_ratio}%🔽
+            else
+                mem_use_ratio=\${mem_use_ratio}%
+            fi
         fi
 
+        if awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            swap_use_ratio=1
+            swap_use_lessone=true
+        fi
         swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             swap_use_progress="🚫"
             swap_use_ratio=""
         else
-            swap_use_ratio=\${swap_use_ratio}%
+            if [ "\$swap_use_lessone" == "true" ]; then
+                swap_use_ratio=\${swap_use_ratio}%🔽
+            else
+                swap_use_ratio=\${swap_use_ratio}%
+            fi
         fi
 
+        if awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            disk_use_ratio=1
+            disk_use_lessone=true
+        fi
         disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             disk_use_progress="🚫"
             disk_use_ratio=""
         else
-            disk_use_ratio=\${disk_use_ratio}%
+            if [ "\$disk_use_lessone" == "true" ]; then
+                disk_use_ratio=\${disk_use_ratio}%🔽
+            else
+                disk_use_ratio=\${disk_use_ratio}%
+            fi
         fi
 
         message="内存 使用率超过阀值 > $MEMThreshold%❗️"'
@@ -1213,14 +1330,14 @@ EOF
         fi
         # ShowContents "$FolderPath/tg_mem.sh"
         if [ "$mute" != "true" ]; then
-            send_telegram_message "设置成功: 内存 报警通知⚙️"'
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 内存 报警通知⚙️"'
 '"主机名: $(hostname)"'
 '"CPU: $cpuusedOfcpus"'
 '"内存: ${mem_total}MB"'
 '"交换: ${swap_total}MB"'
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 '"检测工具: $CPUTools"'
-'"💡当 内存 使用达 $MEMThreshold % 时将收到通知."
+'"💡当 内存 使用达 $MEMThreshold % 时将收到通知." &
         fi
         # echo -e "$Inf 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
         tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
@@ -1265,40 +1382,72 @@ while true; do
         # 获取并计算其它参数
         CheckCPU_$CPUTools
 
+        if awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            cpu_usage_ratio=1
+            cpu_usage_lessone=true
+        fi
         cpu_usage_progress=\$(create_progress_bar "\$cpu_usage_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             cpu_usage_progress="🚫"
             cpu_usage_ratio=""
         else
-            cpu_usage_ratio=\${cpu_usage_ratio}%
+            if [ "\$cpu_usage_lessone" == "true" ]; then
+                cpu_usage_ratio=\${cpu_usage_ratio}%🔽
+            else
+                cpu_usage_ratio=\${cpu_usage_ratio}%
+            fi
         fi
 
+        if awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            mem_use_ratio=1
+            mem_use_lessone=true
+        fi
         mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             mem_use_progress="🚫"
             mem_use_ratio=""
         else
-            mem_use_ratio=\${mem_use_ratio}%
+            if [ "\$mem_use_lessone" == "true" ]; then
+                mem_use_ratio=\${mem_use_ratio}%🔽
+            else
+                mem_use_ratio=\${mem_use_ratio}%
+            fi
         fi
 
+        if awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            swap_use_ratio=1
+            swap_use_lessone=true
+        fi
         swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             swap_use_progress="🚫"
             swap_use_ratio=""
         else
-            swap_use_ratio=\${swap_use_ratio}%
+            if [ "\$swap_use_lessone" == "true" ]; then
+                swap_use_ratio=\${swap_use_ratio}%🔽
+            else
+                swap_use_ratio=\${swap_use_ratio}%
+            fi
         fi
 
+        if awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            disk_use_ratio=1
+            disk_use_lessone=true
+        fi
         disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
         return_code=\$?
         if [ \$return_code -eq 1 ]; then
             disk_use_progress="🚫"
             disk_use_ratio=""
         else
-            disk_use_ratio=\${disk_use_ratio}%
+            if [ "\$disk_use_lessone" == "true" ]; then
+                disk_use_ratio=\${disk_use_ratio}%🔽
+            else
+                disk_use_ratio=\${disk_use_ratio}%
+            fi
         fi
 
         message="磁盘 使用率超过阀值 > $DISKThreshold%❗️"'
@@ -1330,14 +1479,14 @@ EOF
         fi
         # ShowContents "$FolderPath/tg_disk.sh"
         if [ "$mute" != "true" ]; then
-            send_telegram_message "设置成功: 磁盘 报警通知⚙️"'
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 磁盘 报警通知⚙️"'
 '"主机名: $(hostname)"'
 '"CPU: $cpuusedOfcpus"'
 '"内存: ${mem_total}MB"'
 '"交换: ${swap_total}MB"'
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 '"检测工具: $CPUTools"'
-'"💡当 磁盘 使用达 $DISKThreshold % 时将收到通知."
+'"💡当 磁盘 使用达 $DISKThreshold % 时将收到通知." &
         fi
         # echo -e "$Inf 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
         tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
@@ -1426,7 +1575,7 @@ while true; do
             all_rx_ratio=""
         else
             if [ "\$all_rx_lessone" == "true" ]; then
-                all_rx_ratio=🔽\${all_rx_ratio}%
+                all_rx_ratio=\${all_rx_ratio}%🔽
             else
                 all_rx_ratio=\${all_rx_ratio}%
             fi
@@ -1452,7 +1601,7 @@ while true; do
             all_tx_ratio=""
         else
             if [ "\$all_tx_lessone" == "true" ]; then
-                all_tx_ratio=🔽\${all_tx_ratio}%
+                all_tx_ratio=\${all_tx_ratio}%🔽
             else
                 all_tx_ratio=\${all_tx_ratio}%
             fi
@@ -1511,6 +1660,7 @@ while true; do
 '"主机名: \$(hostname) 端口: \$sanitized_interface"'
 '"已接收: \${rx_mb}  已发送: \${tx_mb}"'
 '"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"流量上限: $FlowThresholdMAX_U"'
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
 '"网络⬇️: \${rx_speed}  网络⬆️: \${tx_speed}"
@@ -1540,7 +1690,7 @@ EOF
         fi
         # ShowContents "$FolderPath/tg_flow.sh"
         if [ "$mute" != "true" ]; then
-            send_telegram_message "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当流量达阀值 $FlowThreshold_U 时将收到通知."
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当流量达阀值 $FlowThreshold_U 时将收到通知." &
         fi
         # echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
         tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
@@ -1561,7 +1711,7 @@ UN_SetupBoot_TG() {
         rm -f /etc/systemd/system/tg_boot.service
         boot_menu_tag=""
         delini "reBootSet"
-        tips="机开通知 已经取消 / 删除."
+        tips="$Tip 机开通知 已经取消 / 删除."
         # Pause
     fi
 }
@@ -1575,7 +1725,7 @@ UN_SetupLogin_TG() {
         fi
         login_menu_tag=""
         delini "reLoginSet"
-        tips="登陆通知 已经取消 / 删除."
+        tips="$Tip 登陆通知 已经取消 / 删除."
         # Pause
     fi
 }
@@ -1587,7 +1737,7 @@ UN_SetupShutdown_TG() {
         rm -f /etc/systemd/system/tg_shutdown.service
         shutdown_menu_tag=""
         delini "reShutdownSet"
-        tips="关机通知 已经取消 / 删除."
+        tips="$Tip 关机通知 已经取消 / 删除."
         # Pause
     fi
 }
@@ -1598,7 +1748,7 @@ UN_SetupCPU_TG() {
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
         cpu_menu_tag=""
         delini "reCPUSet"
-        tips="CPU报警 已经取消 / 删除."
+        tips="$Tip CPU报警 已经取消 / 删除."
         # Pause
     fi
 }
@@ -1609,7 +1759,7 @@ UN_SetupMEM_TG() {
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &" | crontab -
         mem_menu_tag=""
         delini "reMEMSet"
-        tips="内存报警 已经取消 / 删除."
+        tips="$Tip 内存报警 已经取消 / 删除."
         # Pause
     fi
 }
@@ -1620,7 +1770,7 @@ UN_SetupDISK_TG() {
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &" | crontab -
         disk_menu_tag=""
         delini "reDISKSet"
-        tips="磁盘报警 已经取消 / 删除."
+        tips="$Tip 磁盘报警 已经取消 / 删除."
         # Pause
     fi
 }
@@ -1631,7 +1781,7 @@ UN_SetupFlow_TG() {
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
         flow_menu_tag=""
         delini "reFlowSet"
-        tips="流量报警 已经取消 / 删除."
+        tips="$Tip 流量报警 已经取消 / 删除."
         # Pause
     fi
 }
@@ -1642,7 +1792,7 @@ UN_SetupDocker_TG() {
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
         docker_menu_tag=""
         delini "reDockerSet"
-        tips="Docker变更通知 已经取消 / 删除."
+        tips="$Tip Docker变更通知 已经取消 / 删除."
         # Pause
     fi
 }
@@ -1753,6 +1903,8 @@ DELFOLDER() {
 
 # 主程序
 CheckSys
+declare -f send_telegram_message | sed -n '/^{/,/^}/p' | sed '1d;$d' | sed 's/$1/$3/g; s/$TelgramBotToken/$1/g; s/$ChatID_1/$2/g' > $FolderPath/send_tg.sh
+chmod +x $FolderPath/send_tg.sh
 if [ "$1" == "auto" ]; then
     if [ "$2" == "mute" ]; then
         mute=true
@@ -1869,11 +2021,10 @@ read -e -p "请输入选项 [0-8|t|h|o|c|f|u|x]:" num
 case "$num" in
     0)
     CheckAndCreateFolder
-    SourceAndShowINI
+    source $ConfigFile
     CheckRely
     SetupIniFile
-    SourceAndShowINI
-    Pause
+    source $ConfigFile
     ;;
     1)
     CheckAndCreateFolder
@@ -1953,24 +2104,25 @@ case "$num" in
     SetupBoot_TG
     SetupLogin_TG
     SetupShutdown_TG
-    writeini "CPUThreshold" "60"
-    writeini "MEMThreshold" "60"
-    writeini "DISKThreshold" "60"
+    writeini "CPUThreshold" "70"
+    writeini "MEMThreshold" "80"
+    writeini "DISKThreshold" "80"
     writeini "FlowThreshold" "1GB"
     source $ConfigFile
     SetupCPU_TG
     SetupMEM_TG
     SetupDISK_TG
     SetupFlow_TG
-    send_telegram_message "已经启动以下通知 ☎️"'
+    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已成功启动以下通知 ☎️"'
+'"——————————————"'
 '"开机通知"'
 '"登陆通知"'
 '"关机通知"'
-'"CPU使用率超 $CPUThreshold 报警"'
-'"内存使用率超 $MEMThreshold 报警"'
-'"磁盘使用率超 $DISKThreshold 报警"'
-'"流量使用率超 $FlowThreshold_U 报警"
-    tips="已经启动所有通知 (除了Docker 变更通知)."
+'"CPU使用率超 ${CPUThreshold}% 报警"'
+'"内存使用率超 ${MEMThreshold}% 报警"'
+'"磁盘使用率超 ${DISKThreshold}% 报警"'
+'"流量使用率超 $FlowThreshold_U 报警" &
+    tips="$Tip 已经启动所有通知 (除了Docker 变更通知)."
     mute=""
     ;;
     c|C)
@@ -1988,7 +2140,7 @@ case "$num" in
     exit 0
     ;;
     *)
-    tips="请输入正确数字或字母."
+    tips="$Err 请输入正确数字或字母."
     ;;
 esac
 done
