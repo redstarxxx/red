@@ -176,6 +176,15 @@ CheckSetup() {
     else
         flow_menu_tag="$UNSETTAG"
     fi
+    if [ -f $FolderPath/tg_autoreport.sh ]; then
+        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &"; then
+            flowrp_menu_tag="$SETTAG"
+        else
+            flowrp_menu_tag="$UNSETTAG"
+        fi
+    else
+        flowrp_menu_tag="$UNSETTAG"
+    fi
     if [ -d "$FolderPath" ]; then
         folder_menu_tag="${GR}-> 文件夹存在${NC}"
     else
@@ -321,6 +330,7 @@ EOF
             fi
             crontab -l | grep "tg_autoupdate.sh"
             crontab -l | grep "VPSKeeper.sh"
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"CRONTAB: $cront" &
             echo -e "自动更新设置成功. ${GR}$mute${NC}"
             tips="$Tip 自动更新设置成功. ${GR}$mute${NC}"
         # else
@@ -331,11 +341,9 @@ EOF
         rm -f $FolderPath/tg_autoupdate.sh
         crontab -l | grep -v "bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &" | crontab -
         crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
-        echo "自动更新已经取消."
-        tips=""
+        tips="自动更新已经取消."
     else
-        echo "跳过设置."
-        tips=""
+        tips="跳过设置."
     fi
 }
 
@@ -771,7 +779,7 @@ test() {
             -d chat_id="$ChatID_1" -d text="来自 $(hostname) 的测试信息" > /dev/null
         echo -e "$Inf 测试信息已发出, 电报将收到一条\"来自 $(hostname) 的测试信息\"的信息."
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+        tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
@@ -827,7 +835,7 @@ EOF
             tips="$Tip 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
             delini "reBootSet"
         else
-            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+            tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
         fi
     else
         echo -e "$Err 系统未检测到 \"systemd\" 程序, 无法设置开机通知."
@@ -868,7 +876,7 @@ SetupLogin_TG() {
         fi
         # ShowContents "$FolderPath/tg_login.sh"
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+        tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
@@ -906,7 +914,7 @@ EOF
             tips="$Tip 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
             delini "reShutdownSet"
         else
-            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+            tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
         fi
     else
         echo -e "$Err 系统未检测到 \"systemd\" 程序, 无法设置关机通知."
@@ -948,7 +956,7 @@ EOF
             tips="$Tip Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
             delini "reDockerSet"
         else
-            echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+            tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
         fi
     else
         echo -e "$Err 未检测到 \"Docker\" 程序."
@@ -1194,7 +1202,7 @@ EOF
         tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
         delini "reCPUSet"
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+        tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
@@ -1343,7 +1351,7 @@ EOF
         tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
         delini "reMEMSet"
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+        tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
@@ -1492,7 +1500,7 @@ EOF
         tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
         delini "reDISKSet"
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+        tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
@@ -1696,11 +1704,183 @@ EOF
         tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
         delini "reFlowSet"
     else
-        echo -e "$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+        tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+    fi
+}
+
+FlowReport_TG() {
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+        if [ "$autorun" != "true" ]; then
+            echo -e "是否要设置${GR}流量定时报告${NC}?  ${GR}Y${NC}.是   ${GR}回车${NC}.退出设置"
+            divline
+            read -p "请输入你的选择: " yorn
+        else
+            yorn="Y"
+        fi
+        if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
+            if [ "$autorun" != "true" ]; then
+                echo -e "输入定时模式, 采用 crontab 格式, 默认: 1 0 * * * 即每天 ${GR}00${NC} 时 ${GR}01${NC} 分"
+                read -p "请输入定时模式  (回车.采用默认定时模式): " cronrp
+            else
+                cronrp=""
+            fi
+            if [ -z "$cronrp" ]; then
+                cronrp="1 0 * * *"
+            fi
+            cat <<EOF > "$FolderPath/tg_autoreport.sh"
+#!/bin/bash
+
+$(declare -f create_progress_bar)
+interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+declare -A prev_rx_data
+declare -A prev_tx_data
+
+# 获取当前日期
+current_date=\$(date +%Y-%m-%d)
+
+# 初始化变量
+prev_day_rx_bytes=0
+prev_day_tx_bytes=0
+
+echo "runing..."
+while true; do
+    # 获取当前时间的小时和分钟
+    current_hour=\$(date +%H)
+    current_minute=\$(date +%M)
+
+    for interface in \$interfaces; do
+        sanitized_interface=\${interface%@*}
+
+        current_rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
+        current_tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
+
+        all_rx_mb=\$((current_rx_bytes / 1024 / 1024))
+        all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
+        if awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            all_rx_ratio=1
+            all_rx_lessone=true
+        fi
+        all_rx_progress=\$(create_progress_bar "\$all_rx_ratio")
+        return_code=\$?
+        if [ \$return_code -eq 1 ]; then
+            all_rx_progress="🚫"
+            all_rx_ratio=""
+        else
+            if [ "\$all_rx_lessone" == "true" ]; then
+                all_rx_ratio=\${all_rx_ratio}%🔽
+            else
+                all_rx_ratio=\${all_rx_ratio}%
+            fi
+        fi
+
+        if [ "\$all_rx_mb" -gt 1023 ]; then
+            all_rx_mb=\$(awk -v value=\$all_rx_mb 'BEGIN{printf "%.1f", value/1024}')
+            all_rx_mb="\${all_rx_mb}GB" 
+        else
+            all_rx_mb="\${all_rx_mb}MB"
+        fi
+
+        all_tx_mb=\$((current_tx_bytes / 1024 / 1024))
+        all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
+        if awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
+            all_tx_ratio=1
+            all_tx_lessone=true
+        fi
+        all_tx_progress=\$(create_progress_bar "\$all_tx_ratio")
+        return_code=\$?
+        if [ \$return_code -eq 1 ]; then
+            all_tx_progress="🚫"
+            all_tx_ratio=""
+        else
+            if [ "\$all_tx_lessone" == "true" ]; then
+                all_tx_ratio=\${all_tx_ratio}%🔽
+            else
+                all_tx_ratio=\${all_tx_ratio}%
+            fi
+        fi
+
+        if [ "\$all_tx_mb" -gt 1023 ]; then
+            all_tx_mb=\$(awk -v value=\$all_tx_mb 'BEGIN{printf "%.1f", value/1024}')
+            all_tx_mb="\${all_tx_mb}GB" 
+        else
+            all_tx_mb="\${all_tx_mb}MB"
+        fi
+
+        # 如果当前时间为0点0分，则记录当前流量并跳出循环
+        if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
+            prev_day_rx_bytes=\$current_rx_bytes
+            prev_day_tx_bytes=\$current_tx_bytes
+            break
+        fi
+
+        # 如果程序在中途启动可以先记录一次
+        if [ -z "\$prev_day_rx_bytes" ] && [ -z "\$prev_day_tx_bytes" ]; then
+            prev_day_rx_bytes=\$current_rx_bytes
+            prev_day_tx_bytes=\$current_tx_bytes
+        fi
+
+        # 如果当前时间为23点59分，则计算流量差值并跳出循环
+        if [ "\$current_hour" == "23" ] && [ "\$current_minute" == "59" ]; then
+            diff_rx_bytes=$((current_rx_bytes - prev_day_rx_bytes))
+            diff_tx_bytes=$((current_tx_bytes - prev_day_tx_bytes))
+            echo "Date: \$current_date, Interface: \$sanitized_interface, RX bytes: \$diff_rx_bytes, TX bytes: \$diff_tx_bytes"
+            message="昨日流量报告 📈"'
+'"主机名: \$(hostname) 端口: \$sanitized_interface"'
+'"昨日接收: \${diff_rx_bytes}  昨日发送: \${diff_tx_bytes}"'
+'"流量上限: $FlowThresholdMAX_U"'
+'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
+'"使用⬆️: \$all_tx_progress \$all_tx_ratio"
+            curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+                -d chat_id="$ChatID_1" -d text="\$message"
+            break
+        fi
+    done
+
+    # 每隔一段时间执行一次循环检测，这里设定为60秒
+    sleep 60
+done
+EOF
+        chmod +x $FolderPath/tg_autoreport.sh
+        
+            # cront_regex='^([0-5]?[0-9]|*|*/[0-5]?[0-9]) ([01]?[0-9]|2[0-3]|*|*/[01]?[0-9]|2[0-3]) ([0-2]?[0-9]|3[0-1]|*|*/[0-2]?[0-9]|3[0-1]) ([0]?[1-9]|1[0-2]|*|*/[0]?[1-9]|1[0-2]) ([0-6]|*|*/[0-6])$'
+            # if [[ "$cronrp" =~ $cront_regex ]]; then
+                if crontab -l | grep -q "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &"; then
+                    crontab -l | grep -v "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &" | crontab -
+                fi
+                (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &") | crontab -
+                # crontab -l | grep "tg_autoreport.sh"
+                minute_rp=$(echo $cronrp | awk '{print $1}')
+                hour_rp=$(echo $cronrp | awk '{print $2}')
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "流量定时报告设置成功 ⚙️"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分"$'\n'"CRONTAB: $cronrp" &
+                tips="$Tip 流量定时报告设置成功. ${GR}$mute${NC}"
+            # else
+            #     echo "错误: 定时模式不符合 crontab 格式"
+            #     rm -f $FolderPath/tg_autoreport.sh
+            # fi
+        else
+            tips="$Tip 跳过设置."
+        fi
+    # elif [ "$yorn" == "N" ] || [ "$yorn" == "n" ]; then
+    #     rm -f $FolderPath/tg_autoreport.sh
+    #     crontab -l | grep -v "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &" | crontab -
+    #     tips="$Tip 设置 流量定时报告 已经取消."
+    else
+        tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
 # 卸载
+
+UN_FlowReport_TG() {
+    if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
+        rm -f $FolderPath/tg_autoreport.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &" | crontab -
+        flowrp_menu_tag=""
+        tips="$Tip 流量定时报告 已经取消 / 删除."
+        # Pause
+    fi
+
+}
 
 # 卸载开启通知
 UN_SetupBoot_TG() {
@@ -1796,6 +1976,7 @@ UN_SetupDocker_TG() {
         # Pause
     fi
 }
+
 UN_ALL() {
     UN_SetupBoot_TG
     UN_SetupLogin_TG
@@ -1903,9 +2084,11 @@ DELFOLDER() {
 
 # 主程序
 CheckSys
+CheckAndCreateFolder
 declare -f send_telegram_message | sed -n '/^{/,/^}/p' | sed '1d;$d' | sed 's/$1/$3/g; s/$TelgramBotToken/$1/g; s/$ChatID_1/$2/g' > $FolderPath/send_tg.sh
 chmod +x $FolderPath/send_tg.sh
 if [ "$1" == "auto" ]; then
+    autorun=true
     if [ "$2" == "mute" ]; then
         mute=true
     fi
@@ -1934,6 +2117,9 @@ if [ "$1" == "auto" ]; then
     if [ "$flow_menu_tag" == "$SETTAG" ]; then
         SetupFlow_TG
     fi
+    if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
+        FlowReport_TG
+    fi
     if [ "$docker_menu_tag" == "$SETTAG" ]; then
         SetupDocker_TG
     fi
@@ -1941,6 +2127,7 @@ if [ "$1" == "auto" ]; then
     exit 0
 fi
 mute=""
+autorun=""
 tips=""
 while true; do
 CheckSetup
@@ -1998,7 +2185,8 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
  ${GR}5.${NC} 设置 ${GR}[内存报警]${NC} Telgram 通知 ${REB}阀值${NC}: $MEMThreshold_tag \t$mem_menu_tag ${REB}$reMEMSet${NC}
  ${GR}6.${NC} 设置 ${GR}[磁盘报警]${NC} Telgram 通知 ${REB}阀值${NC}: $DISKThreshold_tag \t$disk_menu_tag ${REB}$reDISKSet${NC}
  ${GR}7.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 ${REB}阀值${NC}: $FlowThreshold_tag \t$flow_menu_tag ${REB}$reFlowSet${NC}
- ${GR}8.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知 \t\t$docker_menu_tag${NC} ${REB}$reDockerSet${NC}
+ ${GR}8.${NC} 设置 ${GR}[流量定时报告]${NC} Telgram 通知 \t\t$flowrp_menu_tag${NC}
+ ${GR}9.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知 \t\t$docker_menu_tag${NC} ${REB}$reDockerSet${NC}
  ———————————————————————————————————————————————————————
  ${GR}t.${NC} 测试 - 发送一条信息用以检验参数设置
  ——————————————————————————————————————
@@ -2083,6 +2271,14 @@ case "$num" in
     fi
     ;;
     8)
+    CheckAndCreateFolder
+    if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
+        UN_FlowReport_TG
+    else
+        FlowReport_TG
+    fi
+    ;;
+    9)
     CheckAndCreateFolder
     if [ "$docker_menu_tag" == "$SETTAG" ] && [ "$reDockerSet" == "" ]; then
         UN_SetupDocker_TG
