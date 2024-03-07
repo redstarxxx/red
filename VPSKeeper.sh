@@ -73,7 +73,7 @@ Pause() {
 
 # 分界线条
 divline() {
-    echo "————————————————————————————————————————————————"
+    echo "—————————————————————————————————————————————————————————"
 }
 
 # 检测系统
@@ -183,14 +183,23 @@ CheckSetup() {
     else
         flow_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_autorp.sh ]; then
-        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &"; then
+    if [ -f $FolderPath/tg_flowrp.sh ]; then
+        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
             flowrp_menu_tag="$SETTAG"
         else
             flowrp_menu_tag="$UNSETTAG"
         fi
     else
         flowrp_menu_tag="$UNSETTAG"
+    fi
+    if [ -f $FolderPath/tg_autoud.sh ]; then
+        if crontab -l | grep -q "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &"; then
+            autoud_menu_tag="$SETTAG"
+        else
+            autoud_menu_tag="$UNSETTAG"
+        fi
+    else
+        autoud_menu_tag="$UNSETTAG"
     fi
     if [ -d "$FolderPath" ]; then
         folder_menu_tag="${GR}-> 文件夹存在${NC}"
@@ -232,11 +241,19 @@ CheckRely() {
 }
 
 SetAutoUpdate() {
-    echo -e "是否要设置${GR}自动更新${NC}脚本? ${GR}Y${NC}.是 ${GR}N${NC}.取消 ${GR}回车${NC}.退出设置"
-    divline
-    read -p "请输入你的选择: " yorn
-    if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
-        cat <<EOF > "$FolderPath/tg_autoupdate.sh"
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+        if [ "$autorun" != "true" ]; then
+            echo -e "输入定时模式, 采用 crontab 格式, 默认: 1 1 * * * 即每天 ${GR}01${NC} 时 ${GR}01${NC} 分"
+            read -p "请输入定时模式  (回车.采用默认定时模式): " cront
+        else
+            cront=""
+        fi
+        if [ -z "$cront" ]; then
+            cront="1 1 * * *"
+        fi
+        minute_ud=$(echo "$cront" | awk '{print $1}')
+        hour_ud=$(echo "$cront" | awk '{print $2}')
+        cat <<EOF > "$FolderPath/tg_autoud.sh"
 #!/bin/bash
 
 retry=0
@@ -307,50 +324,35 @@ if [ -f "$FolderPath/VPSKeeper_old.sh" ]; then
     rm "$FolderPath/VPSKeeper_old.sh"
 fi
 EOF
-        chmod +x $FolderPath/tg_autoupdate.sh
-        echo -e "输入定时模式, 采用 crontab 格式, 默认: 1 1 * * * 即每天 ${GR}01${NC} 时 ${GR}01${NC} 分"
-        read -p "请输入定时模式  (回车.采用默认定时模式): " cront
-        if [ -z "$cront" ]; then
-            cront="1 1 * * *"
+        chmod +x $FolderPath/tg_autoud.sh
+        if crontab -l | grep -q "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &"; then
+            crontab -l | grep -v "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &" | crontab -
         fi
-        # cront_regex='^([0-5]?[0-9]|*|*/[0-5]?[0-9]) ([01]?[0-9]|2[0-3]|*|*/[01]?[0-9]|2[0-3]) ([0-2]?[0-9]|3[0-1]|*|*/[0-2]?[0-9]|3[0-1]) ([0]?[1-9]|1[0-2]|*|*/[0]?[1-9]|1[0-2]) ([0-6]|*|*/[0-6])$'
-        # if [[ "$cront" =~ $cront_regex ]]; then
-            if crontab -l | grep -q "bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &"; then
-                crontab -l | grep -v "bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &" | crontab -
-            fi
-            (crontab -l 2>/dev/null; echo "$cront bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &") | crontab -
-            crontt=$(echo "$cront" | awk '{$1 = ($1 + 1) % 60; print}')
+        (crontab -l 2>/dev/null; echo "$cront bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &") | crontab -
+        crontt=$(echo "$cront" | awk '{$1 = ($1 + 1) % 60; print}')
+        if [ "$autorun" != "true" ]; then
             echo -e "开启 ${REB}静音模式${NC} 更新时你将不会收到提醒通知, 是否要开启静音模式?"
             read -p "请输入你的选择 Y.开启   回车.(跳过/不开启): " choice
-            if [ "$choice" == "Y" ] || [ "$choice" == "y" ]; then
-                if crontab -l | grep -q "bash $FolderPath/VPSKeeper.sh"; then
-                    crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
-                fi
-                (crontab -l 2>/dev/null; echo "$crontt bash $FolderPath/VPSKeeper.sh \"auto\" \"mute\" 2>&1 &") | crontab -
-                mute="静音模式"
-            else
-                if crontab -l | grep -q "bash $FolderPath/VPSKeeper.sh"; then
-                    crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
-                fi
-                (crontab -l 2>/dev/null; echo "$crontt bash $FolderPath/VPSKeeper.sh \"auto\" 2>&1 &") | crontab -
-                mute=""
+        else
+            choice=""
+        fi
+        if [ "$choice" == "Y" ] || [ "$choice" == "y" ]; then
+            if crontab -l | grep -q "bash $FolderPath/VPSKeeper.sh"; then
+                crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
             fi
-            crontab -l | grep "tg_autoupdate.sh"
-            crontab -l | grep "VPSKeeper.sh"
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"CRONTAB: $cront" &
-            echo -e "自动更新设置成功. ${GR}$mute${NC}"
-            tips="$Tip 自动更新设置成功. ${GR}$mute${NC}"
-        # else
-        #     echo "错误: 定时模式不符合 crontab 格式"
-        #     rm -f $FolderPath/tg_autoupdate.sh
-        # fi
-    elif [ "$yorn" == "N" ] || [ "$yorn" == "n" ]; then
-        rm -f $FolderPath/tg_autoupdate.sh
-        crontab -l | grep -v "bash $FolderPath/tg_autoupdate.sh > $FolderPath/tg_autoupdate.log 2>&1 &" | crontab -
-        crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
-        tips="自动更新已经取消."
+            (crontab -l 2>/dev/null; echo "$crontt bash $FolderPath/VPSKeeper.sh \"auto\" \"mute\" 2>&1 &") | crontab -
+            mute="静音模式"
+        else
+            if crontab -l | grep -q "bash $FolderPath/VPSKeeper.sh"; then
+                crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
+            fi
+            (crontab -l 2>/dev/null; echo "$crontt bash $FolderPath/VPSKeeper.sh \"auto\" 2>&1 &") | crontab -
+            mute=""
+        fi
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"CRONTAB: $cront" &
+        tips="$Tip 自动更新设置成功. ${GR}$mute${NC}"
     else
-        tips="跳过设置."
+        tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
@@ -384,7 +386,103 @@ GetVPSInfo() {
 
 # 设置ini参数文件
 SetupIniFile() {
-    echo -e “$Err 更新后已经弃用...”
+    # 设置电报机器人参数
+    divline
+    echo -e "$Tip 默认机器人: @iekeeperbot 使用前必须添加并点击 start"
+    while true; do
+        divline
+        echo -e "${GR}1${NC}.BOT Token ${GR}2${NC}.CHAT ID ${GR}3${NC}.CPU检测工具 (默认使用 top) ${GR}回车${NC}.退出设置"
+        divline
+        read -p "请输入你的选择: " choice
+        case $choice in
+            1)
+                # 设置BOT Token
+                echo -e "$Tip ${REB}BOT Token${NC} 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
+                divline
+                if [ "$TelgramBotToken" != "" ]; then
+                    echo -e "当前${GR}[BOT Token]${NC}: $TelgramBotToken"
+                else
+                    echo -e "当前${GR}[BOT Token]${NC}: 空"
+                fi
+                divline
+                read -p "请输入 BOT Token (回车跳过修改 / 输入 R 使用默认机器人): " bottoken
+                if [ "$bottoken" == "r" ] || [ "$bottoken" == "R" ]; then
+                    writeini "TelgramBotToken" "7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
+                    UN_ALL
+                    tips="$Tip 接收信息已经改动, 请重新设置所有通知."
+                    break
+                fi
+                if [ ! -z "$bottoken" ]; then
+                    writeini "TelgramBotToken" "$bottoken"
+                    UN_ALL
+                    tips="$Tip 接收信息已经改动, 请重新设置所有通知."
+                    break
+                else
+                    echo -e "$Tip 输入为空, 跳过操作."
+                    tips=""
+                fi
+                ;;
+            2)
+                # 设置Chat ID
+                echo -e "$Tip ${REB}Chat ID${NC} 获取方法: 在 Telgram 中添加机器人 @userinfobot, 点击或输入: /start"
+                divline
+                if [ "$ChatID_1" != "" ]; then
+                    echo -e "当前${GR}[CHAT ID]${NC}: $ChatID_1"
+                else
+                    echo -e "当前${GR}[CHAT ID]${NC}: 空"
+                fi
+                divline
+                read -p "请输入 Chat ID (回车跳过修改): " cahtid
+                if [ ! -z "$cahtid" ]; then
+                    if [[ $cahtid =~ ^[0-9]+$ ]]; then
+                        writeini "ChatID_1" "$cahtid"
+                        UN_ALL
+                        tips="$Tip 接收信息已经改动, 请重新设置所有通知."
+                        break
+                    else
+                        echo -e "$Err ${REB}输入无效${NC}, Chat ID 必须是数字, 跳过操作."
+                    fi
+                else
+                    echo -e "$Tip 输入为空, 跳过操作."
+                    tips=""
+                fi
+                ;;
+            3)
+                # 设置CPU检测工具
+                echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业) 3.top+sar"
+                divline
+                if [ "$CPUTools" != "" ]; then
+                    echo -e "当前${GR}[CPU 检测工具]${NC}: $CPUTools"
+                else
+                    echo -e "当前${GR}[CPU 检测工具]${NC}: 空"
+                fi
+                divline
+                read -p "请输入序号 (默认采用 1.top / 回车跳过修改): " choice
+                if [ ! -z "$choice" ]; then
+                    if [ "$choice" == "1" ]; then
+                        CPUTools="top"
+                        writeini "CPUTools" "$CPUTools"
+                    elif [ "$choice" == "2" ]; then
+                        CPUTools="sar"
+                        writeini "CPUTools" "$CPUTools"
+                    elif [ "$choice" == "3" ]; then
+                        CPUTools="top_sar"
+                        writeini "CPUTools" "$CPUTools"
+                    fi
+                    break
+                else
+                    echo -e "$Tip 输入为空, 跳过操作."
+                    tips=""
+                fi
+                ;;
+            *)
+                echo "退出设置."
+                tips=""
+                break
+            ;;
+        esac
+    done
+   
 }
 
 # 用于显示内容（调试用）
@@ -1523,7 +1621,7 @@ FlowReport_TG() {
         fi
         minute_rp=$(echo "$cronrp" | awk '{print $1}')
         hour_rp=$(echo "$cronrp" | awk '{print $2}')
-        cat <<EOF > "$FolderPath/tg_autorp.sh"
+        cat <<EOF > "$FolderPath/tg_flowrp.sh"
 #!/bin/bash
 
 $(declare -f create_progress_bar)
@@ -1626,12 +1724,12 @@ while true; do
     sleep 60
 done
 EOF
-        chmod +x $FolderPath/tg_autorp.sh
-        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &"; then
-            crontab -l | grep -v "@reboot nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &" | crontab -
+        chmod +x $FolderPath/tg_flowrp.sh
+        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
+            crontab -l | grep -v "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &" | crontab -
         fi
-        (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &") | crontab -
-        nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &
+        (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &") | crontab -
+        nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &
         if [ "$mute" != "true" ]; then
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "流量定时报告设置成功 ⚙️"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分"$'\n'"CRONTAB: $cronrp" &
         fi
@@ -1705,9 +1803,9 @@ UN_SetupFlow_TG() {
 }
 UN_FlowReport_TG() {
     if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
-        pkill tg_autorp.sh
-        pkill tg_autorp.sh
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &" | crontab -
+        pkill tg_flowrp.sh
+        pkill tg_flowrp.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &" | crontab -
         tips="$Tip 流量定时报告 已经取消 / 删除."
     fi
 
@@ -1718,6 +1816,15 @@ UN_SetupDocker_TG() {
         pkill tg_docker.sh
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
         tips="$Tip Docker变更通知 已经取消 / 删除."
+    fi
+}
+UN_SetAutoUpdate() {
+    if [ "$autoud_menu_tag" == "$SETTAG" ]; then
+        pkill tg_autoud.sh
+        pkill tg_autoud.sh
+        crontab -l | grep -v "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &" | crontab -
+        crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
+        tips="$Tip 自动更新已经取消."
     fi
 }
 
@@ -1731,6 +1838,7 @@ UN_ALL() {
     UN_SetupFlow_TG
     UN_FlowReport_TG
     UN_SetupDocker_TG
+    UN_SetAutoUpdate
     tips="$Tip 已取消 / 删除所有通知."
 }
 
@@ -1845,11 +1953,6 @@ if [ -z "$FlowThreshold" ]; then
 else
     FlowThreshold_tag="${GR}$FlowThreshold${NC}"
 fi
-if crontab -l | grep -q "tg_autoupdate.sh"; then
-    crontab_menu_tag="$SETTAG"
-else
-    crontab_menu_tag="$UNSETTAG"
-fi
 CLS
 echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
 -- tse | vtse.eu.org | $release -- 
@@ -1874,7 +1977,7 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
  ${GR}c.${NC} ${GRB}一键${NC} ${RE}取消 / 删除${NC} 所有通知
  ${GR}f.${NC} ${GRB}一键${NC} ${RE}删除${NC} 所有脚本子文件 \t${GR}$folder_menu_tag${NC}
  ———————————————————————————————————————————————
- ${GR}u.${NC} 设置自动更新脚本 \t$crontab_menu_tag
+ ${GR}u.${NC} 设置自动更新脚本 \t$autoud_menu_tag
  ——————————————————————————————————————
  ${GR}x.${NC} 退出脚本
 ————————————"
@@ -2008,8 +2111,11 @@ case "$num" in
     ;;
     u|U)
     CheckAndCreateFolder
-    SetAutoUpdate
-    Pause
+    if [ "$autoud_menu_tag" == "$SETTAG" ]; then
+        UN_SetAutoUpdate
+    else
+        SetAutoUpdate
+    fi
     ;;
     x|X)
     exit 0
