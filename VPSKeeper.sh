@@ -349,7 +349,7 @@ EOF
             (crontab -l 2>/dev/null; echo "$crontt bash $FolderPath/VPSKeeper.sh \"auto\" 2>&1 &") | crontab -
             mute=""
         fi
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"CRONTAB: $cront" &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"主机名: $(hostname)"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"CRONTAB: $cront" &
         tips="$Tip 自动更新设置成功. ${GR}$mute${NC}"
     else
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1731,7 +1731,7 @@ EOF
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &") | crontab -
         nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &
         if [ "$mute" != "true" ]; then
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "流量定时报告设置成功 ⚙️"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分"$'\n'"CRONTAB: $cronrp" &
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "流量定时报告设置成功 ⚙️"$'\n'"主机名: $(hostname)"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分"$'\n'"CRONTAB: $cronrp" &
         fi
         tips="$Tip 流量定时报告设置成功. ${GR}$mute${NC}"
     else
@@ -2092,6 +2092,7 @@ case "$num" in
     SetupDISK_TG
     SetupFlow_TG
     $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已成功启动以下通知 ☎️"'
+'"主机名: $(hostname)"'
 '"——————————————"'
 '"开机通知"'
 '"登陆通知"'
