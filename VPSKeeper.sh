@@ -12,6 +12,13 @@ export PATH
 sh_ver="1.0.2"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
+BOTToken_de="7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
+CPUTools_de="top"
+CPUThreshold_de="80"
+MEMThreshold_de="80"
+DISKThreshold_de="80"
+FlowThreshold_de="2GB"
+FlowThresholdMAX_de="200GB"
 
 # 检测是否root用户
 if [ "$UID" -ne 0 ]; then
@@ -41,9 +48,9 @@ CheckAndCreateFolder() {
         source $ConfigFile
     else
         touch $ConfigFile
-        writeini "TelgramBotToken" "7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
-        writeini "CPUTools" "top"
-        writeini "FlowThresholdMAX" "1TB"
+        writeini "TelgramBotToken" "$BOTToken_de"
+        writeini "CPUTools" "$CPUTools_de"
+        writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
     fi
 }
 
@@ -176,8 +183,8 @@ CheckSetup() {
     else
         flow_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_autoreport.sh ]; then
-        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &"; then
+    if [ -f $FolderPath/tg_autorp.sh ]; then
+        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &"; then
             flowrp_menu_tag="$SETTAG"
         else
             flowrp_menu_tag="$UNSETTAG"
@@ -377,359 +384,7 @@ GetVPSInfo() {
 
 # 设置ini参数文件
 SetupIniFile() {
-    old_TelgramBotToken=""
-    old_ChatID_1=""
-    old_CPUThreshold=""
-    old_MEMThreshold=""
-    old_DISKThreshold=""
-    old_CPUTools=""
-    old_FlowThreshold=""
-    old_FlowThresholdMAX=""
-    if [ -f $ConfigFile ] && [ -s $ConfigFile ]; then
-        old_TelgramBotToken=$TelgramBotToken
-        old_ChatID_1=$ChatID_1
-        old_CPUThreshold=$CPUThreshold
-        old_MEMThreshold=$MEMThreshold
-        old_DISKThreshold=$DISKThreshold
-        old_CPUTools=$CPUTools
-        old_FlowThreshold=$FlowThreshold
-        old_FlowThresholdMAX=$FlowThresholdMAX
-    fi
-    # 设置电报机器人参数
-    divline
-    echo -e "$Tip 默认机器人: @iekeeperbot 使用前必须添加并点击 start"
-    while true; do
-        divline
-        echo -e "${GR}1${NC}.修改机器人Token ${GR}2${NC}.CHAT ID (接收信息的用户或群组 ID) ${GR}3${NC}.CPU检测工具设置 (默认使用 top)"
-        echo -e "${GR}4${NC}.CPU报警阀值 ${GR}5${NC}.内存报警阀值 ${GR}6${NC}.磁盘报警阀值 ${GR}7${NC}.流量报警阀值 ${GR}回车${NC}.完成 / 退出设置"
-        divline
-        read -p "请输入你的选择: " choice
-        case $choice in
-            1)
-                # 设置BOT Token
-                echo -e "$Tip ${REB}BOT Token${NC} 获取方法: 在 Telgram 中添加机器人 @BotFather, 输入: /newbot"
-                divline
-                if [ "$TelgramBotToken" != "" ]; then
-                    echo -e "当前${GR}[BOT Token]${NC}: $TelgramBotToken"
-                else
-                    echo -e "当前${GR}[BOT Token]${NC}: 空"
-                fi
-                divline
-                read -p "请输入 BOT Token (回车跳过修改 / 输入 R 使用默认机器人): " bottoken
-                if [ ! -z "$bottoken" ]; then
-                    writeini "TelgramBotToken" "$bottoken"
-                else
-                    echo -e "$Tip 输入为空, 跳过操作."
-                    tips=""
-                fi
-                if [ "$bottoken" == "r" ] || [ "$bottoken" == "R" ]; then
-                    writeini "TelgramBotToken" "7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
-                fi
-                ;;
-            2)
-                # 设置Chat ID
-                echo -e "$Tip ${REB}Chat ID${NC} 获取方法: 在 Telgram 中添加机器人 @userinfobot, 点击或输入: /start"
-                divline
-                if [ "$ChatID_1" != "" ]; then
-                    echo -e "当前${GR}[CHAT ID]${NC}: $ChatID_1"
-                else
-                    echo -e "当前${GR}[CHAT ID]${NC}: 空"
-                fi
-                divline
-                read -p "请输入 Chat ID (回车跳过修改): " cahtid
-                if [ ! -z "$cahtid" ]; then
-                    if [[ $cahtid =~ ^[0-9]+$ ]]; then
-                        writeini "ChatID_1" "$cahtid"
-                    else
-                        echo -e "$Err ${REB}输入无效${NC}, Chat ID 必须是数字, 跳过操作."
-                    fi
-                else
-                    echo -e "$Tip 输入为空, 跳过操作."
-                    tips=""
-                fi
-                ;;
-            3)
-                # 设置CPU检测工具
-                echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业) 3.top+sar"
-                divline
-                if [ "$CPUTools" != "" ]; then
-                    echo -e "当前${GR}[CPU 检测工具]${NC}: $CPUTools"
-                else
-                    echo -e "当前${GR}[CPU 检测工具]${NC}: 空"
-                fi
-                divline
-                read -p "请输入序号 (默认采用 1.top / 回车跳过修改): " choice
-                if [ ! -z "$choice" ]; then
-                    if [ "$choice" == "1" ]; then
-                        CPUTools="top"
-                        writeini "CPUTools" "$CPUTools"
-                    elif [ "$choice" == "2" ]; then
-                        CPUTools="sar"
-                        writeini "CPUTools" "$CPUTools"
-                    elif [ "$choice" == "3" ]; then
-                        CPUTools="top_sar"
-                        writeini "CPUTools" "$CPUTools"
-                    fi
-                else
-                    echo -e "$Tip 输入为空, 跳过操作."
-                    tips=""
-                fi
-                ;;
-            4)
-                # 设置CPU报警阀值
-                echo -e "$Tip ${REB}CPU 报警${NC} 阀值(%)输入 (1-100) 的整数"
-                divline
-                if [ "$CPUThreshold" != "" ]; then
-                    echo -e "当前${GR}[CPU 报警阀值]${NC}: $CPUThreshold"
-                else
-                    echo -e "当前${GR}[CPU 报警阀值]${NC}: 空"
-                fi
-                divline
-                read -p "请输入 CPU 报警阀值 (回车跳过修改): " threshold
-                if [ ! -z "$threshold" ]; then
-                    threshold="${threshold//%/}"
-                    if [[ $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
-                        writeini "CPUThreshold" "$threshold"
-                    else
-                        echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是数字 (1-100) 的整数, 跳过操作."
-                    fi
-                else
-                    echo -e "$Tip 输入为空, 跳过操作."
-                    tips=""
-                fi
-                # 设置后马上启动
-                if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-                    source $ConfigFile
-                    old_CPUThreshold=$CPUThreshold
-                    SetupCPU_TG
-                fi
-                ;;
-            5)
-                # 设置内存报警阀值
-                echo -e "$Tip ${REB}内存报警${NC} 阀值(%)输入 (1-100) 的整数"
-                divline
-                if [ "$MEMThreshold" != "" ]; then
-                    echo -e "当前${GR}[内存报警阀值]${NC}: $MEMThreshold"
-                else
-                    echo -e "当前${GR}[内存报警阀值]${NC}: 空"
-                fi
-                divline
-                read -p "请输入 内存阀值 (回车跳过修改): " threshold
-                if [ ! -z "$threshold" ]; then
-                    threshold="${threshold//%/}"
-                    if [[ $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
-                        writeini "MEMThreshold" "$threshold"
-                    else
-                        echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是数字 (1-100) 的整数, 跳过操作."
-                    fi
-                else
-                    echo -e "$Tip 输入为空, 跳过操作."
-                    tips=""
-                fi
-                # 设置后马上启动
-                if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-                    source $ConfigFile
-                    old_MEMThreshold=$MEMThreshold
-                    SetupMEM_TG
-                fi
-                ;;
-            6)
-                # 设置磁盘报警阀值
-                echo -e "$Tip ${REB}磁盘报警${NC} 阀值(%)输入 (1-100) 的整数"
-                divline
-                if [ "$DISKThreshold" != "" ]; then
-                    echo -e "当前${GR}[磁盘报警阀值]${NC}: $DISKThreshold"
-                else
-                    echo -e "当前${GR}[磁盘报警阀值]${NC}: 空"
-                fi
-                divline
-                read -p "请输入 磁盘报警阀值 (回车跳过修改): " threshold
-                if [ ! -z "$threshold" ]; then
-                    threshold="${threshold//%/}"
-                    if [[ $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
-                        writeini "DISKThreshold" "$threshold"
-                    else
-                        echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是数字 (1-100) 的整数, 跳过操作."
-                    fi
-                else
-                    echo -e "$Tip 输入为空, 跳过操作."
-                    tips=""
-                fi
-                # 设置后马上启动
-                if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-                    source $ConfigFile
-                    old_DISKThreshold=$DISKThreshold
-                    SetupDISK_TG
-                fi
-                ;;
-            7)
-                # 设置流量报警阀值
-                echo -e "$Tip ${REB}流量报警${NC} 阀值输入格式: 数字|数字MB/数字GB/数字TB, 可带 1 位小数"
-                divline
-                if [ "$FlowThreshold" != "" ]; then
-                    echo -e "当前${GR}[流量报警阀值]${NC}: $FlowThreshold"
-                else
-                    echo -e "当前${GR}[流量报警阀值]${NC}: 空"
-                fi
-                if [ "$FlowThresholdMAX" != "" ]; then
-                    echo -e "当前${GR}[流量上限]${NC}: $FlowThresholdMAX"
-                else
-                    echo -e "当前${GR}[流量上限]${NC}: 空"
-                fi
-                divline
-                read -p "请输入 流量报警阀值 (回车跳过修改): " threshold
-                if [ ! -z "$threshold" ]; then
-                    #if [[ $threshold =~ ^[0-9]+$ ]]; then
-                    if [[ $threshold =~ ^[0-9]+(\.[0-9])?$ ]]; then
-                        if [ "$threshold" -gt 1023 ]; then
-                            # threshold=$(echo "scale=1; $threshold/1024" | bc)
-                            threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
-                            threshold="${threshold}GB" 
-                        else
-                            threshold="${threshold}MB"
-                        fi
-                        writeini "FlowThreshold" "$threshold"
-                        # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
-                    elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
-                        threshold=${threshold%MB}
-                        if [ "$threshold" -gt 1023 ]; then
-                            # threshold=$(echo "scale=1; $threshold/1024" | bc)
-                            threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
-                            threshold="${threshold}GB"
-                        else
-                            threshold="${threshold}MB"
-                        fi
-                        writeini "FlowThreshold" "$threshold"
-                        # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
-                    elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
-                        writeini "FlowThreshold" "$threshold"
-                        # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
-                    elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(TB)$ ]]; then
-                        threshold=${threshold%TB}
-                        threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value*1024}')
-                        threshold="${threshold}GB"
-                        writeini "FlowThreshold" "$threshold"
-                    else
-                        echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
-                    fi
-                    read -p "请设置 流量上限 (回车默认: 1T): " threshold_max
-                    if [ ! -z "$threshold_max" ]; then
-                        if [[ $threshold_max =~ ^[0-9]+(\.[0-9])?$ ]]; then
-                            if [ "$threshold_max" -gt 1023 ]; then
-                                # threshold=$(echo "scale=1; $threshold/1024" | bc)
-                                threshold_max=$(awk -v value=$threshold_max 'BEGIN{printf "%.1f", value/1024}')
-                                threshold_max="${threshold_max}GB" 
-                            else
-                                threshold_max="${threshold_max}MB"
-                            fi
-                            writeini "FlowThresholdMAX" "$threshold_max"
-                            # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
-                        elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
-                            threshold_max=${threshold_max%MB}
-                            if [ "$threshold_max" -gt 1023 ]; then
-                                # threshold=$(echo "scale=1; $threshold/1024" | bc)
-                                threshold_max=$(awk -v value=$threshold_max 'BEGIN{printf "%.1f", value/1024}')
-                                threshold_max="${threshold_max}GB"
-                            else
-                                threshold_max="${threshold_max}MB"
-                            fi
-                            writeini "FlowThresholdMAX" "$threshold_max"
-                            # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
-                        elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
-                            writeini "FlowThresholdMAX" "$threshold_max"
-                            # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
-                        elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(TB)$ ]]; then
-                            threshold_max=${threshold_max%TB}
-                            threshold_max=$(awk -v value=$threshold_max 'BEGIN{printf "%.1f", value*1024}')
-                            threshold_max="${threshold_max}GB"
-                            writeini "FlowThresholdMAX" "$threshold_max"
-                        else
-                            echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
-                        fi
-                    else
-                        writeini "FlowThresholdMAX" "1TB"
-                        echo -e "$Tip 输入为空, 默认最大流量上限为: 1TB"
-                    fi
-                else
-                    echo -e "$Tip 输入为空, 跳过操作."
-                    tips=""
-                fi
-                # 设置后马上启动
-                if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-                    source $ConfigFile
-                    old_FlowThreshold=$FlowThreshold
-                    old_FlowThresholdMAX=$FlowThresholdMAX
-                    SetupFlow_TG
-                fi
-                ;;
-            *)
-                echo "退出设置."
-                tips=""
-                break
-            ;;
-        esac
-    done
-    if [ "$old_TelgramBotToken" != "" ] && [ "$old_ChatID_1" != "" ]; then
-        source $ConfigFile
-        if [ "$TelgramBotToken" != "$old_TelgramBotToken" ] || [ "$ChatID_1" != "$old_ChatID_1" ]; then
-            if [ "$boot_menu_tag" == "$SETTAG" ]; then
-                writeini "reBootSet" "Reload"
-            fi
-            if [ "$login_menu_tag" == "$SETTAG" ]; then
-                writeini "reLoginSet" "Reload"
-            fi
-            if [ "$shutdown_menu_tag" == "$SETTAG" ]; then
-                writeini "reShutdownSet" "Reload"
-            fi
-            if [ "$cpu_menu_tag" == "$SETTAG" ]; then
-                writeini "reCPUSet" "Reload"
-            fi
-            if [ "$mem_menu_tag" == "$SETTAG" ]; then
-                writeini "reMEMSet" "Reload"
-            fi
-            if [ "$disk_menu_tag" == "$SETTAG" ]; then
-                writeini "reDISKSet" "Reload"
-            fi
-            if [ "$flow_menu_tag" == "$SETTAG" ]; then
-                writeini "reFlowSet" "Reload"
-            fi
-            if [ "$docker_menu_tag" == "$SETTAG" ]; then
-                writeini "reDockerSet" "Reload"
-            fi
-        fi
-    fi
-    if [ "$old_CPUThreshold" != "" ]; then
-        source $ConfigFile
-        if [ "$CPUThreshold" != "$old_CPUThreshold" ] || [ "$CPUTools" != "$old_CPUTools" ]; then
-            if [ "$cpu_menu_tag" == "$SETTAG" ]; then
-                writeini "reCPUSet" "Reload"
-            fi
-        fi
-    fi
-    if [ "$old_MEMThreshold" != "" ]; then
-        source $ConfigFile
-        if [ "$MEMThreshold" != "$old_MEMThreshold" ] || [ "$CPUTools" != "$old_CPUTools" ]; then
-            if [ "$mem_menu_tag" == "$SETTAG" ]; then
-                writeini "reMEMSet" "Reload"
-            fi
-        fi
-    fi
-    if [ "$old_DISKThreshold" != "" ]; then
-        source $ConfigFile
-        if [ "$DISKThreshold" != "$old_DISKThreshold" ] || [ "$CPUTools" != "$old_CPUTools" ]; then
-            if [ "$disk_menu_tag" == "$SETTAG" ]; then
-                writeini "reDISKSet" "Reload"
-            fi
-        fi
-    fi
-    if [ "$old_FlowThreshold" != "" ]; then
-        source $ConfigFile
-        if [ "$FlowThreshold" != "$old_FlowThreshold" ] || [ "$FlowThresholdMAX" != "$old_FlowThresholdMAX" ]; then
-            if [ "$flow_menu_tag" == "$SETTAG" ]; then
-                writeini "reFlowSet" "Reload"
-            fi
-        fi
-    fi
+    echo -e “$Err 更新后已经弃用...”
 }
 
 # 用于显示内容（调试用）
@@ -765,11 +420,6 @@ ShowContents() {
     else
         echo -e "$Err 文件不存在: $1"
     fi
-}
-
-# 更新
-Update() {
-    echo "升级脚本."
 }
 
 # 发送测试
@@ -833,7 +483,6 @@ EOF
             fi
             # echo -e "$Inf 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
             tips="$Tip 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
-            delini "reBootSet"
         else
             tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
         fi
@@ -1021,11 +670,6 @@ GetInfo_now() {
     echo "内存使用率: $mem_use_ratio | 交换使用率: $swap_use_ratio | 磁盘使用率: $disk_use_ratio | 日期: $(date)"
 }
 
-# 判断子程序
-Setupbody() {
-    echo "计划中..."
-}
-
 # 百分比转换进度条
 create_progress_bar() {
     local percentage=$1
@@ -1059,20 +703,37 @@ create_progress_bar() {
 
 # 设置CPU报警
 SetupCPU_TG() {
-    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${CPUThreshold}" &&  ! -z "${CPUTools}" ]]; then
-        if [ "$CPUTools" == "sar" ] || [ "$CPUTools" == "top_sar" ]; then
-            if ! command -v sar &>/dev/null; then
-                echo "正在安装缺失的依赖 sar, 一个检测 CPU 的专业工具."
-                if [ -x "$(command -v apt)" ]; then
-                    apt -y install sysstat
-                elif [ -x "$(command -v yum)" ]; then
-                    yum -y install sysstat
-                else
-                    echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
-                fi
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+        if [ "$autorun" != "true" ]; then
+            read -p "请输入 CPU 报警阀值 (回车跳过修改): " threshold
+        else
+            if [ ! -z "$CPUThreshold" ]; then
+                threshold=$CPUThreshold
+            else
+                threshold=$CPUThreshold_de
             fi
         fi
-        cat <<EOF > "$FolderPath/tg_cpu.sh"
+        if [ ! -z "$threshold" ]; then
+            threshold="${threshold//%/}"
+            if [[ $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
+                writeini "CPUThreshold" "$threshold"
+            else
+                echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是数字 (1-100) 的整数, 跳过操作."
+            fi
+            source $ConfigFile
+            if [ "$CPUTools" == "sar" ] || [ "$CPUTools" == "top_sar" ]; then
+                if ! command -v sar &>/dev/null; then
+                    echo "正在安装缺失的依赖 sar, 一个检测 CPU 的专业工具."
+                    if [ -x "$(command -v apt)" ]; then
+                        apt -y install sysstat
+                    elif [ -x "$(command -v yum)" ]; then
+                        yum -y install sysstat
+                    else
+                        echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
+                    fi
+                fi
+            fi
+            cat <<EOF > "$FolderPath/tg_cpu.sh"
 #!/bin/bash
 
 $(declare -f CheckCPU_$CPUTools)
@@ -1180,16 +841,16 @@ while true; do
     sleep 5
 done
 EOF
-        chmod +x $FolderPath/tg_cpu.sh
-        pkill tg_cpu.sh
-        pkill tg_cpu.sh
-        nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &
-        if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
-            (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &") | crontab -
-        fi
-        # ShowContents "$FolderPath/tg_cpu.sh"
-        if [ "$mute" != "true" ]; then
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: CPU 报警通知⚙️"'
+            chmod +x $FolderPath/tg_cpu.sh
+            pkill tg_cpu.sh
+            pkill tg_cpu.sh
+            nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &
+            if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
+                (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &") | crontab -
+            fi
+            # ShowContents "$FolderPath/tg_cpu.sh"
+            if [ "$mute" != "true" ]; then
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: CPU 报警通知⚙️"'
 '"主机名: $(hostname)"'
 '"CPU: $cpuusedOfcpus"'
 '"内存: ${mem_total}MB"'
@@ -1197,10 +858,14 @@ EOF
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 '"检测工具: $CPUTools"'
 '"💡当 CPU 使用达 $CPUThreshold % 时将收到通知." &
+            fi
+            # echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
+            tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
+            delini "reCPUSet"
+        else
+            echo -e "$Tip 输入为空, 跳过操作."
+            tips=""
         fi
-        # echo -e "$Inf CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
-        tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
-        delini "reCPUSet"
     else
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
@@ -1208,20 +873,37 @@ EOF
 
 # 设置内存报警
 SetupMEM_TG() {
-    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${MEMThreshold}" &&  ! -z "${CPUTools}" ]]; then
-    if [ "$CPUTools" == "sar" ] || [ "$CPUTools" == "top_sar" ]; then
-            if ! command -v sar &>/dev/null; then
-                echo "正在安装缺失的依赖 sar, 一个检测 CPU 的专业工具."
-                if [ -x "$(command -v apt)" ]; then
-                    apt -y install sysstat
-                elif [ -x "$(command -v yum)" ]; then
-                    yum -y install sysstat
-                else
-                    echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
-                fi
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+        if [ "$autorun" != "true" ]; then
+            read -p "请输入 内存阀值 (回车跳过修改): " threshold
+        else
+            if [ ! -z "$MEMThreshold" ]; then
+                threshold=$MEMThreshold
+            else
+                threshold=$MEMThreshold_de
             fi
         fi
-        cat <<EOF > "$FolderPath/tg_mem.sh"
+        if [ ! -z "$threshold" ]; then
+            threshold="${threshold//%/}"
+            if [[ $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
+                writeini "MEMThreshold" "$threshold"
+            else
+                echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是数字 (1-100) 的整数, 跳过操作."
+            fi
+            source $ConfigFile
+            if [ "$CPUTools" == "sar" ] || [ "$CPUTools" == "top_sar" ]; then
+                if ! command -v sar &>/dev/null; then
+                    echo "正在安装缺失的依赖 sar, 一个检测 CPU 的专业工具."
+                    if [ -x "$(command -v apt)" ]; then
+                        apt -y install sysstat
+                    elif [ -x "$(command -v yum)" ]; then
+                        yum -y install sysstat
+                    else
+                        echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
+                    fi
+                fi
+            fi
+            cat <<EOF > "$FolderPath/tg_mem.sh"
 #!/bin/bash
 
 $(declare -f CheckCPU_$CPUTools)
@@ -1329,16 +1011,16 @@ while true; do
     sleep 5
 done
 EOF
-        chmod +x $FolderPath/tg_mem.sh
-        pkill tg_mem.sh
-        pkill tg_mem.sh
-        nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &
-        if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
-            (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &") | crontab -
-        fi
-        # ShowContents "$FolderPath/tg_mem.sh"
-        if [ "$mute" != "true" ]; then
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 内存 报警通知⚙️"'
+            chmod +x $FolderPath/tg_mem.sh
+            pkill tg_mem.sh
+            pkill tg_mem.sh
+            nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &
+            if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
+                (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &") | crontab -
+            fi
+            # ShowContents "$FolderPath/tg_mem.sh"
+            if [ "$mute" != "true" ]; then
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 内存 报警通知⚙️"'
 '"主机名: $(hostname)"'
 '"CPU: $cpuusedOfcpus"'
 '"内存: ${mem_total}MB"'
@@ -1346,10 +1028,14 @@ EOF
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 '"检测工具: $CPUTools"'
 '"💡当 内存 使用达 $MEMThreshold % 时将收到通知." &
+            fi
+            # echo -e "$Inf 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
+            tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
+            delini "reMEMSet"
+        else
+            echo -e "$Tip 输入为空, 跳过操作."
+            tips=""
         fi
-        # echo -e "$Inf 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
-        tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
-        delini "reMEMSet"
     else
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
@@ -1357,20 +1043,37 @@ EOF
 
 # 设置磁盘报警
 SetupDISK_TG() {
-    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${DISKThreshold}" &&  ! -z "${CPUTools}" ]]; then
-    if [ "$CPUTools" == "sar" ] || [ "$CPUTools" == "top_sar" ]; then
-            if ! command -v sar &>/dev/null; then
-                echo "正在安装缺失的依赖 sar, 一个检测 CPU 的专业工具."
-                if [ -x "$(command -v apt)" ]; then
-                    apt -y install sysstat
-                elif [ -x "$(command -v yum)" ]; then
-                    yum -y install sysstat
-                else
-                    echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
-                fi
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+        if [ "$autorun" != "true" ]; then
+            read -p "请输入 磁盘报警阀值 (回车跳过修改): " threshold
+        else
+            if [ ! -z "$DISKThreshold" ]; then
+                threshold=$DISKThreshold
+            else
+                threshold=$DISKThreshold_de
             fi
         fi
-        cat <<EOF > "$FolderPath/tg_disk.sh"
+        if [ ! -z "$threshold" ]; then
+            threshold="${threshold//%/}"
+            if [[ $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
+                writeini "DISKThreshold" "$threshold"
+            else
+                echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是数字 (1-100) 的整数, 跳过操作."
+            fi
+            source $ConfigFile
+            if [ "$CPUTools" == "sar" ] || [ "$CPUTools" == "top_sar" ]; then
+                if ! command -v sar &>/dev/null; then
+                    echo "正在安装缺失的依赖 sar, 一个检测 CPU 的专业工具."
+                    if [ -x "$(command -v apt)" ]; then
+                        apt -y install sysstat
+                    elif [ -x "$(command -v yum)" ]; then
+                        yum -y install sysstat
+                    else
+                        echo -e "$Err 未知的包管理器, 无法安装依赖. 请手动安装所需依赖后再运行脚本."
+                    fi
+                fi
+            fi
+            cat <<EOF > "$FolderPath/tg_disk.sh"
 #!/bin/bash
 
 $(declare -f CheckCPU_$CPUTools)
@@ -1478,16 +1181,16 @@ while true; do
     sleep 3
 done
 EOF
-        chmod +x $FolderPath/tg_disk.sh
-        pkill tg_disk.sh
-        pkill tg_disk.sh
-        nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &
-        if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
-            (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &") | crontab -
-        fi
-        # ShowContents "$FolderPath/tg_disk.sh"
-        if [ "$mute" != "true" ]; then
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 磁盘 报警通知⚙️"'
+            chmod +x $FolderPath/tg_disk.sh
+            pkill tg_disk.sh
+            pkill tg_disk.sh
+            nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &
+            if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
+                (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &") | crontab -
+            fi
+            # ShowContents "$FolderPath/tg_disk.sh"
+            if [ "$mute" != "true" ]; then
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 磁盘 报警通知⚙️"'
 '"主机名: $(hostname)"'
 '"CPU: $cpuusedOfcpus"'
 '"内存: ${mem_total}MB"'
@@ -1495,10 +1198,14 @@ EOF
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 '"检测工具: $CPUTools"'
 '"💡当 磁盘 使用达 $DISKThreshold % 时将收到通知." &
+            fi
+            # echo -e "$Inf 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
+            tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
+            delini "reDISKSet"
+        else
+            echo -e "$Tip 输入为空, 跳过操作."
+            tips=""
         fi
-        # echo -e "$Inf 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
-        tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
-        delini "reDISKSet"
     else
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
@@ -1506,31 +1213,120 @@ EOF
 
 # 设置流量报警
 SetupFlow_TG() {
-    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" &&  ! -z "${FlowThreshold}" &&  ! -z "${FlowThresholdMAX}" ]]; then
-        # FlowThreshold=500
-        FlowThreshold_U=$FlowThreshold
-        if [[ $FlowThreshold == *MB ]]; then
-            FlowThreshold=${FlowThreshold%MB}
-            FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value }')
-        elif [[ $FlowThreshold == *GB ]]; then
-            FlowThreshold=${FlowThreshold%GB}
-            FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value*1024 }')
-        elif [[ $FlowThreshold == *TB ]]; then
-            FlowThreshold=${FlowThreshold%TB}
-            FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value*1024*1024 }')
+    if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
+        if [ "$autorun" != "true" ]; then
+            read -p "请输入 流量报警阀值 (回车跳过修改): " threshold
+        else
+            if [ ! -z "$FlowThreshold" ]; then
+                threshold=$FlowThreshold
+            else
+                threshold=$FlowThreshold_de
+            fi
         fi
-        FlowThresholdMAX_U=$FlowThresholdMAX
-        if [[ $FlowThresholdMAX == *MB ]]; then
-            FlowThresholdMAX=${FlowThresholdMAX%MB}
-            FlowThresholdMAX=$(awk -v value=$FlowThresholdMAX 'BEGIN { printf "%.1f", value }')
-        elif [[ $FlowThresholdMAX == *GB ]]; then
-            FlowThresholdMAX=${FlowThresholdMAX%GB}
-            FlowThresholdMAX=$(awk -v value=$FlowThresholdMAX 'BEGIN { printf "%.1f", value*1024 }')
-        elif [[ $FlowThresholdMAX == *TB ]]; then
-            FlowThresholdMAX=${FlowThresholdMAX%TB}
-            FlowThresholdMAX=$(awk -v value=$FlowThresholdMAX 'BEGIN { printf "%.1f", value*1024*1024 }')
-        fi
-        cat <<EOF > $FolderPath/tg_flow.sh
+        if [ ! -z "$threshold" ]; then
+            #if [[ $threshold =~ ^[0-9]+$ ]]; then
+            if [[ $threshold =~ ^[0-9]+(\.[0-9])?$ ]]; then
+                if [ "$threshold" -gt 1023 ]; then
+                    # threshold=$(echo "scale=1; $threshold/1024" | bc)
+                    threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
+                    threshold="${threshold}GB" 
+                else
+                    threshold="${threshold}MB"
+                fi
+                writeini "FlowThreshold" "$threshold"
+                # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
+            elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
+                threshold=${threshold%MB}
+                if [ "$threshold" -gt 1023 ]; then
+                    # threshold=$(echo "scale=1; $threshold/1024" | bc)
+                    threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value/1024}')
+                    threshold="${threshold}GB"
+                else
+                    threshold="${threshold}MB"
+                fi
+                writeini "FlowThreshold" "$threshold"
+                # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
+            elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
+                writeini "FlowThreshold" "$threshold"
+                # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
+            elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(TB)$ ]]; then
+                threshold=${threshold%TB}
+                threshold=$(awk -v value=$threshold 'BEGIN{printf "%.1f", value*1024}')
+                threshold="${threshold}GB"
+                writeini "FlowThreshold" "$threshold"
+            else
+                echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
+            fi
+            if [ "$autorun" != "true" ]; then
+                read -p "请设置 流量上限 (回车默认: $FlowThresholdMAX_de): " threshold_max
+            else
+                if [ ! -z "$FlowThresholdMAX" ]; then
+                    threshold=$FlowThresholdMAX
+                else
+                    threshold=$FlowThresholdMAX_de
+                fi
+            fi
+            if [ ! -z "$threshold_max" ]; then
+                if [[ $threshold_max =~ ^[0-9]+(\.[0-9])?$ ]]; then
+                    if [ "$threshold_max" -gt 1023 ]; then
+                        # threshold=$(echo "scale=1; $threshold/1024" | bc)
+                        threshold_max=$(awk -v value=$threshold_max 'BEGIN{printf "%.1f", value/1024}')
+                        threshold_max="${threshold_max}GB" 
+                    else
+                        threshold_max="${threshold_max}MB"
+                    fi
+                    writeini "FlowThresholdMAX" "$threshold_max"
+                    # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
+                elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
+                    threshold_max=${threshold_max%MB}
+                    if [ "$threshold_max" -gt 1023 ]; then
+                        # threshold=$(echo "scale=1; $threshold/1024" | bc)
+                        threshold_max=$(awk -v value=$threshold_max 'BEGIN{printf "%.1f", value/1024}')
+                        threshold_max="${threshold_max}GB"
+                    else
+                        threshold_max="${threshold_max}MB"
+                    fi
+                    writeini "FlowThresholdMAX" "$threshold_max"
+                    # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
+                elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
+                    writeini "FlowThresholdMAX" "$threshold_max"
+                    # echo -e "$Tip 已将 报警阀值 写入 $ConfigFile 文件中."
+                elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(TB)$ ]]; then
+                    threshold_max=${threshold_max%TB}
+                    threshold_max=$(awk -v value=$threshold_max 'BEGIN{printf "%.1f", value*1024}')
+                    threshold_max="${threshold_max}GB"
+                    writeini "FlowThresholdMAX" "$threshold_max"
+                else
+                    echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
+                fi
+            else
+                writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
+                echo -e "$Tip 输入为空, 默认最大流量上限为: $FlowThresholdMAX_de"
+            fi
+            source $ConfigFile
+            FlowThreshold_U=$FlowThreshold
+            if [[ $FlowThreshold == *MB ]]; then
+                FlowThreshold=${FlowThreshold%MB}
+                FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value }')
+            elif [[ $FlowThreshold == *GB ]]; then
+                FlowThreshold=${FlowThreshold%GB}
+                FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value*1024 }')
+            elif [[ $FlowThreshold == *TB ]]; then
+                FlowThreshold=${FlowThreshold%TB}
+                FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value*1024*1024 }')
+            fi
+            FlowThresholdMAX_U=$FlowThresholdMAX
+            if [[ $FlowThresholdMAX == *MB ]]; then
+                FlowThresholdMAX=${FlowThresholdMAX%MB}
+                FlowThresholdMAX=$(awk -v value=$FlowThresholdMAX 'BEGIN { printf "%.1f", value }')
+            elif [[ $FlowThresholdMAX == *GB ]]; then
+                FlowThresholdMAX=${FlowThresholdMAX%GB}
+                FlowThresholdMAX=$(awk -v value=$FlowThresholdMAX 'BEGIN { printf "%.1f", value*1024 }')
+            elif [[ $FlowThresholdMAX == *TB ]]; then
+                FlowThresholdMAX=${FlowThresholdMAX%TB}
+                FlowThresholdMAX=$(awk -v value=$FlowThresholdMAX 'BEGIN { printf "%.1f", value*1024*1024 }')
+            fi
+            cat <<EOF > $FolderPath/tg_flow.sh
 #!/bin/bash
 
 $(declare -f create_progress_bar)
@@ -1664,7 +1460,7 @@ while true; do
             rx_speed=\$(awk "BEGIN { speed = \$rx_diff_tt / (\$tt * 1024); if (speed > 1023) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
             tx_speed=\$(awk "BEGIN { speed = \$tx_diff_tt / (\$tt * 1024); if (speed > 1023) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
 
-            message="流量已达到阀值 > $FlowThreshold_U%❗️"'
+            message="流量已达到阀值 > $FlowThreshold_U❗️"'
 '"主机名: \$(hostname) 端口: \$sanitized_interface"'
 '"已接收: \${rx_mb}  已发送: \${tx_mb}"'
 '"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
@@ -1689,20 +1485,24 @@ while true; do
     sleep \$tt
 done
 EOF
-        chmod +x $FolderPath/tg_flow.sh
-        pkill tg_flow.sh
-        pkill tg_flow.sh
-        nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &
-        if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
-            (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
+            chmod +x $FolderPath/tg_flow.sh
+            pkill tg_flow.sh
+            pkill tg_flow.sh
+            nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &
+            if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
+                (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
+            fi
+            # ShowContents "$FolderPath/tg_flow.sh"
+            if [ "$mute" != "true" ]; then
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当流量达阀值 $FlowThreshold_U 时将收到通知." &
+            fi
+            # echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
+            tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
+            delini "reFlowSet"
+        else
+            echo -e "$Tip 输入为空, 跳过操作."
+            tips=""
         fi
-        # ShowContents "$FolderPath/tg_flow.sh"
-        if [ "$mute" != "true" ]; then
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当流量达阀值 $FlowThreshold_U 时将收到通知." &
-        fi
-        # echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
-        tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
-        delini "reFlowSet"
     else
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
@@ -1711,23 +1511,19 @@ EOF
 FlowReport_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" != "true" ]; then
-            echo -e "是否要设置${GR}流量定时报告${NC}?  ${GR}Y${NC}.是   ${GR}回车${NC}.退出设置"
-            divline
-            read -p "请输入你的选择: " yorn
+            echo -e "输入定时模式, 采用 crontab 格式, 默认: 59 23 * * * 即每天 ${GR}23${NC} 时 ${GR}59${NC} 分"
+            read -p "请输入定时模式  (回车.采用默认定时模式): " cronrp
         else
-            yorn="Y"
+            cronrp=""
         fi
-        if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
-            if [ "$autorun" != "true" ]; then
-                echo -e "输入定时模式, 采用 crontab 格式, 默认: 1 0 * * * 即每天 ${GR}00${NC} 时 ${GR}01${NC} 分"
-                read -p "请输入定时模式  (回车.采用默认定时模式): " cronrp
-            else
-                cronrp=""
-            fi
-            if [ -z "$cronrp" ]; then
-                cronrp="1 0 * * *"
-            fi
-            cat <<EOF > "$FolderPath/tg_autoreport.sh"
+        minute_rp=$(echo "$cronrp" | awk '{print $1}')
+        hour_rp=$(echo "$cronrp" | awk '{print $2}')
+        if [ -z "$cronrp" ] || ([ $minute_rp -eq 0 ] && [ $hour_rp -eq 0 ]); then
+            cronrp="59 23 * * *"
+        fi
+        minute_rp=$(echo "$cronrp" | awk '{print $1}')
+        hour_rp=$(echo "$cronrp" | awk '{print $2}')
+        cat <<EOF > "$FolderPath/tg_autorp.sh"
 #!/bin/bash
 
 $(declare -f create_progress_bar)
@@ -1747,13 +1543,10 @@ while true; do
     # 获取当前时间的小时和分钟
     current_hour=\$(date +%H)
     current_minute=\$(date +%M)
-
     for interface in \$interfaces; do
         sanitized_interface=\${interface%@*}
-
         current_rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
         current_tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
-
         all_rx_mb=\$((current_rx_bytes / 1024 / 1024))
         all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
         if awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
@@ -1772,14 +1565,12 @@ while true; do
                 all_rx_ratio=\${all_rx_ratio}%
             fi
         fi
-
         if [ "\$all_rx_mb" -gt 1023 ]; then
             all_rx_mb=\$(awk -v value=\$all_rx_mb 'BEGIN{printf "%.1f", value/1024}')
             all_rx_mb="\${all_rx_mb}GB" 
         else
             all_rx_mb="\${all_rx_mb}MB"
         fi
-
         all_tx_mb=\$((current_tx_bytes / 1024 / 1024))
         all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
         if awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
@@ -1798,29 +1589,25 @@ while true; do
                 all_tx_ratio=\${all_tx_ratio}%
             fi
         fi
-
         if [ "\$all_tx_mb" -gt 1023 ]; then
             all_tx_mb=\$(awk -v value=\$all_tx_mb 'BEGIN{printf "%.1f", value/1024}')
             all_tx_mb="\${all_tx_mb}GB" 
         else
             all_tx_mb="\${all_tx_mb}MB"
         fi
-
         # 如果当前时间为0点0分，则记录当前流量并跳出循环
         if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
             prev_day_rx_bytes=\$current_rx_bytes
             prev_day_tx_bytes=\$current_tx_bytes
             break
         fi
-
         # 如果程序在中途启动可以先记录一次
         if [ -z "\$prev_day_rx_bytes" ] && [ -z "\$prev_day_tx_bytes" ]; then
             prev_day_rx_bytes=\$current_rx_bytes
             prev_day_tx_bytes=\$current_tx_bytes
         fi
-
         # 如果当前时间为23点59分，则计算流量差值并跳出循环
-        if [ "\$current_hour" == "23" ] && [ "\$current_minute" == "59" ]; then
+        if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
             diff_rx_bytes=$((current_rx_bytes - prev_day_rx_bytes))
             diff_tx_bytes=$((current_tx_bytes - prev_day_tx_bytes))
             echo "Date: \$current_date, Interface: \$sanitized_interface, RX bytes: \$diff_rx_bytes, TX bytes: \$diff_tx_bytes"
@@ -1835,64 +1622,33 @@ while true; do
             break
         fi
     done
-
     # 每隔一段时间执行一次循环检测，这里设定为60秒
     sleep 60
 done
 EOF
-        chmod +x $FolderPath/tg_autoreport.sh
-        
-            # cront_regex='^([0-5]?[0-9]|*|*/[0-5]?[0-9]) ([01]?[0-9]|2[0-3]|*|*/[01]?[0-9]|2[0-3]) ([0-2]?[0-9]|3[0-1]|*|*/[0-2]?[0-9]|3[0-1]) ([0]?[1-9]|1[0-2]|*|*/[0]?[1-9]|1[0-2]) ([0-6]|*|*/[0-6])$'
-            # if [[ "$cronrp" =~ $cront_regex ]]; then
-                if crontab -l | grep -q "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &"; then
-                    crontab -l | grep -v "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &" | crontab -
-                fi
-                (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &") | crontab -
-                # crontab -l | grep "tg_autoreport.sh"
-                minute_rp=$(echo $cronrp | awk '{print $1}')
-                hour_rp=$(echo $cronrp | awk '{print $2}')
-                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "流量定时报告设置成功 ⚙️"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分"$'\n'"CRONTAB: $cronrp" &
-                tips="$Tip 流量定时报告设置成功. ${GR}$mute${NC}"
-            # else
-            #     echo "错误: 定时模式不符合 crontab 格式"
-            #     rm -f $FolderPath/tg_autoreport.sh
-            # fi
-        else
-            tips="$Tip 跳过设置."
+        chmod +x $FolderPath/tg_autorp.sh
+        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &"; then
+            crontab -l | grep -v "@reboot nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &" | crontab -
         fi
-    # elif [ "$yorn" == "N" ] || [ "$yorn" == "n" ]; then
-    #     rm -f $FolderPath/tg_autoreport.sh
-    #     crontab -l | grep -v "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &" | crontab -
-    #     tips="$Tip 设置 流量定时报告 已经取消."
+        (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &") | crontab -
+        nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &
+        if [ "$mute" != "true" ]; then
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "流量定时报告设置成功 ⚙️"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分"$'\n'"CRONTAB: $cronrp" &
+        fi
+        tips="$Tip 流量定时报告设置成功. ${GR}$mute${NC}"
     else
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
 }
 
 # 卸载
-
-UN_FlowReport_TG() {
-    if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
-        rm -f $FolderPath/tg_autoreport.sh
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_autoreport.sh > $FolderPath/tg_autoreport.log 2>&1 &" | crontab -
-        flowrp_menu_tag=""
-        tips="$Tip 流量定时报告 已经取消 / 删除."
-        # Pause
-    fi
-
-}
-
-# 卸载开启通知
 UN_SetupBoot_TG() {
     if [ "$boot_menu_tag" == "$SETTAG" ]; then
         systemctl stop tg_boot.service > /dev/null 2>&1
         systemctl disable tg_boot.service > /dev/null 2>&1
         sleep 1
         rm -f /etc/systemd/system/tg_boot.service
-        boot_menu_tag=""
-        delini "reBootSet"
         tips="$Tip 机开通知 已经取消 / 删除."
-        # Pause
     fi
 }
 UN_SetupLogin_TG() {
@@ -1903,10 +1659,7 @@ UN_SetupLogin_TG() {
         if [ -f /etc/profile ]; then
             sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
         fi
-        login_menu_tag=""
-        delini "reLoginSet"
         tips="$Tip 登陆通知 已经取消 / 删除."
-        # Pause
     fi
 }
 UN_SetupShutdown_TG() {
@@ -1915,10 +1668,7 @@ UN_SetupShutdown_TG() {
         systemctl disable tg_shutdown.service > /dev/null 2>&1
         sleep 1
         rm -f /etc/systemd/system/tg_shutdown.service
-        shutdown_menu_tag=""
-        delini "reShutdownSet"
         tips="$Tip 关机通知 已经取消 / 删除."
-        # Pause
     fi
 }
 UN_SetupCPU_TG() {
@@ -1926,10 +1676,7 @@ UN_SetupCPU_TG() {
         pkill tg_cpu.sh
         pkill tg_cpu.sh
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
-        cpu_menu_tag=""
-        delini "reCPUSet"
         tips="$Tip CPU报警 已经取消 / 删除."
-        # Pause
     fi
 }
 UN_SetupMEM_TG() {
@@ -1937,10 +1684,7 @@ UN_SetupMEM_TG() {
         pkill tg_mem.sh
         pkill tg_mem.sh
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &" | crontab -
-        mem_menu_tag=""
-        delini "reMEMSet"
         tips="$Tip 内存报警 已经取消 / 删除."
-        # Pause
     fi
 }
 UN_SetupDISK_TG() {
@@ -1948,10 +1692,7 @@ UN_SetupDISK_TG() {
         pkill tg_disk.sh
         pkill tg_disk.sh
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &" | crontab -
-        disk_menu_tag=""
-        delini "reDISKSet"
         tips="$Tip 磁盘报警 已经取消 / 删除."
-        # Pause
     fi
 }
 UN_SetupFlow_TG() {
@@ -1959,21 +1700,24 @@ UN_SetupFlow_TG() {
         pkill tg_flow.sh
         pkill tg_flow.sh
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
-        flow_menu_tag=""
-        delini "reFlowSet"
         tips="$Tip 流量报警 已经取消 / 删除."
-        # Pause
     fi
+}
+UN_FlowReport_TG() {
+    if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
+        pkill tg_autorp.sh
+        pkill tg_autorp.sh
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_autorp.sh > $FolderPath/tg_autoreport.log 2>&1 &" | crontab -
+        tips="$Tip 流量定时报告 已经取消 / 删除."
+    fi
+
 }
 UN_SetupDocker_TG() {
     if [ "$docker_menu_tag" == "$SETTAG" ]; then
         pkill tg_docker.sh
         pkill tg_docker.sh
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
-        docker_menu_tag=""
-        delini "reDockerSet"
         tips="$Tip Docker变更通知 已经取消 / 删除."
-        # Pause
     fi
 }
 
@@ -1985,86 +1729,11 @@ UN_ALL() {
     UN_SetupMEM_TG
     UN_SetupDISK_TG
     UN_SetupFlow_TG
+    UN_FlowReport_TG
     UN_SetupDocker_TG
     tips="$Tip 已取消 / 删除所有通知."
 }
 
-UN_ALL_2() {
-    untag=false
-    if [ "$boot_menu_tag" == "$SETTAG" ]; then
-        systemctl stop tg_boot.service > /dev/null 2>&1
-        systemctl disable tg_boot.service > /dev/null 2>&1
-        sleep 1
-        rm -f /etc/systemd/system/tg_boot.service
-        boot_menu_tag=""
-        untag=true
-    fi
-    if [ "$login_menu_tag" == "$SETTAG" ]; then
-        if [ -f /etc/bash.bashrc ]; then
-            sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
-        fi
-        if [ -f /etc/profile ]; then
-            sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
-        fi
-        login_menu_tag=""
-        untag=true
-    fi
-    if [ "$shutdown_menu_tag" == "$SETTAG" ]; then
-        systemctl stop tg_shutdown.service > /dev/null 2>&1
-        systemctl disable tg_shutdown.service > /dev/null 2>&1
-        sleep 1
-        rm -f /etc/systemd/system/tg_shutdown.service
-        shutdown_menu_tag=""
-        untag=true
-    fi
-    if [ "$cpu_menu_tag" == "$SETTAG" ]; then
-        pkill tg_cpu.sh
-        pkill tg_cpu.sh
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
-        cpu_menu_tag=""
-        untag=true
-    fi
-    if [ "$mem_menu_tag" == "$SETTAG" ]; then
-        pkill tg_mem.sh
-        pkill tg_mem.sh
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &" | crontab -
-        mem_menu_tag=""
-        untag=true
-    fi
-    if [ "$disk_menu_tag" == "$SETTAG" ]; then
-        pkill tg_disk.sh
-        pkill tg_disk.sh
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &" | crontab -
-        disk_menu_tag=""
-        untag=true
-    fi
-    if [ "$flow_menu_tag" == "$SETTAG" ]; then
-        pkill tg_flow.sh
-        pkill tg_flow.sh
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
-        flow_menu_tag=""
-        untag=true
-    fi
-    if [ "$docker_menu_tag" == "$SETTAG" ]; then
-        pkill tg_docker.sh
-        pkill tg_docker.sh
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
-        docker_menu_tag=""
-        untag=true
-    fi
-    if [ "$untag" == "true" ]; then
-        delini "reBootSet"
-        delini "reLoginSet"
-        delini "reShutdownSet"
-        delini "reCPUSet"
-        delini "reMEMSet"
-        delini "reDISKSet"
-        delini "reFlowSet"
-        delini "reDockerSet"
-        tips="$Tip 已取消 / 删除所有通知."
-        Pause
-    fi
-}
 DELFOLDER() {
     if [ "$boot_menu_tag" == "$UNSETTAG" ] && [ "$login_menu_tag" == "$UNSETTAG" ] && [ "$shutdown_menu_tag" == "$UNSETTAG" ] && [ "$cpu_menu_tag" == "$UNSETTAG" ] && [ "$mem_menu_tag" == "$UNSETTAG" ] && [ "$disk_menu_tag" == "$UNSETTAG" ] && [ "$flow_menu_tag" == "$UNSETTAG" ] && [ "$docker_menu_tag" == "$UNSETTAG" ]; then
         if [ -d "$FolderPath" ]; then
@@ -2085,8 +1754,30 @@ DELFOLDER() {
 # 主程序
 CheckSys
 CheckAndCreateFolder
+if [ ! -z "$3" ]; then
+    ChatID_1=$3
+    writeini "ChatID_1" "$3"
+fi
 declare -f send_telegram_message | sed -n '/^{/,/^}/p' | sed '1d;$d' | sed 's/$1/$3/g; s/$TelgramBotToken/$1/g; s/$ChatID_1/$2/g' > $FolderPath/send_tg.sh
 chmod +x $FolderPath/send_tg.sh
+if [ -z "$ChatID_1" ]; then
+    CLS
+    echo -e "$Tip 在使用前请先设置 [${GR}CHAT ID${NC}] 用以接收通知信息."
+    echo -e "$Tip [${REB}CHAT ID${NC}] 获取方法: 在 Telgram 中添加机器人 @userinfobot, 点击或输入: /start"
+    read -p "请输入你的 [CHAT ID] : " cahtid
+    if [ ! -z "$cahtid" ]; then
+        if [[ $cahtid =~ ^[0-9]+$ ]]; then
+            writeini "ChatID_1" "$cahtid"
+            source $ConfigFile
+        else
+            echo -e "$Err ${REB}输入无效${NC}, Chat ID 必须是数字, 退出操作."
+            exit 1
+        fi
+    else
+        echo -e "$Tip 输入为空, 退出操作."
+        exit 1
+    fi
+fi
 if [ "$1" == "auto" ]; then
     autorun=true
     if [ "$2" == "mute" ]; then
@@ -2132,21 +1823,7 @@ tips=""
 while true; do
 CheckSetup
 GetVPSInfo
-reChatID_1=""
-reBootSet=""
-reLoginSet=""
-reShutdownSet=""
-reCPUSet=""
-reMEMSet=""
-reDISKSet=""
-reFlowSet=""
-reDockerSet=""
 source $ConfigFile
-if [ "$reBootSet" == "" ] && [ "$reLoginSet" == "" ] && [ "$reShutdownSet" == "" ] && [ "$reCPUSet" == "" ] && [ "$reMEMSet" == "" ] && [ "$reDISKSet" == "" ] && [ "$reFlowSet" == "" ] && [ "$reDockerSet" == "" ]; then
-    reset_menu_tag=""
-else
-    reset_menu_tag="${REB}Reload${NC} ${RE}标记项需要重新设置生效${NC}<<<"
-fi
 if [ -z "$CPUThreshold" ]; then
     CPUThreshold_tag="${RE}未设置${NC}"
 else
@@ -2178,13 +1855,13 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
   
  ${GR}0.${NC} 检查依赖 / 设置参数 \t$reset_menu_tag
 ———————————————————————
- ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知 \t\t\t$boot_menu_tag ${REB}$reBootSet${NC}
- ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知 \t\t\t$login_menu_tag ${REB}$reLoginSet${NC}
- ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知 \t\t\t$shutdown_menu_tag ${REB}$reShutdownSet${NC}
- ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 ${REB}阀值${NC}: $CPUThreshold_tag \t$cpu_menu_tag ${REB}$reCPUSet${NC}
- ${GR}5.${NC} 设置 ${GR}[内存报警]${NC} Telgram 通知 ${REB}阀值${NC}: $MEMThreshold_tag \t$mem_menu_tag ${REB}$reMEMSet${NC}
- ${GR}6.${NC} 设置 ${GR}[磁盘报警]${NC} Telgram 通知 ${REB}阀值${NC}: $DISKThreshold_tag \t$disk_menu_tag ${REB}$reDISKSet${NC}
- ${GR}7.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 ${REB}阀值${NC}: $FlowThreshold_tag \t$flow_menu_tag ${REB}$reFlowSet${NC}
+ ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知 \t\t\t$boot_menu_tag
+ ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知 \t\t\t$login_menu_tag
+ ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知 \t\t\t$shutdown_menu_tag
+ ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 ${REB}阀值${NC}: $CPUThreshold_tag \t$cpu_menu_tag
+ ${GR}5.${NC} 设置 ${GR}[内存报警]${NC} Telgram 通知 ${REB}阀值${NC}: $MEMThreshold_tag \t$mem_menu_tag
+ ${GR}6.${NC} 设置 ${GR}[磁盘报警]${NC} Telgram 通知 ${REB}阀值${NC}: $DISKThreshold_tag \t$disk_menu_tag
+ ${GR}7.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 ${REB}阀值${NC}: $FlowThreshold_tag \t$flow_menu_tag
  ${GR}8.${NC} 设置 ${GR}[流量定时报告]${NC} Telgram 通知 \t\t$flowrp_menu_tag${NC}
  ${GR}9.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知 \t\t$docker_menu_tag${NC} ${REB}$reDockerSet${NC}
  ———————————————————————————————————————————————————————
@@ -2216,7 +1893,7 @@ case "$num" in
     ;;
     1)
     CheckAndCreateFolder
-    if [ "$boot_menu_tag" == "$SETTAG" ] && [ "$reBootSet" == "" ]; then
+    if [ "$boot_menu_tag" == "$SETTAG" ]; then
         UN_SetupBoot_TG
     else
         SetupBoot_TG
@@ -2224,7 +1901,7 @@ case "$num" in
     ;;
     2)
     CheckAndCreateFolder
-    if [ "$login_menu_tag" == "$SETTAG" ] && [ "$reLoginSet" == "" ]; then
+    if [ "$login_menu_tag" == "$SETTAG" ]; then
         UN_SetupLogin_TG
     else
         SetupLogin_TG
@@ -2232,7 +1909,7 @@ case "$num" in
     ;;
     3)
     CheckAndCreateFolder
-    if [ "$shutdown_menu_tag" == "$SETTAG" ] && [ "$reShutdownSet" == "" ]; then
+    if [ "$shutdown_menu_tag" == "$SETTAG" ]; then
         UN_SetupShutdown_TG
     else
         SetupShutdown_TG
@@ -2240,7 +1917,7 @@ case "$num" in
     ;;
     4)
     CheckAndCreateFolder
-    if [ "$cpu_menu_tag" == "$SETTAG" ] && [ "$reCPUSet" == "" ]; then
+    if [ "$cpu_menu_tag" == "$SETTAG" ]; then
         UN_SetupCPU_TG
     else
         SetupCPU_TG
@@ -2248,7 +1925,7 @@ case "$num" in
     ;;
     5)
     CheckAndCreateFolder
-    if [ "$mem_menu_tag" == "$SETTAG" ] && [ "$reMEMSet" == "" ]; then
+    if [ "$mem_menu_tag" == "$SETTAG" ]; then
         UN_SetupMEM_TG
     else
         SetupMEM_TG
@@ -2256,7 +1933,7 @@ case "$num" in
     ;;
     6)
     CheckAndCreateFolder
-    if [ "$disk_menu_tag" == "$SETTAG" ] && [ "$reDISKSet" == "" ]; then
+    if [ "$disk_menu_tag" == "$SETTAG" ]; then
         UN_SetupDISK_TG
     else
         SetupDISK_TG
@@ -2264,7 +1941,7 @@ case "$num" in
     ;;
     7)
     CheckAndCreateFolder
-    if [ "$flow_menu_tag" == "$SETTAG" ] && [ "$reFlowSet" == "" ]; then
+    if [ "$flow_menu_tag" == "$SETTAG" ]; then
         UN_SetupFlow_TG
     else
         SetupFlow_TG
@@ -2280,7 +1957,7 @@ case "$num" in
     ;;
     9)
     CheckAndCreateFolder
-    if [ "$docker_menu_tag" == "$SETTAG" ] && [ "$reDockerSet" == "" ]; then
+    if [ "$docker_menu_tag" == "$SETTAG" ]; then
         UN_SetupDocker_TG
     else
         SetupDocker_TG
@@ -2300,10 +1977,11 @@ case "$num" in
     SetupBoot_TG
     SetupLogin_TG
     SetupShutdown_TG
-    writeini "CPUThreshold" "70"
-    writeini "MEMThreshold" "80"
-    writeini "DISKThreshold" "80"
-    writeini "FlowThreshold" "1GB"
+    writeini "CPUThreshold" "$CPUThreshold_de"
+    writeini "MEMThreshold" "$MEMThreshold_de"
+    writeini "DISKThreshold" "$DISKThreshold_de"
+    writeini "FlowThreshold" "$FlowThreshold_de"
+    writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
     source $ConfigFile
     SetupCPU_TG
     SetupMEM_TG
