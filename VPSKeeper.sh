@@ -253,7 +253,7 @@ validate_time_format() {
 
 SetAutoUpdate() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-        if [ "$autorun" != "true" ]; then
+        if [ "$autorun" == "false" ]; then
             echo -e "输入定时更新时间, 格式如: 23:34 (即每天 ${GR}23${NC} 时 ${GR}34${NC} 分)"
             read -p "请输入定时模式  (回车默认: 01:01 ): " input_time
         else
@@ -363,7 +363,7 @@ EOF
                 crontab -l | grep -v "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &" | crontab -
             fi
             (crontab -l 2>/dev/null; echo "$cront bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &") | crontab -
-            if [ "$autorun" != "true" ]; then
+            if [ "$autorun" == "false" ]; then
                 echo -e "如果开启 ${REB}静音模式${NC} 更新时你将不会收到提醒通知, 是否要开启静音模式?"
                 read -p "请输入你的选择 回车.(默认开启)   N.不开启: " choice
             else
@@ -374,16 +374,18 @@ EOF
                     crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
                 fi
                 (crontab -l 2>/dev/null; echo "$cront_next bash $FolderPath/VPSKeeper.sh \"auto\" 2>&1 &") | crontab -
-                mute="更新时通知"
+                mute_mode="更新时通知"
             else
                 if crontab -l | grep -q "bash $FolderPath/VPSKeeper.sh"; then
                     crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
                 fi
                 (crontab -l 2>/dev/null; echo "$cront_next bash $FolderPath/VPSKeeper.sh \"auto\" \"mute\" 2>&1 &") | crontab -
-                mute="静音模式"
+                mute_mode="静音模式"
             fi
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"主机名: $(hostname)"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"通知模式: $mute" &
-            tips="$Tip 自动更新设置成功, 更新时间: 每天 $hour_ud 时 $minute_ud 分, 通知模式: ${GR}$mute${NC}"
+            if [ "$mute" == "false" ]; then
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"主机名: $(hostname)"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"通知模式: $mute_mode" &
+            fi
+            tips="$Tip 自动更新设置成功, 更新时间: 每天 $hour_ud 时 $minute_ud 分, 通知模式: ${GR}$mute_mode${NC}"
         else
             tips="$Err 输入格式不正确，请确保输入的时间格式为 'HH:MM'"
         fi
@@ -619,7 +621,7 @@ EOF
             # if [ ! "$(systemctl is-active tg_boot.service)" = "active" ]; then
                 systemctl enable tg_boot.service > /dev/null
             # fi
-            if [ "$mute" != "true" ]; then
+            if [ "$mute" == "false" ]; then
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 开机 时将收到通知." &
             fi
             # echo -e "$Inf 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
@@ -649,28 +651,22 @@ EOF
         if [ -f /etc/bash.bashrc ]; then
             if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
                 echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
-                # echo -e "$Tip 指令已经添加进 /etc/bash.bashrc 文件"
-                if [ "$mute" != "true" ]; then
-                    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知." &
-                fi
-                # echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
-                tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
-            delini "reLoginSet"
+            if [ "$mute" == "false" ]; then
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知." &
+            fi
+            tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
         elif [ -f /etc/profile ]; then
             if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/profile; then
                 echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/profile
-                # echo -e "$Tip 指令已经添加进 /etc/profile 文件"
-                if [ "$mute" != "true" ]; then
-                    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知." &
-                fi
-                # echo -e "$Inf 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
-                tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
             fi
+            if [ "$mute" == "false" ]; then
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知." &
+            fi
+            tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
         else
             tips="$Err 未检测到对应文件, 无法设置登陆通知."
         fi
-        # ShowContents "$FolderPath/tg_login.sh"
     else
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
     fi
@@ -710,7 +706,7 @@ EOF
             # if [ ! "$(systemctl is-active tg_shutdown.service)" = "active" ]; then
                 systemctl enable tg_shutdown.service > /dev/null
             # fi
-            if [ "$mute" != "true" ]; then
+            if [ "$mute" == "false" ]; then
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 关机 时将收到通知." &
             fi
             # echo -e "$Inf 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
@@ -755,7 +751,7 @@ EOF
                 (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &") | crontab -
             fi
             # ShowContents "$FolderPath/tg_docker.sh"
-            if [ "$mute" != "true" ]; then
+            if [ "$mute" == "false" ]; then
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 Docker 列表变更时将收到通知." &
             fi
             # echo -e "$Inf Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
@@ -860,7 +856,7 @@ create_progress_bar() {
 # 设置CPU报警
 SetupCPU_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-        if [ "$autorun" != "true" ]; then
+        if [ "$autorun" == "false" ]; then
             read -p "请输入 CPU 报警阀值 % (回车跳过修改): " threshold
         else
             if [ ! -z "$CPUThreshold" ]; then
@@ -1026,7 +1022,7 @@ EOF
                 (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &") | crontab -
             fi
             # ShowContents "$FolderPath/tg_cpu.sh"
-            if [ "$mute" != "true" ]; then
+            if [ "$mute" == "false" ]; then
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: CPU 报警通知⚙️"'
 '"主机名: $(hostname)"'
 '"CPU: $cpuusedOfcpus"'
@@ -1049,7 +1045,7 @@ EOF
 # 设置内存报警
 SetupMEM_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-        if [ "$autorun" != "true" ]; then
+        if [ "$autorun" == "false" ]; then
             read -p "请输入 内存阀值 % (回车跳过修改): " threshold
         else
             if [ ! -z "$MEMThreshold" ]; then
@@ -1215,7 +1211,7 @@ EOF
                 (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &") | crontab -
             fi
             # ShowContents "$FolderPath/tg_mem.sh"
-            if [ "$mute" != "true" ]; then
+            if [ "$mute" == "false" ]; then
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 内存 报警通知⚙️"'
 '"主机名: $(hostname)"'
 '"CPU: $cpuusedOfcpus"'
@@ -1238,7 +1234,7 @@ EOF
 # 设置磁盘报警
 SetupDISK_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-        if [ "$autorun" != "true" ]; then
+        if [ "$autorun" == "false" ]; then
             read -p "请输入 磁盘报警阀值 % (回车跳过修改): " threshold
         else
             if [ ! -z "$DISKThreshold" ]; then
@@ -1404,7 +1400,7 @@ EOF
                 (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &") | crontab -
             fi
             # ShowContents "$FolderPath/tg_disk.sh"
-            if [ "$mute" != "true" ]; then
+            if [ "$mute" == "false" ]; then
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 磁盘 报警通知⚙️"'
 '"主机名: $(hostname)"'
 '"CPU: $cpuusedOfcpus"'
@@ -1427,7 +1423,7 @@ EOF
 # 设置流量报警
 SetupFlow_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-        if [ "$autorun" != "true" ]; then
+        if [ "$autorun" == "false" ]; then
             read -p "请输入 流量报警阀值 数字+MB/GB/TB (回车跳过修改): " threshold
         else
             if [ ! -z "$FlowThreshold" ]; then
@@ -1470,7 +1466,7 @@ SetupFlow_TG() {
             else
                 echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
             fi
-            if [ "$autorun" != "true" ]; then
+            if [ "$autorun" == "false" ]; then
                 read -p "请设置 流量上限 数字+MB/GB/TB (回车默认: $FlowThresholdMAX_de): " threshold_max
             else
                 if [ ! -z "$FlowThresholdMAX" ]; then
@@ -1738,7 +1734,7 @@ EOF
                 (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
             fi
             # ShowContents "$FolderPath/tg_flow.sh"
-            if [ "$mute" != "true" ]; then
+            if [ "$mute" == "false" ]; then
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当流量达阀值 $FlowThreshold_U 时将收到通知." &
             fi
             # echo -e "$Inf 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
@@ -1753,7 +1749,7 @@ EOF
 
 FlowReport_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
-        if [ "$autorun" != "true" ]; then
+        if [ "$autorun" == "false" ]; then
             echo -e "输入流量报告时间, 格式如: 22:34 (即每天 ${GR}22${NC} 时 ${GR}34${NC} 分)"
             read -p "请输入定时模式  (回车默认: 00:00 ): " input_time
         else
@@ -1967,7 +1963,7 @@ EOF
                 crontab -l | grep -v "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &" | crontab -
             fi
             (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &") | crontab -
-            if [ "$mute" != "true" ]; then
+            if [ "$mute" == "false" ]; then
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "流量定时报告设置成功 ⚙️"$'\n'"主机名: $(hostname)"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分" &
             fi
             tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
@@ -2102,9 +2098,18 @@ DELFOLDER() {
 # 主程序
 CheckSys
 CheckAndCreateFolder
-if [ ! -z "$3" ]; then
-    ChatID_1=$3
+if [[ "$1" =~ ^[0-9]{5,}$ ]]; then
+    ChatID_1="$1"
+    writeini "ChatID_1" "$1"
+    # echo "已将 $1 赋值给 ChatID_1"
+elif [[ "$2" =~ ^[0-9]{5,}$ ]]; then
+    ChatID_1="$2"
+    writeini "ChatID_1" "$2"
+    # echo "已将 $2 赋值给 ChatID_1"
+elif [[ "$3" =~ ^[0-9]{5,}$ ]]; then
+    ChatID_1="$3"
     writeini "ChatID_1" "$3"
+    # echo "已将 $3 赋值给 ChatID_1"
 fi
 declare -f send_telegram_message | sed -n '/^{/,/^}/p' | sed '1d;$d' | sed 's/$1/$3/g; s/$TelgramBotToken/$1/g; s/$ChatID_1/$2/g' > $FolderPath/send_tg.sh
 chmod +x $FolderPath/send_tg.sh
@@ -2127,11 +2132,15 @@ if [ -z "$ChatID_1" ]; then
         exit 1
     fi
 fi
-if [ "$1" == "auto" ]; then
+
+if [ "$1" == "mute" ] || [ "$2" == "mute" ] || [ "$3" == "mute" ]; then
+    mute=true
+else
+    mute=false
+fi
+
+if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
     autorun=true
-    if [ "$2" == "mute" ]; then
-        mute=true
-    fi
     echo "自动模式..."
     CheckAndCreateFolder
     CheckSetup
@@ -2168,10 +2177,12 @@ if [ "$1" == "auto" ]; then
     fi
     echo "自动模式执行完成."
     exit 0
+else
+    autorun=false
 fi
-mute=""
-autorun=""
+
 tips=""
+
 while true; do
 CheckSetup
 GetVPSInfo
@@ -2318,6 +2329,7 @@ case "$num" in
     ModifyHostname
     ;;
     o|O)
+    mutebakup=$mute
     autorun=true
     mute=true
     SetupBoot_TG
@@ -2335,8 +2347,9 @@ case "$num" in
     SetupDISK_TG
     SetupFlow_TG
     FlowReport_TG
-    current_date_send=$(date +"%Y年 %m月 %d日")
-    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已成功启动以下通知 ☎️"'
+    if [ "$mutebakup" == "false" ]; then
+        current_date_send=$(date +"%Y年 %m月 %d日")
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已成功启动以下通知 ☎️"'
 '"主机名: $(hostname)"'
 '"───────────────"'
 '"开机通知"'
@@ -2348,9 +2361,12 @@ case "$num" in
 '"流量使用率超 ${FlowThreshold_U} 报警"'
 '"流量报告时间 ${TimeReport}"'
 '"───────────────"'
-'"服务器日期: \$current_date_send" &
+'"服务器日期: $current_date_send" &
+    fi
     tips="$Tip 已经启动所有通知 (除了Docker 变更通知)."
-    mute=""
+    autorun=false
+    mute=false
+    mute=$mutebakup
     ;;
     c|C)
     UN_ALL
