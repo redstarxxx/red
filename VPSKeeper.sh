@@ -2255,7 +2255,7 @@ case "$num" in
     SetupDISK_TG
     SetupFlow_TG
     FlowReport_TG
-    current_date_send=\$(date +"%Y年 %m月 %d日")
+    current_date_send=$(date +"%Y年 %m月 %d日")
     $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已成功启动以下通知 ☎️"'
 '"主机名: $(hostname)"'
 '"───────────────"'
