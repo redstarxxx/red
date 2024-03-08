@@ -19,6 +19,8 @@ MEMThreshold_de="80"
 DISKThreshold_de="80"
 FlowThreshold_de="3GB"
 FlowThresholdMAX_de="500GB"
+ReportTime_de="00:00"
+AutoUpdateTime_de="01:01"
 
 # 检测是否root用户
 if [ "$UID" -ne 0 ]; then
@@ -255,19 +257,19 @@ SetAutoUpdate() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" == "false" ]; then
             echo -e "输入定时更新时间, 格式如: 23:34 (即每天 ${GR}23${NC} 时 ${GR}34${NC} 分)"
-            read -p "请输入定时模式  (回车默认: 01:01 ): " input_time
+            read -p "请输入定时模式  (回车默认: $AutoUpdateTime_de ): " input_time
         else
-            if [ -z "$TimeUpdate" ]; then
+            if [ -z "$AutoUpdateTime" ]; then
                 input_time=""
             else
-                input_time=$TimeUpdate
+                input_time=$AutoUpdateTime
             fi
         fi
         if [ -z "$input_time" ]; then
-            input_time="01:01"
+            input_time="$AutoUpdateTime_de"
         fi
         if [ $(validate_time_format "$input_time") = "valid" ]; then
-            writeini "TimeUpdate" "$input_time"
+            writeini "AutoUpdateTime" "$input_time"
             hour_ud=${input_time%%:*}
             minute_ud=${input_time#*:}
 
@@ -286,7 +288,7 @@ SetAutoUpdate() {
             cront_next="$minute_ud_next $hour_ud_next * * *"
             hour_ud=$(printf "%02d" $hour_ud)
             minute_ud=$(printf "%02d" $minute_ud)
-            echo "自动更新时间：$hour_ud 时 $minute_ud 分。"
+            echo -e "$Tip 自动更新时间：$hour_ud 时 $minute_ud 分."
             cat <<EOF > "$FolderPath/tg_autoud.sh"
 #!/bin/bash
 
@@ -1747,28 +1749,28 @@ EOF
     fi
 }
 
-FlowReport_TG() {
+SetFlowReport_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" == "false" ]; then
-            echo -e "输入流量报告时间, 格式如: 22:34 (即每天 ${GR}22${NC} 时 ${GR}34${NC} 分)"
-            read -p "请输入定时模式  (回车默认: 00:00 ): " input_time
+            echo -e "$Tip 输入流量报告时间, 格式如: 22:34 (即每天 ${GR}22${NC} 时 ${GR}34${NC} 分)"
+            read -p "请输入定时模式  (回车默认: $ReportTime_de ): " input_time
         else
-            if [ -z "$TimeReport" ]; then
+            if [ -z "$ReportTime" ]; then
                 input_time=""
             else
-                input_time=$TimeReport
+                input_time=$ReportTime
             fi
         fi
         if [ -z "$input_time" ]; then
-            input_time="00:00"
+            input_time="$ReportTime_de"
         fi
         if [ $(validate_time_format "$input_time") = "valid" ]; then
-            writeini "TimeReport" "$input_time"
+            writeini "ReportTime" "$input_time"
             hour_rp=${input_time%%:*}
             minute_rp=${input_time#*:}
             hour_rp=$(printf "%02d" $hour_rp)
             minute_rp=$(printf "%02d" $minute_rp)
-            echo "流量报告时间: $hour_rp 时 $minute_rp 分。"
+            echo -e "$Tip 流量报告时间: $hour_rp 时 $minute_rp 分."
             cronrp="$minute_rp $hour_rp * * *"
 
             FlowThresholdMAX_U=$FlowThresholdMAX
@@ -2037,7 +2039,7 @@ UN_SetupFlow_TG() {
         tips="$Tip 流量报警 已经取消 / 删除."
     fi
 }
-UN_FlowReport_TG() {
+UN_SetFlowReport_TG() {
     if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
         pkill tg_flowrp.sh
         pkill tg_flowrp.sh
@@ -2072,7 +2074,7 @@ UN_ALL() {
     UN_SetupMEM_TG
     UN_SetupDISK_TG
     UN_SetupFlow_TG
-    UN_FlowReport_TG
+    UN_SetFlowReport_TG
     UN_SetupDocker_TG
     UN_SetAutoUpdate
     tips="$Tip 已取消 / 删除所有通知."
@@ -2093,6 +2095,51 @@ DELFOLDER() {
     else
         tips="$Err 请先取消所有通知后再删除文件夹."
     fi
+}
+
+# 一键默认设置
+OneKeydefault () {
+    mutebakup=$mute
+    autorun=true
+    mute=true
+    SetupBoot_TG
+    SetupLogin_TG
+    SetupShutdown_TG
+    writeini "CPUThreshold" "$CPUThreshold_de"
+    writeini "MEMThreshold" "$MEMThreshold_de"
+    writeini "DISKThreshold" "$DISKThreshold_de"
+    writeini "FlowThreshold" "$FlowThreshold_de"
+    writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
+    writeini "ReportTime" "$ReportTime_de"
+    writeini "AutoUpdateTime" "$AutoUpdateTime_de"
+    source $ConfigFile
+    SetupCPU_TG
+    SetupMEM_TG
+    SetupDISK_TG
+    SetupFlow_TG
+    SetFlowReport_TG
+    SetAutoUpdate
+    if [ "$mutebakup" == "false" ]; then
+        current_date_send=$(date +"%Y年 %m月 %d日")
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已成功启动以下通知 ☎️"'
+'"主机名: $(hostname)"'
+'"───────────────"'
+'"开机通知"'
+'"登陆通知"'
+'"关机通知"'
+'"CPU使用率超 ${CPUThreshold}% 报警"'
+'"内存使用率超 ${MEMThreshold}% 报警"'
+'"磁盘使用率超 ${DISKThreshold}% 报警"'
+'"流量使用率超 ${FlowThreshold_U} 报警"'
+'"流量报告时间 ${ReportTime}"'
+'"自动更新时间 ${AutoUpdateTime}"'
+'"───────────────"'
+'"服务器日期: $current_date_send" &
+    fi
+    tips="$Tip 已经启动所有通知 (除了Docker 变更通知)."
+    autorun=false
+    mute=false
+    mute=$mutebakup
 }
 
 # 主程序
@@ -2139,6 +2186,11 @@ else
     mute=false
 fi
 
+if [ "$1" == "ok" ] || [ "$2" == "ok" ] || [ "$3" == "ok" ]; then
+    OneKeydefault
+    exit 0
+fi
+
 if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
     autorun=true
     echo "自动模式..."
@@ -2167,7 +2219,7 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
         SetupFlow_TG
     fi
     if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
-        FlowReport_TG
+        SetFlowReport_TG
     fi
     if [ "$docker_menu_tag" == "$SETTAG" ]; then
         SetupDocker_TG
@@ -2308,9 +2360,9 @@ case "$num" in
     8)
     CheckAndCreateFolder
     if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
-        UN_FlowReport_TG
+        UN_SetFlowReport_TG
     else
-        FlowReport_TG
+        SetFlowReport_TG
     fi
     ;;
     9)
@@ -2329,44 +2381,7 @@ case "$num" in
     ModifyHostname
     ;;
     o|O)
-    mutebakup=$mute
-    autorun=true
-    mute=true
-    SetupBoot_TG
-    SetupLogin_TG
-    SetupShutdown_TG
-    writeini "CPUThreshold" "$CPUThreshold_de"
-    writeini "MEMThreshold" "$MEMThreshold_de"
-    writeini "DISKThreshold" "$DISKThreshold_de"
-    writeini "FlowThreshold" "$FlowThreshold_de"
-    writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
-    writeini "TimeReport" "00:00"
-    source $ConfigFile
-    SetupCPU_TG
-    SetupMEM_TG
-    SetupDISK_TG
-    SetupFlow_TG
-    FlowReport_TG
-    if [ "$mutebakup" == "false" ]; then
-        current_date_send=$(date +"%Y年 %m月 %d日")
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已成功启动以下通知 ☎️"'
-'"主机名: $(hostname)"'
-'"───────────────"'
-'"开机通知"'
-'"登陆通知"'
-'"关机通知"'
-'"CPU使用率超 ${CPUThreshold}% 报警"'
-'"内存使用率超 ${MEMThreshold}% 报警"'
-'"磁盘使用率超 ${DISKThreshold}% 报警"'
-'"流量使用率超 ${FlowThreshold_U} 报警"'
-'"流量报告时间 ${TimeReport}"'
-'"───────────────"'
-'"服务器日期: $current_date_send" &
-    fi
-    tips="$Tip 已经启动所有通知 (除了Docker 变更通知)."
-    autorun=false
-    mute=false
-    mute=$mutebakup
+    OneKeydefault
     ;;
     c|C)
     UN_ALL
