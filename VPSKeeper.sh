@@ -1960,11 +1960,13 @@ while true; do
 done
 EOF
             chmod +x $FolderPath/tg_flowrp.sh
+            pkill tg_flowrp.sh
+            pkill tg_flowrp.sh
+            nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &
             if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
                 crontab -l | grep -v "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &" | crontab -
             fi
             (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &") | crontab -
-            nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &
             if [ "$mute" != "true" ]; then
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "流量定时报告设置成功 ⚙️"$'\n'"主机名: $(hostname)"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分" &
             fi
