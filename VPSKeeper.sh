@@ -911,7 +911,10 @@ while true; do
 
         if awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             cpu_usage_ratio=1
-            cpu_usage_lessone=true
+            cpu_usage_lto=true
+        elif awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            cpu_usage_ratio=100
+            cpu_usage_gtoh=true
         fi
         cpu_usage_progress=\$(create_progress_bar "\$cpu_usage_ratio")
         return_code=\$?
@@ -919,8 +922,10 @@ while true; do
             cpu_usage_progress="🚫"
             cpu_usage_ratio=""
         else
-            if [ "\$cpu_usage_lessone" == "true" ]; then
-                cpu_usage_ratio=\${cpu_usage_ratio}%🔽
+            if [ "\$cpu_usage_lto" == "true" ]; then
+                cpu_usage_ratio="🔽"
+            elif [ "\$cpu_usage_gtoh" == "true" ]; then
+                cpu_usage_ratio="🔼"
             else
                 cpu_usage_ratio=\${cpu_usage_ratio}%
             fi
@@ -928,7 +933,10 @@ while true; do
 
         if awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             mem_use_ratio=1
-            mem_use_lessone=true
+            mem_use_lto=true
+        elif awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            mem_use_ratio=100
+            mem_usage_gtoh=true
         fi
         mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
         return_code=\$?
@@ -936,8 +944,10 @@ while true; do
             mem_use_progress="🚫"
             mem_use_ratio=""
         else
-            if [ "\$mem_use_lessone" == "true" ]; then
-                mem_use_ratio=\${mem_use_ratio}%🔽
+            if [ "\$mem_use_lto" == "true" ]; then
+                mem_use_ratio="🔽"
+            elif [ "\$mem_usage_gtoh" == "true" ]; then
+                mem_use_ratio="🔼"
             else
                 mem_use_ratio=\${mem_use_ratio}%
             fi
@@ -945,7 +955,10 @@ while true; do
 
         if awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             swap_use_ratio=1
-            swap_use_lessone=true
+            swap_use_lto=true
+        elif awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            swap_use_ratio=100
+            swap_usage_gtoh=true
         fi
         swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
         return_code=\$?
@@ -953,8 +966,10 @@ while true; do
             swap_use_progress="🚫"
             swap_use_ratio=""
         else
-            if [ "\$swap_use_lessone" == "true" ]; then
-                swap_use_ratio=\${swap_use_ratio}%🔽
+            if [ "\$swap_use_lto" == "true" ]; then
+                swap_use_ratio="🔽"
+            elif [ "\$swap_usage_gtoh" == "true" ]; then
+                swap_use_ratio="🔼"
             else
                 swap_use_ratio=\${swap_use_ratio}%
             fi
@@ -962,7 +977,10 @@ while true; do
 
         if awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             disk_use_ratio=1
-            disk_use_lessone=true
+            disk_use_lto=true
+        elif awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            disk_use_ratio=100
+            disk_usage_gtoh=true
         fi
         disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
         return_code=\$?
@@ -970,8 +988,10 @@ while true; do
             disk_use_progress="🚫"
             disk_use_ratio=""
         else
-            if [ "\$disk_use_lessone" == "true" ]; then
-                disk_use_ratio=\${disk_use_ratio}%🔽
+            if [ "\$disk_use_lto" == "true" ]; then
+                disk_use_ratio="🔽"
+            elif [ "\$disk_usage_gtoh" == "true" ]; then
+                disk_use_ratio="🔼"
             else
                 disk_use_ratio=\${disk_use_ratio}%
             fi
@@ -985,8 +1005,8 @@ while true; do
 '"交换: \$swap_use_progress \$swap_use_ratio"'
 '"磁盘: \$disk_use_progress \$disk_use_ratio"'
 '"使用率排行:"'
-'"🧨  \$cpu_h1"'
-'"🧨  \$cpu_h2"'
+'"🟠  \$cpu_h1"'
+'"🟠  \$cpu_h2"'
 '"检测工具: $CPUTools 休眠: \$((SleepTime / 60))分钟"'
 '"服务器日期: \$current_date_send"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
@@ -1080,7 +1100,10 @@ while true; do
 
         if awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             cpu_usage_ratio=1
-            cpu_usage_lessone=true
+            cpu_usage_lto=true
+        elif awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            cpu_usage_ratio=100
+            cpu_usage_gtoh=true
         fi
         cpu_usage_progress=\$(create_progress_bar "\$cpu_usage_ratio")
         return_code=\$?
@@ -1088,8 +1111,10 @@ while true; do
             cpu_usage_progress="🚫"
             cpu_usage_ratio=""
         else
-            if [ "\$cpu_usage_lessone" == "true" ]; then
-                cpu_usage_ratio=\${cpu_usage_ratio}%🔽
+            if [ "\$cpu_usage_lto" == "true" ]; then
+                cpu_usage_ratio="🔽"
+            elif [ "\$cpu_usage_gtoh" == "true" ]; then
+                cpu_usage_ratio="🔼"
             else
                 cpu_usage_ratio=\${cpu_usage_ratio}%
             fi
@@ -1097,7 +1122,10 @@ while true; do
 
         if awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             mem_use_ratio=1
-            mem_use_lessone=true
+            mem_use_lto=true
+        elif awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            mem_use_ratio=100
+            mem_usage_gtoh=true
         fi
         mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
         return_code=\$?
@@ -1105,8 +1133,10 @@ while true; do
             mem_use_progress="🚫"
             mem_use_ratio=""
         else
-            if [ "\$mem_use_lessone" == "true" ]; then
-                mem_use_ratio=\${mem_use_ratio}%🔽
+            if [ "\$mem_use_lto" == "true" ]; then
+                mem_use_ratio="🔽"
+            elif [ "\$mem_usage_gtoh" == "true" ]; then
+                mem_use_ratio="🔼"
             else
                 mem_use_ratio=\${mem_use_ratio}%
             fi
@@ -1114,7 +1144,10 @@ while true; do
 
         if awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             swap_use_ratio=1
-            swap_use_lessone=true
+            swap_use_lto=true
+        elif awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            swap_use_ratio=100
+            swap_usage_gtoh=true
         fi
         swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
         return_code=\$?
@@ -1122,8 +1155,10 @@ while true; do
             swap_use_progress="🚫"
             swap_use_ratio=""
         else
-            if [ "\$swap_use_lessone" == "true" ]; then
-                swap_use_ratio=\${swap_use_ratio}%🔽
+            if [ "\$swap_use_lto" == "true" ]; then
+                swap_use_ratio="🔽"
+            elif [ "\$swap_usage_gtoh" == "true" ]; then
+                swap_use_ratio="🔼"
             else
                 swap_use_ratio=\${swap_use_ratio}%
             fi
@@ -1131,7 +1166,10 @@ while true; do
 
         if awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             disk_use_ratio=1
-            disk_use_lessone=true
+            disk_use_lto=true
+        elif awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            disk_use_ratio=100
+            disk_usage_gtoh=true
         fi
         disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
         return_code=\$?
@@ -1139,8 +1177,10 @@ while true; do
             disk_use_progress="🚫"
             disk_use_ratio=""
         else
-            if [ "\$disk_use_lessone" == "true" ]; then
-                disk_use_ratio=\${disk_use_ratio}%🔽
+            if [ "\$disk_use_lto" == "true" ]; then
+                disk_use_ratio="🔽"
+            elif [ "\$disk_usage_gtoh" == "true" ]; then
+                disk_use_ratio="🔼"
             else
                 disk_use_ratio=\${disk_use_ratio}%
             fi
@@ -1154,8 +1194,8 @@ while true; do
 '"交换: \$swap_use_progress \$swap_use_ratio"'
 '"磁盘: \$disk_use_progress \$disk_use_ratio"'
 '"使用率排行:"'
-'"🧨  \$cpu_h1"'
-'"🧨  \$cpu_h2"'
+'"🟠  \$cpu_h1"'
+'"🟠  \$cpu_h2"'
 '"检测工具: $CPUTools 休眠: \$((SleepTime / 60))分钟"'
 '"服务器日期: \$current_date_send"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
@@ -1249,7 +1289,10 @@ while true; do
 
         if awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             cpu_usage_ratio=1
-            cpu_usage_lessone=true
+            cpu_usage_lto=true
+        elif awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            cpu_usage_ratio=100
+            cpu_usage_gtoh=true
         fi
         cpu_usage_progress=\$(create_progress_bar "\$cpu_usage_ratio")
         return_code=\$?
@@ -1257,8 +1300,10 @@ while true; do
             cpu_usage_progress="🚫"
             cpu_usage_ratio=""
         else
-            if [ "\$cpu_usage_lessone" == "true" ]; then
-                cpu_usage_ratio=\${cpu_usage_ratio}%🔽
+            if [ "\$cpu_usage_lto" == "true" ]; then
+                cpu_usage_ratio="🔽"
+            elif [ "\$cpu_usage_gtoh" == "true" ]; then
+                cpu_usage_ratio="🔼"
             else
                 cpu_usage_ratio=\${cpu_usage_ratio}%
             fi
@@ -1266,7 +1311,10 @@ while true; do
 
         if awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             mem_use_ratio=1
-            mem_use_lessone=true
+            mem_use_lto=true
+        elif awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            mem_use_ratio=100
+            mem_usage_gtoh=true
         fi
         mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
         return_code=\$?
@@ -1274,8 +1322,10 @@ while true; do
             mem_use_progress="🚫"
             mem_use_ratio=""
         else
-            if [ "\$mem_use_lessone" == "true" ]; then
-                mem_use_ratio=\${mem_use_ratio}%🔽
+            if [ "\$mem_use_lto" == "true" ]; then
+                mem_use_ratio="🔽"
+            elif [ "\$mem_usage_gtoh" == "true" ]; then
+                mem_use_ratio="🔼"
             else
                 mem_use_ratio=\${mem_use_ratio}%
             fi
@@ -1283,7 +1333,10 @@ while true; do
 
         if awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             swap_use_ratio=1
-            swap_use_lessone=true
+            swap_use_lto=true
+        elif awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            swap_use_ratio=100
+            swap_usage_gtoh=true
         fi
         swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
         return_code=\$?
@@ -1291,8 +1344,10 @@ while true; do
             swap_use_progress="🚫"
             swap_use_ratio=""
         else
-            if [ "\$swap_use_lessone" == "true" ]; then
-                swap_use_ratio=\${swap_use_ratio}%🔽
+            if [ "\$swap_use_lto" == "true" ]; then
+                swap_use_ratio="🔽"
+            elif [ "\$swap_usage_gtoh" == "true" ]; then
+                swap_use_ratio="🔼"
             else
                 swap_use_ratio=\${swap_use_ratio}%
             fi
@@ -1300,7 +1355,10 @@ while true; do
 
         if awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             disk_use_ratio=1
-            disk_use_lessone=true
+            disk_use_lto=true
+        elif awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            disk_use_ratio=100
+            disk_usage_gtoh=true
         fi
         disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
         return_code=\$?
@@ -1308,8 +1366,10 @@ while true; do
             disk_use_progress="🚫"
             disk_use_ratio=""
         else
-            if [ "\$disk_use_lessone" == "true" ]; then
-                disk_use_ratio=\${disk_use_ratio}%🔽
+            if [ "\$disk_use_lto" == "true" ]; then
+                disk_use_ratio="🔽"
+            elif [ "\$disk_usage_gtoh" == "true" ]; then
+                disk_use_ratio="🔼"
             else
                 disk_use_ratio=\${disk_use_ratio}%
             fi
@@ -1323,8 +1383,8 @@ while true; do
 '"交换: \$swap_use_progress \$swap_use_ratio"'
 '"磁盘: \$disk_use_progress \$disk_use_ratio"'
 '"使用率排行:"'
-'"🧨  \$cpu_h1"'
-'"🧨  \$cpu_h2"'
+'"🟠  \$cpu_h1"'
+'"🟠  \$cpu_h2"'
 '"检测工具: $CPUTools 休眠: \$((SleepTime / 60))分钟"'
 '"服务器日期: \$current_date_send"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
@@ -1524,7 +1584,10 @@ while true; do
         all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
         if awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_rx_ratio=1
-            all_rx_lessone=true
+            all_rx_lto=true
+        elif awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            all_rx_ratio=100
+            all_rx_gtoh=true
         fi
         all_rx_progress=\$(create_progress_bar "\$all_rx_ratio")
         echo "all_rx_ratio: \$all_rx_ratio"
@@ -1533,8 +1596,10 @@ while true; do
             all_rx_progress="🚫"
             all_rx_ratio=""
         else
-            if [ "\$all_rx_lessone" == "true" ]; then
-                all_rx_ratio=\${all_rx_ratio}%🔽
+            if [ "\$all_rx_lto" == "true" ]; then
+                all_rx_ratio="🔽"
+            elif [ "\$all_rx_gtoh" == "true" ]; then
+                all_rx_ratio="🔼"
             else
                 all_rx_ratio=\${all_rx_ratio}%
             fi
@@ -1555,7 +1620,10 @@ while true; do
         all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
         if awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_tx_ratio=1
-            all_tx_lessone=true
+            all_tx_lto=true
+        elif awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            all_tx_ratio=100
+            all_tx_gtoh=true
         fi
         all_tx_progress=\$(create_progress_bar "\$all_tx_ratio")
         echo "all_tx_ratio: \$all_tx_ratio"
@@ -1564,8 +1632,10 @@ while true; do
             all_tx_progress="🚫"
             all_tx_ratio=""
         else
-            if [ "\$all_tx_lessone" == "true" ]; then
-                all_tx_ratio=\${all_tx_ratio}%🔽
+            if [ "\$all_tx_lto" == "true" ]; then
+                all_tx_ratio="🔽"
+            elif [ "\$all_tx_gtoh" == "true" ]; then
+                all_tx_ratio="🔼"
             else
                 all_tx_ratio=\${all_tx_ratio}%
             fi
@@ -1751,7 +1821,10 @@ while true; do
         all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
         if awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_rx_ratio=1
-            all_rx_lessone=true
+            all_rx_lto=true
+        elif awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            all_rx_ratio=100
+            all_rx_gtoh=true
         fi
         all_rx_progress=\$(create_progress_bar "\$all_rx_ratio")
         echo "all_rx_ratio: \$all_rx_ratio"
@@ -1760,8 +1833,10 @@ while true; do
             all_rx_progress="🚫"
             all_rx_ratio=""
         else
-            if [ "\$all_rx_lessone" == "true" ]; then
-                all_rx_ratio=\${all_rx_ratio}%🔽
+            if [ "\$all_rx_lto" == "true" ]; then
+                all_rx_ratio="🔽"
+            elif [ "\$all_rx_gtoh" == "true" ]; then
+                all_rx_ratio="🔼"
             else
                 all_rx_ratio=\${all_rx_ratio}%
             fi
@@ -1783,7 +1858,10 @@ while true; do
         all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
         if awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_tx_ratio=1
-            all_tx_lessone=true
+            all_tx_lto=true
+        elif awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio > 100) }'; then
+            all_tx_ratio=100
+            all_tx_gtoh=true
         fi
         all_tx_progress=\$(create_progress_bar "\$all_tx_ratio")
         echo "all_tx_ratio: \$all_tx_ratio"
@@ -1792,8 +1870,10 @@ while true; do
             all_tx_progress="🚫"
             all_tx_ratio=""
         else
-            if [ "\$all_tx_lessone" == "true" ]; then
-                all_tx_ratio=\${all_tx_ratio}%🔽
+            if [ "\$all_tx_lto" == "true" ]; then
+                all_tx_ratio="🔽"
+            elif [ "\$all_tx_gtoh" == "true" ]; then
+                all_tx_ratio="🔼"
             else
                 all_tx_ratio=\${all_tx_ratio}%
             fi
