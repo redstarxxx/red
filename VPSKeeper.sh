@@ -2234,8 +2234,6 @@ case "$num" in
     ;;
     h|H)
     ModifyHostname
-    tips=""
-    Pause
     ;;
     o|O)
     autorun=true
