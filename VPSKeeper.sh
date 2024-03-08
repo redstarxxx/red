@@ -861,7 +861,7 @@ create_progress_bar() {
 SetupCPU_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" != "true" ]; then
-            read -p "请输入 CPU 报警阀值 (回车跳过修改): " threshold
+            read -p "请输入 CPU 报警阀值 % (回车跳过修改): " threshold
         else
             if [ ! -z "$CPUThreshold" ]; then
                 threshold=$CPUThreshold
@@ -1030,7 +1030,7 @@ EOF
 SetupMEM_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" != "true" ]; then
-            read -p "请输入 内存阀值 (回车跳过修改): " threshold
+            read -p "请输入 内存阀值 % (回车跳过修改): " threshold
         else
             if [ ! -z "$MEMThreshold" ]; then
                 threshold=$MEMThreshold
@@ -1199,7 +1199,7 @@ EOF
 SetupDISK_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" != "true" ]; then
-            read -p "请输入 磁盘报警阀值 (回车跳过修改): " threshold
+            read -p "请输入 磁盘报警阀值 % (回车跳过修改): " threshold
         else
             if [ ! -z "$DISKThreshold" ]; then
                 threshold=$DISKThreshold
@@ -1368,7 +1368,7 @@ EOF
 SetupFlow_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" != "true" ]; then
-            read -p "请输入 流量报警阀值 (回车跳过修改): " threshold
+            read -p "请输入 流量报警阀值 数字+MB/GB/TB (回车跳过修改): " threshold
         else
             if [ ! -z "$FlowThreshold" ]; then
                 threshold=$FlowThreshold
@@ -1411,7 +1411,7 @@ SetupFlow_TG() {
                 echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
             fi
             if [ "$autorun" != "true" ]; then
-                read -p "请设置 流量上限 (回车默认: $FlowThresholdMAX_de): " threshold_max
+                read -p "请设置 流量上限 数字+MB/GB/TB (回车默认: $FlowThresholdMAX_de): " threshold_max
             else
                 if [ ! -z "$FlowThresholdMAX" ]; then
                     threshold=$FlowThresholdMAX
@@ -2238,6 +2238,7 @@ case "$num" in
     Pause
     ;;
     o|O)
+    autorun=true
     mute=true
     SetupBoot_TG
     SetupLogin_TG
@@ -2247,21 +2248,27 @@ case "$num" in
     writeini "DISKThreshold" "$DISKThreshold_de"
     writeini "FlowThreshold" "$FlowThreshold_de"
     writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
+    writeini "TimeReport" "00:00"
     source $ConfigFile
     SetupCPU_TG
     SetupMEM_TG
     SetupDISK_TG
     SetupFlow_TG
+    FlowReport_TG
+    current_date_send=\$(date +"%Y年 %m月 %d日")
     $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已成功启动以下通知 ☎️"'
 '"主机名: $(hostname)"'
-'"——————————————"'
+'"───────────────"'
 '"开机通知"'
 '"登陆通知"'
 '"关机通知"'
 '"CPU使用率超 ${CPUThreshold}% 报警"'
 '"内存使用率超 ${MEMThreshold}% 报警"'
 '"磁盘使用率超 ${DISKThreshold}% 报警"'
-'"流量使用率超 $FlowThreshold_U 报警" &
+'"流量使用率超 ${FlowThreshold_U} 报警"'
+'"流量报告时间 ${TimeReport}"'
+'"───────────────"'
+'"服务器日期: \$current_date_send" &
     tips="$Tip 已经启动所有通知 (除了Docker 变更通知)."
     mute=""
     ;;
