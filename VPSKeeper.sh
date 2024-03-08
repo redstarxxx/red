@@ -17,8 +17,8 @@ CPUTools_de="top"
 CPUThreshold_de="80"
 MEMThreshold_de="80"
 DISKThreshold_de="80"
-FlowThreshold_de="2GB"
-FlowThresholdMAX_de="200GB"
+FlowThreshold_de="3GB"
+FlowThresholdMAX_de="500GB"
 
 # 检测是否root用户
 if [ "$UID" -ne 0 ]; then
