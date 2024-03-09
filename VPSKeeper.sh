@@ -223,7 +223,7 @@ CheckRely() {
     done
     if [ ${#missing_dependencies[@]} -gt 0 ]; then
         echo -e "$Tip 以下依赖未安装: ${missing_dependencies[*]}"
-        read -p "是否要安装依赖 Y/其它 : " yorn
+        read -e -p "是否要安装依赖 Y/其它 : " yorn
         if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
             echo "正在安装缺失的依赖..."
             if [ -x "$(command -v apt)" ]; then
@@ -257,7 +257,7 @@ SetAutoUpdate() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" == "false" ]; then
             echo -e "输入定时更新时间, 格式如: 23:34 (即每天 ${GR}23${NC} 时 ${GR}34${NC} 分)"
-            read -p "请输入定时模式  (回车默认: $AutoUpdateTime_de ): " input_time
+            read -e -p "请输入定时模式  (回车默认: $AutoUpdateTime_de ): " input_time
         else
             if [ -z "$AutoUpdateTime" ]; then
                 input_time=""
@@ -367,7 +367,7 @@ EOF
             (crontab -l 2>/dev/null; echo "$cront bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &") | crontab -
             if [ "$autorun" == "false" ]; then
                 echo -e "如果开启 ${REB}静音模式${NC} 更新时你将不会收到提醒通知, 是否要开启静音模式?"
-                read -p "请输入你的选择 回车.(默认开启)   N.不开启: " choice
+                read -e -p "请输入你的选择 回车.(默认开启)   N.不开启: " choice
             else
                 choice=""
             fi
@@ -433,7 +433,7 @@ SetupIniFile() {
         divline
         echo -e "${GR}1${NC}.BOT Token ${GR}2${NC}.CHAT ID ${GR}3${NC}.CPU检测工具 (默认使用 top) ${GR}回车${NC}.退出设置"
         divline
-        read -p "请输入你的选择: " choice
+        read -e -p "请输入你的选择: " choice
         case $choice in
             1)
                 # 设置BOT Token
@@ -445,7 +445,7 @@ SetupIniFile() {
                     echo -e "当前${GR}[BOT Token]${NC}: 空"
                 fi
                 divline
-                read -p "请输入 BOT Token (回车跳过修改 / 输入 R 使用默认机器人): " bottoken
+                read -e -p "请输入 BOT Token (回车跳过修改 / 输入 R 使用默认机器人): " bottoken
                 if [ "$bottoken" == "r" ] || [ "$bottoken" == "R" ]; then
                     writeini "TelgramBotToken" "7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
                     UN_ALL
@@ -472,7 +472,7 @@ SetupIniFile() {
                     echo -e "当前${GR}[CHAT ID]${NC}: 空"
                 fi
                 divline
-                read -p "请输入 Chat ID (回车跳过修改): " cahtid
+                read -e -p "请输入 Chat ID (回车跳过修改): " cahtid
                 if [ ! -z "$cahtid" ]; then
                     if [[ $cahtid =~ ^[0-9]+$ ]]; then
                         writeini "ChatID_1" "$cahtid"
@@ -497,7 +497,7 @@ SetupIniFile() {
                     echo -e "当前${GR}[CPU 检测工具]${NC}: 空"
                 fi
                 divline
-                read -p "请输入序号 (默认采用 1.top / 回车跳过修改): " choice
+                read -e -p "请输入序号 (默认采用 1.top / 回车跳过修改): " choice
                 if [ ! -z "$choice" ]; then
                     if [ "$choice" == "1" ]; then
                         CPUTools="top"
@@ -576,7 +576,7 @@ ModifyHostname() {
     if command -v hostnamectl &>/dev/null; then
         # 修改 hosts 和 hostname
         echo "当前 Hostname : $(hostname)"
-        read -p "请输入要修改的 Hostname (回车跳过): " name
+        read -e -p "请输入要修改的 Hostname (回车跳过): " name
         if [[ ! -z "${name}" ]]; then
             echo "修改 hosts 和 hostname..."
             sed -i "s/$(hostname)/$name/g" /etc/hosts
@@ -859,7 +859,7 @@ create_progress_bar() {
 SetupCPU_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" == "false" ]; then
-            read -p "请输入 CPU 报警阀值 % (回车跳过修改): " threshold
+            read -e -p "请输入 CPU 报警阀值 % (回车跳过修改): " threshold
         else
             if [ ! -z "$CPUThreshold" ]; then
                 threshold=$CPUThreshold
@@ -1048,7 +1048,7 @@ EOF
 SetupMEM_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" == "false" ]; then
-            read -p "请输入 内存阀值 % (回车跳过修改): " threshold
+            read -e -p "请输入 内存阀值 % (回车跳过修改): " threshold
         else
             if [ ! -z "$MEMThreshold" ]; then
                 threshold=$MEMThreshold
@@ -1237,7 +1237,7 @@ EOF
 SetupDISK_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" == "false" ]; then
-            read -p "请输入 磁盘报警阀值 % (回车跳过修改): " threshold
+            read -e -p "请输入 磁盘报警阀值 % (回车跳过修改): " threshold
         else
             if [ ! -z "$DISKThreshold" ]; then
                 threshold=$DISKThreshold
@@ -1426,7 +1426,7 @@ EOF
 SetupFlow_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" == "false" ]; then
-            read -p "请输入 流量报警阀值 数字+MB/GB/TB (回车跳过修改): " threshold
+            read -e -p "请输入 流量报警阀值 数字+MB/GB/TB (回车跳过修改): " threshold
         else
             if [ ! -z "$FlowThreshold" ]; then
                 threshold=$FlowThreshold
@@ -1469,7 +1469,7 @@ SetupFlow_TG() {
                 echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
             fi
             if [ "$autorun" == "false" ]; then
-                read -p "请设置 流量上限 数字+MB/GB/TB (回车默认: $FlowThresholdMAX_de): " threshold_max
+                read -e -p "请设置 流量上限 数字+MB/GB/TB (回车默认: $FlowThresholdMAX_de): " threshold_max
             else
                 if [ ! -z "$FlowThresholdMAX" ]; then
                     threshold=$FlowThresholdMAX
@@ -1753,7 +1753,7 @@ SetFlowReport_TG() {
     if [[ ! -z "${TelgramBotToken}" &&  ! -z "${ChatID_1}" ]]; then
         if [ "$autorun" == "false" ]; then
             echo -e "$Tip 输入流量报告时间, 格式如: 22:34 (即每天 ${GR}22${NC} 时 ${GR}34${NC} 分)"
-            read -p "请输入定时模式  (回车默认: $ReportTime_de ): " input_time
+            read -e -p "请输入定时模式  (回车默认: $ReportTime_de ): " input_time
         else
             if [ -z "$ReportTime" ]; then
                 input_time=""
@@ -2083,7 +2083,7 @@ UN_ALL() {
 DELFOLDER() {
     if [ "$boot_menu_tag" == "$UNSETTAG" ] && [ "$login_menu_tag" == "$UNSETTAG" ] && [ "$shutdown_menu_tag" == "$UNSETTAG" ] && [ "$cpu_menu_tag" == "$UNSETTAG" ] && [ "$mem_menu_tag" == "$UNSETTAG" ] && [ "$disk_menu_tag" == "$UNSETTAG" ] && [ "$flow_menu_tag" == "$UNSETTAG" ] && [ "$docker_menu_tag" == "$UNSETTAG" ]; then
         if [ -d "$FolderPath" ]; then
-            read -p "是否要删除 $FolderPath 文件夹? (建议保留) Y/其它 : " yorn
+            read -e -p "是否要删除 $FolderPath 文件夹? (建议保留) Y/其它 : " yorn
             if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
                 rm -rf $FolderPath
                 folder_menu_tag=""
@@ -2164,7 +2164,7 @@ if [ -z "$ChatID_1" ]; then
     CLS
     echo -e "$Tip 在使用前请先设置 [${GR}CHAT ID${NC}] 用以接收通知信息."
     echo -e "$Tip [${REB}CHAT ID${NC}] 获取方法: 在 Telgram 中添加机器人 @userinfobot, 点击或输入: /start"
-    read -p "请输入你的 [CHAT ID] : " cahtid
+    read -e -p "请输入你的 [CHAT ID] : " cahtid
     if [ ! -z "$cahtid" ]; then
         if [[ $cahtid =~ ^[0-9]+$ ]]; then
             writeini "ChatID_1" "$cahtid"
