@@ -599,7 +599,7 @@ SetupBoot_TG() {
 
 current_date_send=\$(date +"%Y.%m.%d %T")
 message="\$(hostname) 已启动❗️"'
-'"服务器日期: \$current_date_send"
+'"服务器时间: \$current_date_send"
 
 curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message"
@@ -644,7 +644,7 @@ SetupLogin_TG() {
 
 current_date_send=\$(date +"%Y.%m.%d %T")
 message="\$(hostname) \$(id -nu) 用户登陆成功❗️"'
-'"服务器日期: \$current_date_send"
+'"服务器时间: \$current_date_send"
 
 curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message"
@@ -683,7 +683,7 @@ SetupShutdown_TG() {
 
 current_date_send=\$(date +"%Y.%m.%d %T")
 message="\$(hostname) \$(id -nu) 正在执行关机...❗️"'
-'"服务器日期: \$current_date_send"
+'"服务器时间: \$current_date_send"
 
 curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message"
@@ -738,7 +738,7 @@ while true; do
         message="DOCKER 列表变更❗️"'
 '"───────────────"'
 '"\$new_message"'
-'"服务器日期: \$current_date_send"
+'"服务器时间: \$current_date_send"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message"
     fi
@@ -1006,7 +1006,7 @@ while true; do
 '"🟠  \$cpu_h1"'
 '"🟠  \$cpu_h2"'
 '"检测工具: $CPUTools 休眠: \$((SleepTime / 60))分钟"'
-'"服务器日期: \$current_date_send"
+'"服务器时间: \$current_date_send"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
         echo "报警信息已发出..."
@@ -1195,7 +1195,7 @@ while true; do
 '"🟠  \$cpu_h1"'
 '"🟠  \$cpu_h2"'
 '"检测工具: $CPUTools 休眠: \$((SleepTime / 60))分钟"'
-'"服务器日期: \$current_date_send"
+'"服务器时间: \$current_date_send"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
         echo "报警信息已发出..."
@@ -1384,7 +1384,7 @@ while true; do
 '"🟠  \$cpu_h1"'
 '"🟠  \$cpu_h2"'
 '"检测工具: $CPUTools 休眠: \$((SleepTime / 60))分钟"'
-'"服务器日期: \$current_date_send"
+'"服务器时间: \$current_date_send"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
         echo "报警信息已发出..."
@@ -1709,7 +1709,7 @@ while true; do
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
 '"网络⬇️: \${rx_speed}  网络⬆️: \${tx_speed}"'
-'"服务器日期: \$current_date_send"
+'"服务器时间: \$current_date_send"
             curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
                 -d chat_id="$ChatID_1" -d text="\$message"
             echo "报警信息已发出..."
@@ -1936,7 +1936,7 @@ while true; do
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
-'"服务器日期: \$current_date_send"
+'"服务器时间: \$current_date_send"
             curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
                 -d chat_id="$ChatID_1" -d text="\$message"
 
@@ -2134,7 +2134,7 @@ OneKeydefault () {
 '"流量报告时间 ${ReportTime}"'
 '"自动更新时间 ${AutoUpdateTime}"'
 '"───────────────"'
-'"服务器日期: $current_date_send" &
+'"服务器时间: $current_date_send" &
     fi
     tips="$Tip 已经启动所有通知 (除了Docker 变更通知)."
     autorun=false
