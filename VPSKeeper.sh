@@ -2077,6 +2077,12 @@ UN_ALL() {
     UN_SetFlowReport_TG
     UN_SetupDocker_TG
     UN_SetAutoUpdate
+    pkill -f "tg_"
+    sleep 1
+    if pgrep -f 'tg_' > /dev/null; then
+    pkill -9 -f 'tg_'
+    fi
+    crontab -l | grep -v '/tg_' | crontab -
     tips="$Tip 已取消 / 删除所有通知."
 }
 
@@ -2197,6 +2203,8 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
     CheckAndCreateFolder
     CheckSetup
     GetVPSInfo
+    UN_ALL
+    sleep 1
     if [ "$boot_menu_tag" == "$SETTAG" ]; then
         SetupBoot_TG
     fi
