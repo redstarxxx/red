@@ -597,7 +597,7 @@ SetupBoot_TG() {
             cat <<EOF > $FolderPath/tg_boot.sh
 #!/bin/bash
 
-current_date_send=\$(date +"%Y年 %m月 %d日")
+current_date_send=\$(date +"%Y.%m.%d %T")
 message="\$(hostname) 已启动❗️"'
 '"服务器日期: \$current_date_send"
 
@@ -642,7 +642,7 @@ SetupLogin_TG() {
         cat <<EOF > $FolderPath/tg_login.sh
 #!/bin/bash
 
-current_date_send=\$(date +"%Y年 %m月 %d日")
+current_date_send=\$(date +"%Y.%m.%d %T")
 message="\$(hostname) \$(id -nu) 用户登陆成功❗️"'
 '"服务器日期: \$current_date_send"
 
@@ -681,7 +681,7 @@ SetupShutdown_TG() {
             cat <<EOF > $FolderPath/tg_shutdown.sh
 #!/bin/bash
 
-current_date_send=\$(date +"%Y年 %m月 %d日")
+current_date_send=\$(date +"%Y.%m.%d %T")
 message="\$(hostname) \$(id -nu) 正在执行关机...❗️"'
 '"服务器日期: \$current_date_send"
 
@@ -733,7 +733,7 @@ while true; do
     # new_message=\$(docker ps --format '{{.Names}}' | tr '\n' "\n" | sed 's/|$//')
     new_message=\$(docker ps --format '{{.Names}}' | awk '{print NR". " \$0}')
     if [ "\$new_message" != "\$old_message" ]; then
-        current_date_send=\$(date +"%Y年 %m月 %d日")
+        current_date_send=\$(date +"%Y.%m.%d %T")
         old_message=\$new_message
         message="DOCKER 列表变更❗️"'
 '"───────────────"'
@@ -995,7 +995,7 @@ while true; do
             fi
         fi
 
-        current_date_send=\$(date +"%Y年 %m月 %d日")
+        current_date_send=\$(date +"%Y.%m.%d %T")
         message="CPU 使用率超过阀值 > $CPUThreshold%❗️"'
 '"主机名: \$(hostname)"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
@@ -1184,7 +1184,7 @@ while true; do
             fi
         fi
 
-        current_date_send=\$(date +"%Y年 %m月 %d日")
+        current_date_send=\$(date +"%Y.%m.%d %T")
         message="内存 使用率超过阀值 > $MEMThreshold%❗️"'
 '"主机名: \$(hostname)"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
@@ -1373,7 +1373,7 @@ while true; do
             fi
         fi
 
-        current_date_send=\$(date +"%Y年 %m月 %d日")
+        current_date_send=\$(date +"%Y.%m.%d %T")
         message="磁盘 使用率超过阀值 > $DISKThreshold%❗️"'
 '"主机名: \$(hostname)"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
@@ -1699,7 +1699,7 @@ while true; do
             rx_speed=\$(awk "BEGIN { speed = \$rx_diff_tt / (\$tt * 1024); if (speed > 1023) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
             tx_speed=\$(awk "BEGIN { speed = \$tx_diff_tt / (\$tt * 1024); if (speed > 1023) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
 
-            current_date_send=\$(date +"%Y年 %m月 %d日")
+            current_date_send=\$(date +"%Y.%m.%d %T")
             message="流量已达到阀值🧭 > ${FlowThreshold_U}❗️"'
 '"主机名: \$(hostname) 端口: \$sanitized_interface"'
 '"已接收: \${rx_mb}  已发送: \${tx_mb}"'
@@ -1927,7 +1927,7 @@ while true; do
                 diff_tx_mb="\${diff_tx_mb}MB"
             fi
 
-            current_date_send=\$(date +"%Y年 %m月 %d日")
+            current_date_send=\$(date +"%Y.%m.%d %T")
             message="过去24小时🌞流量报告 📈"'
 '"主机名: \$(hostname) 端口: \$sanitized_interface"'
 '"🌞接收: \${diff_rx_mb}  🌞发送: \${diff_tx_mb}"'
@@ -2120,7 +2120,7 @@ OneKeydefault () {
     SetFlowReport_TG
     SetAutoUpdate
     if [ "$mutebakup" == "false" ]; then
-        current_date_send=$(date +"%Y年 %m月 %d日")
+        current_date_send=$(date +"%Y.%m.%d %T")
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已成功启动以下通知 ☎️"'
 '"主机名: $(hostname)"'
 '"───────────────"'
