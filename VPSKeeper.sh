@@ -1406,6 +1406,12 @@ EOF
     tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
 }
 
+# 删除变量后面的B
+Remove_B() {
+    local var="$1"
+    echo "${var%B}"
+}
+
 # 设置流量报警
 SetupFlow_TG() {
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
@@ -1504,7 +1510,7 @@ SetupFlow_TG() {
         echo -e "$Tip 输入为空, 默认最大流量上限为: $FlowThresholdMAX_de"
     fi
     source $ConfigFile
-    FlowThreshold_U=$FlowThreshold
+    FlowThreshold_UB=$FlowThreshold
     if [[ $FlowThreshold == *MB ]]; then
         FlowThreshold=${FlowThreshold%MB}
         FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value }')
@@ -1515,7 +1521,8 @@ SetupFlow_TG() {
         FlowThreshold=${FlowThreshold%TB}
         FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value * 1024 * 1024 }')
     fi
-    FlowThresholdMAX_U=$FlowThresholdMAX
+    FlowThresholdMAX_UB=$FlowThresholdMAX
+    FlowThresholdMAX_U=$(Remove_B "$FlowThresholdMAX_UB")
     if [[ $FlowThresholdMAX == *MB ]]; then
         FlowThresholdMAX=${FlowThresholdMAX%MB}
         FlowThresholdMAX=$(awk -v value=$FlowThresholdMAX 'BEGIN { printf "%.1f", value }')
@@ -1530,6 +1537,7 @@ SetupFlow_TG() {
 #!/bin/bash
 
 $(declare -f create_progress_bar)
+$(declare -f Remove_B)
 
 tt=10
 
@@ -1683,7 +1691,15 @@ while true; do
             tx_speed=\$(awk "BEGIN { speed = \$tx_diff_tt / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
 
             current_date_send=\$(date +"%Y.%m.%d %T")
-            message="流量已达到阀值🧭 > ${FlowThreshold_U}❗️"'
+
+            rx_mb=\$(Remove_B "\$rx_mb")
+            tx_mb=\$(Remove_B "\$tx_mb")
+            all_rx_mb=\$(Remove_B "\$all_rx_mb")
+            all_tx_mb=\$(Remove_B "\$all_tx_mb")
+            rx_speed=\$(Remove_B "\$rx_speed")
+            tx_speed=\$(Remove_B "\$tx_speed")
+
+            message="流量已达到阀值🧭 > ${FlowThreshold_UB}❗️"'
 '"主机名: \$(hostname) 端口: \$sanitized_interface"'
 '"已接收: \${rx_mb}  已发送: \${tx_mb}"'
 '"───────────────"'
@@ -1722,9 +1738,23 @@ EOF
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
     fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当流量达阀值 $FlowThreshold_U 时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当流量达阀值 $FlowThreshold_UB 时将收到通知." &
     fi
-    tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_U 时将收到通知."
+    tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_UB 时将收到通知."
+}
+
+Bytes_MBtoGBKB() {
+    bitvalue="$1"
+    # if [ "$bitvalue" -ge 1024 ]; then # 只能比较整数
+    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / 1024 }')
+    # elif [ "$bitvalue" -lt 1 ]; then # 只能比较整数
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue < 1) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.0fKB", value * 1024 }')
+    else
+        bitvalue="${bitvalue}MB"
+    fi
+    echo "$bitvalue"
 }
 
 SetFlowReport_TG() {
@@ -1757,7 +1787,8 @@ SetFlowReport_TG() {
     echo -e "$Tip 流量报告时间: $hour_rp 时 $minute_rp 分."
     cronrp="$minute_rp $hour_rp * * *"
 
-    FlowThresholdMAX_U=$FlowThresholdMAX
+    FlowThresholdMAX_UB=$FlowThresholdMAX
+    FlowThresholdMAX_U=$(Remove_B "$FlowThresholdMAX_UB")
     if [[ $FlowThresholdMAX == *MB ]]; then
         FlowThresholdMAX=${FlowThresholdMAX%MB}
         FlowThresholdMAX=$(awk -v value=$FlowThresholdMAX 'BEGIN { printf "%.1f", value }')
@@ -1772,6 +1803,9 @@ SetFlowReport_TG() {
 #!/bin/bash
 
 $(declare -f create_progress_bar)
+$(declare -f Bytes_MBtoGBKB)
+$(declare -f Remove_B)
+
 interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 declare -A prev_rx_data
 declare -A prev_tx_data
@@ -1783,13 +1817,23 @@ current_date=\$(date +%Y-%m-%d)
 prev_day_rx_mb=0
 prev_day_tx_mb=0
 executed=false
+year_rp=false
+month_rp=false
+day_rp=false
 
 echo "runing..."
 while true; do
     # 获取当前时间的小时和分钟
-    current_hour=\$(date +%H)
-    current_minute=\$(date +%M)
+    current_year=\$(date +"%Y")
+    current_month=\$(date +"%m")
+    current_day=\$(date +"%d")
+    current_hour=\$(date +"%H")
+    current_minute=\$(date +"%M")
+    tail_day=\$(date -d "\$(date +'%Y-%m-01 next month') -1 day" +%d)
+
     for interface in \$interfaces; do
+        start_time=\$(date +%s)
+
         # 如果接口名称中包含 '@'，则仅保留 '@' 之前的部分
         sanitized_interface=\${interface%@*}
 
@@ -1872,68 +1916,158 @@ while true; do
         fi
 
         if ! \$executed; then
-            prev_day_rx_mb_0=\$current_rx_mb
-            prev_day_tx_mb_0=\$current_tx_mb
+            prev_rx_mb_0=\$current_rx_mb
+            prev_tx_mb_0=\$current_tx_mb
+            prev_year=\$current_year
             executed=true
         fi
-        echo "脚本开始时记录值: prev_day_rx_mb_0: \$prev_day_rx_mb_0"
-        echo "脚本开始时记录值: prev_day_tx_mb_0: \$prev_day_tx_mb_0"
+        echo "脚本开始时记录值: prev_rx_mb_0: \$prev_rx_mb_0"
+        echo "脚本开始时记录值: prev_tx_mb_0: \$prev_tx_mb_0"
 
-        # 如果当前时间为报告时间，则计算流量差值并跳出循环
-        if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
-            start_time=\$(date +%s)
+
+
+        # 日报告
+        if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
             if [ "\$prev_day_rx_mb" -eq 0 ] && [ "\$prev_day_tx_mb" -eq 0 ]; then
-                prev_day_rx_mb=\$prev_day_rx_mb_0
-                prev_day_tx_mb=\$prev_day_tx_mb_0
+                prev_day_rx_mb=\$prev_rx_mb_0
+                prev_day_tx_mb=\$prev_tx_mb_0
             fi
-            # diff_rx_mb=\$((current_rx_mb - prev_day_rx_mb))
-            diff_rx_mb=\$(awk -v current="\$current_rx_mb" -v prev="\$prev_day_rx_mb" 'BEGIN { printf "%.1f", current - prev }')
-            # diff_tx_mb=\$((current_tx_mb - prev_day_tx_mb))
-            diff_tx_mb=\$(awk -v current="\$current_tx_mb" -v prev="\$prev_day_tx_mb" 'BEGIN { printf "%.1f", current - prev }')
-            # if [ "\$diff_rx_mb" -ge 1024 ]; then # 只能比较整数
-            if awk -v diff_rx_mb="\$diff_rx_mb" 'BEGIN { exit !(diff_rx_mb >= 1024) }'; then
-                diff_rx_mb=\$(awk -v value=\$diff_rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-            # elif [ "\$diff_rx_mb" -lt 1 ]; then # 只能比较整数
-            elif awk -v diff_rx_mb="\$diff_rx_mb" 'BEGIN { exit !(diff_rx_mb < 1) }'; then
-                diff_rx_mb=\$(awk -v value=\$diff_rx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-            else
-                diff_rx_mb="\${diff_rx_mb}MB"
-            fi
-            # if [ "\$diff_tx_mb" -ge 1024 ]; then # 只能比较整数
-            if awk -v diff_tx_mb="\$diff_tx_mb" 'BEGIN { exit !(diff_tx_mb >= 1024) }'; then
-                diff_tx_mb=\$(awk -v value=\$diff_tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-            # elif [ "\$diff_tx_mb" -lt 1 ]; then # 只能比较整数
-            elif awk -v diff_tx_mb="\$diff_tx_mb" 'BEGIN { exit !(diff_tx_mb < 1) }'; then
-                diff_tx_mb=\$(awk -v value=\$diff_tx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-            else
-                diff_tx_mb="\${diff_tx_mb}MB"
+            diff_day_rx_mb=\$(awk -v current="\$current_rx_mb" -v prev="\$prev_day_rx_mb" 'BEGIN { printf "%.1f", current - prev }')
+            diff_day_tx_mb=\$(awk -v current="\$current_tx_mb" -v prev="\$prev_day_tx_mb" 'BEGIN { printf "%.1f", current - prev }')
+            diff_rx_day=\$(Bytes_MBtoGBKB "\$diff_day_rx_mb")
+            diff_tx_day=\$(Bytes_MBtoGBKB "\$diff_day_tx_mb")
+
+             # 月报告
+            if [ "\$current_day" == "01" ]; then
+                if [ "\$prev_month_rx_mb" -eq 0 ] && [ "\$prev_month_tx_mb" -eq 0 ]; then
+                    prev_month_rx_mb=\$prev_rx_mb_0
+                    prev_month_tx_mb=\$prev_tx_mb_0
+                fi
+                diff_month_rx_mb=\$(awk -v current="\$current_rx_mb" -v prev="\$prev_month_rx_mb" 'BEGIN { printf "%.1f", current - prev }')
+                diff_month_tx_mb=\$(awk -v current="\$current_tx_mb" -v prev="\$prev_month_tx_mb" 'BEGIN { printf "%.1f", current - prev }')
+                diff_rx_month=\$(Bytes_MBtoGBKB "\$diff_month_rx_mb")
+                diff_tx_month=\$(Bytes_MBtoGBKB "\$diff_month_tx_mb")
+
+                 # 年报告
+                year_diff=$((current_year - prev_year))
+                if [ "\$year_diff" -eq 1 ]; then
+                    if [ "\$prev_year_rx_mb" -eq 0 ] && [ "\$prev_year_tx_mb" -eq 0 ]; then
+                        prev_year_rx_mb=\$prev_rx_mb_0
+                        prev_year_tx_mb=\$prev_tx_mb_0
+                    fi
+                    diff_year_rx_mb=\$(awk -v current="\$current_rx_mb" -v prev="\$prev_year_rx_mb" 'BEGIN { printf "%.1f", current - prev }')
+                    diff_year_tx_mb=\$(awk -v current="\$current_tx_mb" -v prev="\$prev_year_tx_mb" 'BEGIN { printf "%.1f", current - prev }')
+                    diff_rx_year=\$(Bytes_MBtoGBKB "\$diff_year_rx_mb")
+                    diff_tx_year=\$(Bytes_MBtoGBKB "\$diff_year_tx_mb")
+
+                    year_rp=true
+                    prev_year=\$current_year
+                    prev_year_rx_mb=\$current_rx_mb
+                    prev_year_tx_mb=\$current_tx_mb
+                fi
+
+                month_rp=true
+                prev_month_rx_mb=\$current_rx_mb
+                prev_month_tx_mb=\$current_tx_mb
             fi
 
-            current_date_send=\$(date +"%Y.%m.%d %T")
-            message="过去24小时🌞流量报告 📈"'
+        day_rp=true
+        prev_day_rx_mb=\$current_rx_mb
+        prev_day_tx_mb=\$current_tx_mb
+        fi
+
+        # 发送报告
+        if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
+
+            if \$day_rp; then
+                current_date_send=\$(date +"%Y.%m.%d %T")
+                # last_day=\$(date -d "1 day ago" +%d)
+                month_last_day=\$(date -d "1 day ago" +%m月%d日)
+
+                diff_rx_day=\$(Remove_B "\$diff_rx_day")
+                diff_tx_day=\$(Remove_B "\$diff_tx_day")
+                all_rx_mb=\$(Remove_B "\$all_rx_mb")
+                all_tx_mb=\$(Remove_B "\$all_tx_mb")
+
+                message="\${month_last_day}🌞流量报告 📈"'
 '"主机名: \$(hostname) 端口: \$sanitized_interface"'
-'"🌞接收: \${diff_rx_mb}  🌞发送: \${diff_tx_mb}"'
+'"🌞接收: \${diff_rx_day}  🌞发送: \${diff_tx_day}"'
 '"───────────────"'
 '"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
 '"服务器时间: \$current_date_send"
-            curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                -d chat_id="$ChatID_1" -d text="\$message"
+                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+                    -d chat_id="$ChatID_1" -d text="\$message"
+                echo "报告信息已发出..."
+                echo "时间: \$current_date, 活动端口: \$sanitized_interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
+                echo "----------------------------------------------------------------"
+            fi
 
-            echo "报告信息已发出..."
-            echo "时间: \$current_date, 活动端口: \$sanitized_interface, 日接收: \$diff_rx_mb, 日发送: \$diff_tx_mb"
-            echo "----------------------------------------------------------------"
-            prev_day_rx_mb=\$current_rx_mb
-            prev_day_tx_mb=\$current_tx_mb
-            break
+            if \$month_rp; then
+                current_date_send=\$(date +"%Y.%m.%d %T")
+                # last_month=\$(date -d "1 month ago" +%m)
+                year_last_month=\$(date -d "1 month ago" +%Y年%m月份)
+
+                diff_rx_month=\$(Remove_B "\$diff_rx_month")
+                diff_tx_month=\$(Remove_B "\$diff_tx_month")
+                all_rx_mb=\$(Remove_B "\$all_rx_mb")
+                all_tx_mb=\$(Remove_B "\$all_tx_mb")
+
+                message="\${year_last_month}🌙总流量报告 📈"'
+'"主机名: \$(hostname) 端口: \$sanitized_interface"'
+'"🌙接收: \${diff_rx_month}  🌙发送: \${diff_tx_month}"'
+'"───────────────"'
+'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
+'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
+'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
+'"服务器时间: \$current_date_send"
+                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+                    -d chat_id="$ChatID_1" -d text="\$message"
+                echo "报告信息已发出..."
+                echo "时间: \$current_date, 活动端口: \$sanitized_interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
+                echo "----------------------------------------------------------------"
+            fi
+ 
+            if \$year_rp; then
+                current_date_send=\$(date +"%Y.%m.%d %T")
+                last_year=\$(date -d "1 year ago" +%Y)
+
+                diff_rx_year=\$(Remove_B "\$diff_rx_year")
+                diff_tx_year=\$(Remove_B "\$diff_tx_year")
+                all_rx_mb=\$(Remove_B "\$all_rx_mb")
+                all_tx_mb=\$(Remove_B "\$all_tx_mb")
+
+                message="\${last_year}年🧧总流量报告 📈"'
+'"主机名: \$(hostname) 端口: \$sanitized_interface"'
+'"🧧接收: \${diff_rx_year}  🧧发送: \${diff_tx_year}"'
+'"───────────────"'
+'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
+'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
+'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
+'"服务器时间: \$current_date_send"
+                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+                    -d chat_id="$ChatID_1" -d text="\$message"
+                echo "报告信息已发出..."
+                echo "年报告信息:"
+                echo "时间: \$current_date, 活动端口: \$sanitized_interface, 年接收: \$diff_rx_year, 年发送: \$diff_tx_year"
+                echo "----------------------------------------------------------------"
+            fi
         fi
     done
-    echo "活动端口: \$sanitized_interface  接收日流量: \$diff_rx_mb  发送日流量: \$diff_tx_mb 报告时间: $hour_rp 时 $minute_rp 分"
+
+    echo "prev_rx_mb_0: \$prev_rx_mb_0"
+    echo "prev_tx_mb_0: \$prev_tx_mb_0"
+    echo "prev_year: \$prev_year"
+
+    echo "活动端口: \$sanitized_interface  当前接收流量: \$current_rx_mb 当前发送流量: \$current_tx_mb"
+    echo "活动端口: \$sanitized_interface  接收日流量: \$diff_rx_day  发送日流量: \$diff_tx_day 报告时间: $hour_rp 时 $minute_rp 分"
+    echo "活动端口: \$sanitized_interface  接收月流量: \$diff_rx_month  发送月流量: \$diff_tx_month 报告时间: $hour_rp 时 $minute_rp 分"
+    echo "活动端口: \$sanitized_interface  接收年流量: \$diff_rx_year  发送年流量: \$diff_tx_year 报告时间: $hour_rp 时 $minute_rp 分"
     echo "当前时间: \$(date)"
-    echo "current rx: \$current_rx_mb prev rx: \$prev_day_rx_mb"
-    echo "current tx: \$current_tx_mb prev rx: \$prev_day_tx_mb"
     echo "------------------------------------------------------"
     # 每隔一段时间执行一次循环检测，这里设定为60秒
     end_time=\$(date +%s)
@@ -2115,7 +2249,7 @@ OneKeydefault () {
 '"CPU使用率超 ${CPUThreshold}% 报警"'
 '"内存使用率超 ${MEMThreshold}% 报警"'
 '"磁盘使用率超 ${DISKThreshold}% 报警"'
-'"流量使用率超 ${FlowThreshold_U} 报警"'
+'"流量使用率超 ${FlowThreshold_UB} 报警"'
 '"流量报告时间 ${ReportTime}"'
 '"自动更新时间 ${AutoUpdateTime}"'
 '"───────────────"'
