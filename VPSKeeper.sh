@@ -1946,7 +1946,7 @@ while true; do
 
 
         # 日报告
-        if [ "\$current_hour" == "09" ] && [ "\$current_minute" == "37" ]; then
+        if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
             if [ "\$prev_day_rx_mb" -eq 0 ] && [ "\$prev_day_tx_mb" -eq 0 ]; then
                 prev_day_rx_mb=\$prev_rx_mb_0
                 prev_day_tx_mb=\$prev_tx_mb_0
