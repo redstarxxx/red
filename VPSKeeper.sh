@@ -289,8 +289,6 @@ SetAutoUpdate() {
             hour_ud_next=0
         fi
     fi
-    # hour_ud=$(printf "%02d" $hour_ud)
-    # minute_ud=$(printf "%02d" $minute_ud)
     if [ ${#hour_ud} -eq 1 ]; then
     hour_ud="0${hour_ud}"
     fi
@@ -585,7 +583,6 @@ test() {
 # 修改Hostname
 ModifyHostname() {
     if command -v hostnamectl &>/dev/null; then
-        # 修改 hosts 和 hostname
         echo "当前 Hostname : $(hostname)"
         read -e -p "请输入要修改的 Hostname (回车跳过): " name
         if [[ ! -z "${name}" ]]; then
@@ -1554,24 +1551,22 @@ $(declare -f Remove_B)
 tt=10
 
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
-# interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
-interfaces=\$(ip -br link | awk '{print \$1}')
+interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+# interfaces=\$(ip -br link | awk '{print \$1}')
 declare -A prev_rx_data
 declare -A prev_tx_data
 
-# for ((i=0; i<\${#interfaces[@]}; i++)); do
-#     # 如果端口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
-#     sanitized_interface=\${interfaces[$i]%@*}
-#     sanitized_interface=\${sanitized_interface%:*}
-#     interfaces[\$i]=\$sanitized_interface
-# done
-# echo "\${interfaces[@]}"
+for ((i=0; i<\${#interfaces[@]}; i++)); do
+    # 如果端口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
+    sanitized_interface=\${interfaces[\$i]%@*}
+    sanitized_interface=\${sanitized_interface%:*}
+    interfaces[\$i]=\$sanitized_interface
+done
+echo "\${interfaces[@]}"
 
 # 初始化接口流量数据
 for interface in \$interfaces; do
-    # 如果接口名称中包含 '@'或':'，则仅保留 '@'或':' 之前的部分
-    sanitized_interface=\${interface%@*}
-    sanitized_interface=\${interface%:*}
+    sanitized_interface=\$interface
 
     rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
     tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
@@ -1581,11 +1576,11 @@ done
 
 # 循环检查
 while true; do
+    n=1
     for interface in \$interfaces; do
+        echo "NO.\$n ----------------------------------------- interface: \$interface"
         start_time=\$(date +%s)
-        # 如果接口名称中包含 '@'或':'，则仅保留 '@'或':' 之前的部分
-        sanitized_interface=\${interface%@*}
-        sanitized_interface=\${interface%:*}
+        sanitized_interface=\$interface
 
         # 获取当前流量数据
         current_rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
@@ -1744,7 +1739,7 @@ while true; do
         # 把当前的流量数据保存到一个变量用于计算速率
         prev_tt_rx_data[\$sanitized_interface]=\$current_rx_bytes
         prev_tt_tx_data[\$sanitized_interface]=\$current_tx_bytes
-
+        n=\$((n + 1))
     done
     # 等待tt秒
     end_time=\$(date +%s)
@@ -1768,10 +1763,8 @@ EOF
 
 Bytes_MBtoGBKB() {
     bitvalue="$1"
-    # if [ "$bitvalue" -ge 1024 ]; then # 只能比较整数
     if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
         bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / 1024 }')
-    # elif [ "$bitvalue" -lt 1 ]; then # 只能比较整数
     elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue < 1) }'; then
         bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.0fKB", value * 1024 }')
     else
@@ -1805,8 +1798,6 @@ SetFlowReport_TG() {
     writeini "ReportTime" "$input_time"
     hour_rp=${input_time%%:*}
     minute_rp=${input_time#*:}
-    # hour_rp=$(printf "%02s" "$hour_rp")
-    # minute_rp=$(printf "%02s" "$minute_rp")
     if [ ${#hour_rp} -eq 1 ]; then
     hour_rp="0${hour_rp}"
     fi
@@ -1835,10 +1826,18 @@ $(declare -f create_progress_bar)
 $(declare -f Bytes_MBtoGBKB)
 $(declare -f Remove_B)
 
-# interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
-interfaces=\$(ip -br link | awk '{print \$1}')
+interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+# interfaces=\$(ip -br link | awk '{print \$1}')
 declare -A prev_rx_data
 declare -A prev_tx_data
+
+for ((i=0; i<\${#interfaces[@]}; i++)); do
+    # 如果端口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
+    sanitized_interface=\${interfaces[\$i]%@*}
+    sanitized_interface=\${sanitized_interface%:*}
+    interfaces[\$i]=\$sanitized_interface
+done
+echo "\${interfaces[@]}"
 
 # 获取当前日期
 current_date=\$(date +%Y-%m-%d)
@@ -1853,6 +1852,7 @@ day_rp=false
 
 echo "runing..."
 while true; do
+    n=1
     # 获取当前时间的小时和分钟
     current_year=\$(date +"%Y")
     current_month=\$(date +"%m")
@@ -1862,11 +1862,14 @@ while true; do
     tail_day=\$(date -d "\$(date +'%Y-%m-01 next month') -1 day" +%d)
 
     for interface in \$interfaces; do
+        echo "NO.\$n --------------------------------------rp--- interface: \$interface"
         start_time=\$(date +%s)
 
         # 如果接口名称中包含 '@'或':'，则仅保留 '@'或':' 之前的部分
-        sanitized_interface=\${interface%@*}
-        sanitized_interface=\${interface%:*}
+        # sanitized_interface=\${interface%@*}
+        # sanitized_interface=\${sanitized_interface%:*}
+        # echo "for in: interface: \$interface sanitized_interface: \$sanitized_interface"
+        sanitized_interface=\$interface
 
         # 获取当前流量数据
         current_rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
@@ -1956,6 +1959,7 @@ while true; do
         echo "脚本开始时记录值: prev_tx_mb_0: \$prev_tx_mb_0"
 
         # 日报告
+        echo "判断记录时间 interface: \$interface sanitized_interface: \$sanitized_interface"
         if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
             if [ "\$prev_day_rx_mb" -eq 0 ] && [ "\$prev_day_tx_mb" -eq 0 ]; then
                 prev_day_rx_mb=\$prev_rx_mb_0
@@ -2006,6 +2010,7 @@ while true; do
         fi
 
         # 发送报告
+        echo "判断报告时间 interface: \$interface sanitized_interface: \$sanitized_interface"
         if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
 
             if \$day_rp; then
@@ -2086,6 +2091,7 @@ while true; do
                 echo "----------------------------------------------------------------"
             fi
         fi
+        n=\$((n + 1))
     done
 
     echo "prev_rx_mb_0: \$prev_rx_mb_0"
@@ -2296,15 +2302,12 @@ CheckAndCreateFolder
 if [[ "$1" =~ ^[0-9]{5,}$ ]]; then
     ChatID_1="$1"
     writeini "ChatID_1" "$1"
-    # echo "已将 $1 赋值给 ChatID_1"
 elif [[ "$2" =~ ^[0-9]{5,}$ ]]; then
     ChatID_1="$2"
     writeini "ChatID_1" "$2"
-    # echo "已将 $2 赋值给 ChatID_1"
 elif [[ "$3" =~ ^[0-9]{5,}$ ]]; then
     ChatID_1="$3"
     writeini "ChatID_1" "$3"
-    # echo "已将 $3 赋值给 ChatID_1"
 fi
 declare -f send_telegram_message | sed -n '/^{/,/^}/p' | sed '1d;$d' | sed 's/$1/$3/g; s/$TelgramBotToken/$1/g; s/$ChatID_1/$2/g' > $FolderPath/send_tg.sh
 chmod +x $FolderPath/send_tg.sh
