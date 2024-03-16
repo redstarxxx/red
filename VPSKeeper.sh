@@ -1554,14 +1554,24 @@ $(declare -f Remove_B)
 tt=10
 
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
-interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+# interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+interfaces=\$(ip -br link | awk '{print \$1}')
 declare -A prev_rx_data
 declare -A prev_tx_data
 
+# for ((i=0; i<\${#interfaces[@]}; i++)); do
+#     # 如果端口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
+#     sanitized_interface=\${interfaces[$i]%@*}
+#     sanitized_interface=\${sanitized_interface%:*}
+#     interfaces[\$i]=\$sanitized_interface
+# done
+# echo "\${interfaces[@]}"
+
 # 初始化接口流量数据
 for interface in \$interfaces; do
-    # 如果接口名称中包含 '@'，则仅保留 '@' 之前的部分
+    # 如果接口名称中包含 '@'或':'，则仅保留 '@'或':' 之前的部分
     sanitized_interface=\${interface%@*}
+    sanitized_interface=\${interface%:*}
 
     rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
     tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
@@ -1573,8 +1583,9 @@ done
 while true; do
     for interface in \$interfaces; do
         start_time=\$(date +%s)
-        # 如果接口名称中包含 '@'，则仅保留 '@' 之前的部分
+        # 如果接口名称中包含 '@'或':'，则仅保留 '@'或':' 之前的部分
         sanitized_interface=\${interface%@*}
+        sanitized_interface=\${interface%:*}
 
         # 获取当前流量数据
         current_rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
@@ -1804,7 +1815,6 @@ SetFlowReport_TG() {
     fi
     echo -e "$Tip 流量报告时间: $hour_rp 时 $minute_rp 分."
     cronrp="$minute_rp $hour_rp * * *"
-    Pause
     source $ConfigFile
     FlowThresholdMAX_UB=$FlowThresholdMAX
     FlowThresholdMAX_U=$(Remove_B "$FlowThresholdMAX_UB")
@@ -1825,7 +1835,8 @@ $(declare -f create_progress_bar)
 $(declare -f Bytes_MBtoGBKB)
 $(declare -f Remove_B)
 
-interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+# interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+interfaces=\$(ip -br link | awk '{print \$1}')
 declare -A prev_rx_data
 declare -A prev_tx_data
 
@@ -1853,8 +1864,9 @@ while true; do
     for interface in \$interfaces; do
         start_time=\$(date +%s)
 
-        # 如果接口名称中包含 '@'，则仅保留 '@' 之前的部分
+        # 如果接口名称中包含 '@'或':'，则仅保留 '@'或':' 之前的部分
         sanitized_interface=\${interface%@*}
+        sanitized_interface=\${interface%:*}
 
         # 获取当前流量数据
         current_rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
@@ -1942,8 +1954,6 @@ while true; do
         fi
         echo "脚本开始时记录值: prev_rx_mb_0: \$prev_rx_mb_0"
         echo "脚本开始时记录值: prev_tx_mb_0: \$prev_tx_mb_0"
-
-
 
         # 日报告
         if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
