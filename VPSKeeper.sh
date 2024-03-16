@@ -289,11 +289,22 @@ SetAutoUpdate() {
             hour_ud_next=0
         fi
     fi
-
+    # hour_ud=$(printf "%02d" $hour_ud)
+    # minute_ud=$(printf "%02d" $minute_ud)
+    if [ ${#hour_ud} -eq 1 ]; then
+    hour_ud="0${hour_ud}"
+    fi
+    if [ ${#minute_ud} -eq 1 ]; then
+        minute_ud="0${minute_ud}"
+    fi
+    if [ ${#hour_ud_next} -eq 1 ]; then
+    hour_ud_next="0${hour_ud_next}"
+    fi
+    if [ ${#minute_ud_next} -eq 1 ]; then
+        minute_ud_next="0${minute_ud_next}"
+    fi
     cront="$minute_ud $hour_ud * * *"
     cront_next="$minute_ud_next $hour_ud_next * * *"
-    hour_ud=$(printf "%02d" $hour_ud)
-    minute_ud=$(printf "%02d" $minute_ud)
     echo -e "$Tip 自动更新时间：$hour_ud 时 $minute_ud 分."
     cat <<EOF > "$FolderPath/tg_autoud.sh"
 #!/bin/bash
@@ -1511,6 +1522,7 @@ SetupFlow_TG() {
     fi
     source $ConfigFile
     FlowThreshold_UB=$FlowThreshold
+    FlowThreshold_U=$(Remove_B "$FlowThreshold")
     if [[ $FlowThreshold == *MB ]]; then
         FlowThreshold=${FlowThreshold%MB}
         FlowThreshold=$(awk -v value=$FlowThreshold 'BEGIN { printf "%.1f", value }')
@@ -1699,7 +1711,7 @@ while true; do
             rx_speed=\$(Remove_B "\$rx_speed")
             tx_speed=\$(Remove_B "\$tx_speed")
 
-            message="流量已达到阀值🧭 > ${FlowThreshold_UB}❗️"'
+            message="流量已达到阀值🧭 > ${FlowThreshold_U}❗️"'
 '"主机名: \$(hostname) 端口: \$sanitized_interface"'
 '"已接收: \${rx_mb}  已发送: \${tx_mb}"'
 '"───────────────"'
@@ -1782,11 +1794,18 @@ SetFlowReport_TG() {
     writeini "ReportTime" "$input_time"
     hour_rp=${input_time%%:*}
     minute_rp=${input_time#*:}
-    hour_rp=$(printf "%02d" $hour_rp)
-    minute_rp=$(printf "%02d" $minute_rp)
+    # hour_rp=$(printf "%02s" "$hour_rp")
+    # minute_rp=$(printf "%02s" "$minute_rp")
+    if [ ${#hour_rp} -eq 1 ]; then
+    hour_rp="0${hour_rp}"
+    fi
+    if [ ${#minute_rp} -eq 1 ]; then
+        minute_rp="0${minute_rp}"
+    fi
     echo -e "$Tip 流量报告时间: $hour_rp 时 $minute_rp 分."
     cronrp="$minute_rp $hour_rp * * *"
-
+    Pause
+    source $ConfigFile
     FlowThresholdMAX_UB=$FlowThresholdMAX
     FlowThresholdMAX_U=$(Remove_B "$FlowThresholdMAX_UB")
     if [[ $FlowThresholdMAX == *MB ]]; then
@@ -1927,7 +1946,7 @@ while true; do
 
 
         # 日报告
-        if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
+        if [ "\$current_hour" == "09" ] && [ "\$current_minute" == "37" ]; then
             if [ "\$prev_day_rx_mb" -eq 0 ] && [ "\$prev_day_tx_mb" -eq 0 ]; then
                 prev_day_rx_mb=\$prev_rx_mb_0
                 prev_day_tx_mb=\$prev_tx_mb_0
