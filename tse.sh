@@ -2301,6 +2301,7 @@ case $choice in
                 }
                 echo " ▼ "
                 echo -e "检查本机是否为${MA}PVE宿主机${NC}..."
+                tuser=1
                 check_pve_environment
                 clear_screen
                 while true; do
