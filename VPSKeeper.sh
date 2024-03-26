@@ -2351,8 +2351,10 @@ while true; do
             diff_rx_day=\$(Bytes_MBtoGBKB "\$diff_day_rx_mb")
             diff_tx_day=\$(Bytes_MBtoGBKB "\$diff_day_tx_mb")
 
-            ov_diff_day_rx_mb=\$((ov_diff_day_rx_mb + diff_day_rx_mb))
-            ov_diff_day_tx_mb=\$((ov_diff_day_tx_mb + diff_day_tx_mb))
+            # ov_diff_day_rx_mb=\$((ov_diff_day_rx_mb + diff_day_rx_mb))
+            ov_diff_day_rx_mb=\$(awk -v ov="\$ov_diff_day_rx_mb" -v se="\$diff_day_rx_mb" 'BEGIN { printf "%.1f", ov + se }')
+            # ov_diff_day_tx_mb=\$((ov_diff_day_tx_mb + diff_day_tx_mb))
+            ov_diff_day_tx_mb=\$(awk -v ov="\$ov_diff_day_tx_mb" -v se="\$diff_day_tx_mb" 'BEGIN { printf "%.1f", ov + se }')
             ov_diff_rx_day=\$(Bytes_MBtoGBKB "\$ov_diff_day_rx_mb")
             ov_diff_tx_day=\$(Bytes_MBtoGBKB "\$ov_diff_day_tx_mb")
 
@@ -2367,8 +2369,10 @@ while true; do
                 diff_rx_month=\$(Bytes_MBtoGBKB "\$diff_month_rx_mb")
                 diff_tx_month=\$(Bytes_MBtoGBKB "\$diff_month_tx_mb")
 
-                ov_diff_month_rx_mb=\$((ov_diff_month_rx_mb + diff_month_rx_mb))
-                ov_diff_month_tx_mb=\$((ov_diff_month_tx_mb + diff_month_tx_mb))
+                # ov_diff_month_rx_mb=\$((ov_diff_month_rx_mb + diff_month_rx_mb))
+                ov_diff_month_rx_mb=\$(awk -v ov="\$ov_diff_month_rx_mb" -v se="\$diff_month_rx_mb" 'BEGIN { printf "%.1f", ov + se }')
+                # ov_diff_month_tx_mb=\$((ov_diff_month_tx_mb + diff_month_tx_mb))
+                ov_diff_month_tx_mb=\$(awk -v ov="\$ov_diff_month_tx_mb" -v se="\$diff_month_tx_mb" 'BEGIN { printf "%.1f", ov + se }')
                 ov_diff_rx_month=\$(Bytes_MBtoGBKB "\$ov_diff_month_rx_mb")
                 ov_diff_tx_month=\$(Bytes_MBtoGBKB "\$ov_diff_month_tx_mb")
 
@@ -2384,8 +2388,10 @@ while true; do
                     diff_rx_year=\$(Bytes_MBtoGBKB "\$diff_year_rx_mb")
                     diff_tx_year=\$(Bytes_MBtoGBKB "\$diff_year_tx_mb")
 
-                    ov_diff_year_rx_mb=\$((ov_diff_year_rx_mb + diff_year_rx_mb))
-                    ov_diff_year_tx_mb=\$((ov_diff_year_tx_mb + diff_year_tx_mb))
+                    # ov_diff_year_rx_mb=\$((ov_diff_year_rx_mb + diff_year_rx_mb))
+                    ov_diff_year_rx_mb=\$(awk -v ov="\$ov_diff_year_rx_mb" -v se="\$diff_year_rx_mb" 'BEGIN { printf "%.1f", ov + se }')
+                    # ov_diff_year_tx_mb=\$((ov_diff_year_tx_mb + diff_year_tx_mb))
+                    ov_diff_year_tx_mb=\$(awk -v ov="\$ov_diff_year_tx_mb" -v se="\$diff_year_tx_mb" 'BEGIN { printf "%.1f", ov + se }')
                     ov_diff_rx_year=\$(Bytes_MBtoGBKB "\$ov_diff_year_rx_mb")
                     ov_diff_tx_year=\$(Bytes_MBtoGBKB "\$ov_diff_year_tx_mb")
 
