@@ -2226,6 +2226,12 @@ current_date=\$(date +%Y-%m-%d)
 # 初始化变量
 prev_day_rx_mb=0
 prev_day_tx_mb=0
+ov_diff_day_rx_mb=0
+ov_diff_day_tx_mb=0
+ov_diff_month_rx_mb=0
+ov_diff_month_tx_mb=0
+ov_diff_year_rx_mb=0
+ov_diff_year_tx_mb=0
 executed=false
 year_rp=false
 month_rp=false
@@ -2417,15 +2423,15 @@ while true; do
             if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
                 if \$day_rp; then
                     current_date_send=\$(date +"%Y.%m.%d %T")
-                    # last_day=\$(date -d "1 day ago" +%d)
-                    month_last_day=\$(date -d "1 day ago" +%m月%d日)
+                    # yesterday=\$(date -d "1 day ago" +%d)
+                    yesterday=\$(date -d "1 day ago" +%m月%d日)
 
                     diff_rx_day=\$(Remove_B "\$diff_rx_day")
                     diff_tx_day=\$(Remove_B "\$diff_tx_day")
                     all_rx_mb=\$(Remove_B "\$all_rx_mb")
                     all_tx_mb=\$(Remove_B "\$all_tx_mb")
 
-                    message="\${month_last_day}🌞流量报告 📈"'
+                    message="\${yesterday}🌞流量报告 📈"'
 '"主机名: \$(hostname) 接口: \$sanitized_interface"'
 '"🌞接收: \${diff_rx_day}  🌞发送: \${diff_tx_day}"'
 '"───────────────"'
@@ -2444,14 +2450,14 @@ while true; do
                 if \$month_rp; then
                     current_date_send=\$(date +"%Y.%m.%d %T")
                     # last_month=\$(date -d "1 month ago" +%m)
-                    year_last_month=\$(date -d "1 month ago" +%Y年%m月份)
+                    last_month=\$(date -d "1 month ago" +%Y年%m月份)
 
                     diff_rx_month=\$(Remove_B "\$diff_rx_month")
                     diff_tx_month=\$(Remove_B "\$diff_tx_month")
                     all_rx_mb=\$(Remove_B "\$all_rx_mb")
                     all_tx_mb=\$(Remove_B "\$all_tx_mb")
 
-                    message="\${year_last_month}🌙总流量报告 📈"'
+                    message="\${last_month}🌙总流量报告 📈"'
 '"主机名: \$(hostname) 接口: \$sanitized_interface"'
 '"🌙接收: \${diff_rx_month}  🌙发送: \${diff_tx_month}"'
 '"───────────────"'
@@ -2501,15 +2507,15 @@ while true; do
         if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
             if \$day_rp; then
                 current_date_send=\$(date +"%Y.%m.%d %T")
-                # last_day=\$(date -d "1 day ago" +%d)
-                month_last_day=\$(date -d "1 day ago" +%m月%d日)
+                # yesterday=\$(date -d "1 day ago" +%d)
+                yesterday=\$(date -d "1 day ago" +%m月%d日)
 
                 diff_rx_day=\$(Remove_B "\$diff_rx_day")
                 diff_tx_day=\$(Remove_B "\$diff_tx_day")
                 all_rx_mb=\$(Remove_B "\$all_rx_mb")
                 all_tx_mb=\$(Remove_B "\$all_tx_mb")
 
-                message="\${month_last_day}🌞流量报告 📈"'
+                message="\${yesterday}🌞流量报告 📈"'
 '"主机名: \$(hostname) 接口: \$show_interfaces"'
 '"🌞接收: \${ov_diff_rx_day}  🌞发送: \${ov_diff_tx_day}"'
 '"───────────────"'
@@ -2530,14 +2536,14 @@ while true; do
             if \$month_rp; then
                 current_date_send=\$(date +"%Y.%m.%d %T")
                 # last_month=\$(date -d "1 month ago" +%m)
-                year_last_month=\$(date -d "1 month ago" +%Y年%m月份)
+                last_month=\$(date -d "1 month ago" +%Y年%m月份)
 
                 diff_rx_month=\$(Remove_B "\$diff_rx_month")
                 diff_tx_month=\$(Remove_B "\$diff_tx_month")
                 all_rx_mb=\$(Remove_B "\$all_rx_mb")
                 all_tx_mb=\$(Remove_B "\$all_tx_mb")
 
-                message="\${year_last_month}🌙总流量报告 📈"'
+                message="\${last_month}🌙总流量报告 📈"'
 '"主机名: \$(hostname) 接口: \$show_interfaces"'
 '"🌙接收: \${ov_diff_rx_month}  🌙发送: \${ov_diff_tx_month}"'
 '"───────────────"'
