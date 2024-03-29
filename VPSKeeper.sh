@@ -1672,6 +1672,8 @@ $(declare -f Remove_B)
 tt=10
 ov_rx_diff=0
 ov_tx_diff=0
+ov_prev_tt_rx_data=0
+ov_prev_tt_tx_data=0
 StatisticsMode="$StatisticsMode"
 
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
@@ -1690,6 +1692,8 @@ for ((i = 0; i < \${#interfaces[@]}; i++)); do
 done
 declare -A prev_rx_data
 declare -A prev_tx_data
+declare -A prev_rx_diff
+declare -A prev_tx_diff
 
 for ((i=0; i<\${#interfaces[@]}; i++)); do
     # 如果接口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
@@ -1701,10 +1705,10 @@ echo "纺计接口(处理后): \${interfaces[@]}"
 
 # 初始化接口流量数据
 for interface in "\${interfaces[@]}"; do
-    rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
-    tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
-    prev_rx_data[\$interface]=\$rx_bytes
-    prev_tx_data[\$interface]=\$tx_bytes
+    prev_rx_data[\$interface]=0
+    prev_tx_data[\$interface]=0
+    prev_rx_diff[\$interface]=0
+    prev_tx_diff[\$interface]=0
 done
 
 # 循环检查
@@ -1729,12 +1733,12 @@ while true; do
         current_tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
 
         # 计算网速
-        if [ ! -z "\${ov_prev_tt_rx_data}" ]; then
+        if (( ov_prev_tt_rx_data != 0 )); then
             rx_diff_tt=\$((ov_current_rx_bytes - ov_prev_tt_rx_data))
         else
             rx_diff_tt=0
         fi
-        if [ ! -z "\${ov_prev_tt_tx_data}" ]; then
+        if (( ov_prev_tt_tx_data != 0 )); then
             tx_diff_tt=\$((ov_current_tx_bytes - ov_prev_tt_tx_data))
         else
             tx_diff_tt=0
@@ -1821,12 +1825,29 @@ while true; do
         all_tx_mb=\$(Remove_B "\$all_tx_mb")
 
         # 计算增量
+        if (( prev_rx_data[\$interface] == 0 )); then
+            prev_rx_data[\$interface]=\$current_rx_bytes
+        fi
+        if (( prev_tx_data[\$interface] == 0 )); then
+            prev_tx_data[\$interface]=\$current_tx_bytes
+        fi
         rx_diff=\$((current_rx_bytes - prev_rx_data[\$interface]))
         tx_diff=\$((current_tx_bytes - prev_tx_data[\$interface]))
 
+        if (( prev_rx_diff[\$interface] == 0 )); then
+            prev_rx_diff[\$interface]=\$rx_diff
+        fi
+        if (( prev_tx_diff[\$interface] == 0 )); then
+            prev_tx_diff[\$interface]=\$tx_diff
+        fi
+
         # 叠加增量
-        ov_rx_diff=\$((ov_rx_diff + rx_diff - ov_rx_diff))
-        ov_tx_diff=\$((ov_tx_diff + tx_diff - ov_tx_diff))
+        ov_rx_diff=\$((ov_rx_diff + rx_diff - prev_rx_diff[\$interface]))
+        ov_tx_diff=\$((ov_tx_diff + tx_diff - prev_tx_diff[\$interface]))
+
+        # 计算增量
+        prev_rx_diff[\$interface]=\$((current_rx_bytes - prev_rx_data[\$interface]))
+        prev_tx_diff[\$interface]=\$((current_tx_bytes - prev_tx_data[\$interface]))
 
         # 调试使用(tt秒的流量增量)
         echo "RX_diff(BYTES): \$rx_diff TX_diff(BYTES): \$tx_diff"
@@ -1885,37 +1906,40 @@ while true; do
                 prev_rx_data[\$interface]=\$current_rx_bytes
                 prev_tx_data[\$interface]=\$current_tx_bytes
             fi
-        elif [ "\$StatisticsMode" == "OV" ]; then
-            threshold_reached=\$(awk -v ov_rx_diff="\$ov_rx_diff" -v ov_tx_diff="\$ov_tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (ov_rx_diff >= threshold) || (ov_tx_diff >= threshold) ? 1 : 0}')
-            if [ "\$threshold_reached" -eq 1 ]; then
-                # ov_rx_mb=\$((ov_rx_diff / 1024 / 1024)) # 只能输出整数
-                ov_rx_mb=\$(awk -v ov_rx_diff="\$ov_rx_diff" 'BEGIN { printf "%.1f", ov_rx_diff / (1024 * 1024) }')
-                # if [ "\$ov_rx_mb" -ge 1024 ]; then # 只能比较整数
-                if awk -v ov_rx_mb="\$ov_rx_mb" 'BEGIN { exit !(ov_rx_mb >= 1024) }'; then
-                    ov_rx_mb=\$(awk -v value=\$ov_rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-                # elif [ "\$ov_rx_mb" -lt 1 ]; then # 只能比较整数
-                elif awk -v ov_rx_mb="\$ov_rx_mb" 'BEGIN { exit !(ov_rx_mb < 1) }'; then
-                    ov_rx_mb=\$(awk -v value=\$ov_rx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-                else
-                    ov_rx_mb="\${ov_rx_mb}MB"
-                fi
-                # ov_tx_mb=\$((ov_tx_diff / 1024 / 1024)) # 只能输出整数
-                ov_tx_mb=\$(awk -v ov_tx_diff="\$ov_tx_diff" 'BEGIN { printf "%.1f", ov_tx_diff / (1024 * 1024) }')
-                # if [ "\$ov_tx_mb" -ge 1024 ]; then # 只能比较整数
-                if awk -v ov_tx_mb="\$ov_tx_mb" 'BEGIN { exit !(ov_tx_mb >= 1024) }'; then
-                    ov_tx_mb=\$(awk -v value=\$ov_tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-                # elif [ "\$ov_tx_mb" -lt 1 ]; then # 只能比较整数
-                elif awk -v ov_tx_mb="\$ov_tx_mb" 'BEGIN { exit !(ov_tx_mb < 1) }'; then
-                    ov_tx_mb=\$(awk -v value=\$ov_tx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-                else
-                    ov_tx_mb="\${ov_tx_mb}MB"
-                fi
+        fi
+        nline=\$((nline + 1))
+    done
+    if [ "\$StatisticsMode" == "OV" ]; then
+        threshold_reached=\$(awk -v ov_rx_diff="\$ov_rx_diff" -v ov_tx_diff="\$ov_tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (ov_rx_diff >= threshold) || (ov_tx_diff >= threshold) ? 1 : 0}')
+        if [ "\$threshold_reached" -eq 1 ]; then
+            # ov_rx_mb=\$((ov_rx_diff / 1024 / 1024)) # 只能输出整数
+            ov_rx_mb=\$(awk -v ov_rx_diff="\$ov_rx_diff" 'BEGIN { printf "%.1f", ov_rx_diff / (1024 * 1024) }')
+            # if [ "\$ov_rx_mb" -ge 1024 ]; then # 只能比较整数
+            if awk -v ov_rx_mb="\$ov_rx_mb" 'BEGIN { exit !(ov_rx_mb >= 1024) }'; then
+                ov_rx_mb=\$(awk -v value=\$ov_rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
+            # elif [ "\$ov_rx_mb" -lt 1 ]; then # 只能比较整数
+            elif awk -v ov_rx_mb="\$ov_rx_mb" 'BEGIN { exit !(ov_rx_mb < 1) }'; then
+                ov_rx_mb=\$(awk -v value=\$ov_rx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
+            else
+                ov_rx_mb="\${ov_rx_mb}MB"
+            fi
+            # ov_tx_mb=\$((ov_tx_diff / 1024 / 1024)) # 只能输出整数
+            ov_tx_mb=\$(awk -v ov_tx_diff="\$ov_tx_diff" 'BEGIN { printf "%.1f", ov_tx_diff / (1024 * 1024) }')
+            # if [ "\$ov_tx_mb" -ge 1024 ]; then # 只能比较整数
+            if awk -v ov_tx_mb="\$ov_tx_mb" 'BEGIN { exit !(ov_tx_mb >= 1024) }'; then
+                ov_tx_mb=\$(awk -v value=\$ov_tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
+            # elif [ "\$ov_tx_mb" -lt 1 ]; then # 只能比较整数
+            elif awk -v ov_tx_mb="\$ov_tx_mb" 'BEGIN { exit !(ov_tx_mb < 1) }'; then
+                ov_tx_mb=\$(awk -v value=\$ov_tx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
+            else
+                ov_tx_mb="\${ov_tx_mb}MB"
+            fi
 
-                ov_rx_mb=\$(Remove_B "\$ov_rx_mb")
-                ov_tx_mb=\$(Remove_B "\$ov_tx_mb")
-                current_date_send=\$(date +"%Y.%m.%d %T")
+            ov_rx_mb=\$(Remove_B "\$ov_rx_mb")
+            ov_tx_mb=\$(Remove_B "\$ov_tx_mb")
+            current_date_send=\$(date +"%Y.%m.%d %T")
 
-                message="流量已达到阈值🧭 > ${FlowThreshold_U}❗️"'
+            message="流量已达到阈值🧭 > ${FlowThreshold_U}❗️"'
 '"主机名: \$(hostname) 接口: \$show_interfaces"'
 '"已接收: \${ov_rx_mb}  已发送: \${ov_tx_mb}"'
 '"───────────────"'
@@ -1925,28 +1949,27 @@ while true; do
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
 '"网络⬇️: \${rx_speed}/s  网络⬆️: \${tx_speed}/s"'
 '"服务器时间: \$current_date_send"
-                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                    -d chat_id="$ChatID_1" -d text="\$message"
-                echo "报警信息已发出..."
+            curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+                -d chat_id="$ChatID_1" -d text="\$message"
+            echo "报警信息已发出..."
 
-                # 更新前一个状态的流量数据
-                prev_rx_data[\$interface]=\$current_rx_bytes
-                prev_tx_data[\$interface]=\$current_tx_bytes
-                ov_rx_diff=0
-                ov_tx_diff=0
-            fi
-        else
-            echo "StatisticsMode Err!!! \$StatisticsMode"
+            # 更新前一个状态的流量数据
+            prev_rx_data[\$interface]=\$current_rx_bytes
+            prev_tx_data[\$interface]=\$current_tx_bytes
+            ov_rx_diff=0
+            ov_tx_diff=0
         fi
-        nline=\$((nline + 1))
-    done
+    fi
+    if [ "\$StatisticsMode" != "SE" ] && [ "\$StatisticsMode" != "OV" ]; then
+        echo "StatisticsMode Err!!! \$StatisticsMode"
+    fi
+
     # 把当前的流量数据保存到一个变量用于计算速率
     ov_prev_tt_rx_data=0
     ov_prev_tt_tx_data=0
     for interface in "\${interfaces[@]}"; do
-        interface_tt=\$interface
-        rx_bytes=\$(ip -s link show \$interface_tt | awk '/RX:/ { getline; print \$1 }')
-        tx_bytes=\$(ip -s link show \$interface_tt | awk '/TX:/ { getline; print \$1 }')
+        rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
         ov_prev_tt_rx_data=\$((ov_prev_tt_rx_data + rx_bytes))
         ov_prev_tt_tx_data=\$((ov_prev_tt_tx_data + tx_bytes))
     done
@@ -1977,17 +2000,21 @@ done
 TT=10
 CLEAR_TAG=10
 CLEAR_TAG_OLD=\$CLEAR_TAG
-ov_rx_bytes=0
-ov_tx_bytes=0
+# ov_rx_bytes=0
+# ov_tx_bytes=0
 
 while true; do
     start_time=\$(date +%s)
+    ov_rx_bytes=0
+    ov_tx_bytes=0
     for interface in "\${interfaces[@]}"; do
         echo "interface: \$interface"
         rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
         tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
-        ov_rx_bytes=\$((ov_rx_bytes + rx_bytes - ov_rx_bytes))
-        ov_tx_bytes=\$((ov_tx_bytes + tx_bytes - ov_tx_bytes))
+        # ov_rx_bytes=\$((ov_rx_bytes + rx_bytes - ov_rx_bytes))
+        # ov_tx_bytes=\$((ov_tx_bytes + tx_bytes - ov_tx_bytes))
+        ov_rx_bytes=\$((ov_rx_bytes + rx_bytes))
+        ov_tx_bytes=\$((ov_tx_bytes + tx_bytes))
     done
     echo "ov_rx_bytes: \$ov_rx_bytes  ov_tx_bytes: \$ov_tx_bytes"
     if [ -f "\$FolderPath/interface_re.txt" ]; then
@@ -2388,7 +2415,7 @@ while true; do
         echo "脚本开始时记录值: current_tx_mb: \$current_tx_mb | prev_tx_mb_0[\$interface]: \${prev_tx_mb_0[\$interface]}"
 
         # 日报告
-        if [ "\$current_hour" == "16" ] && [ "\$current_minute" == "17" ]; then
+        if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
             if [ "\${prev_day_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_day_tx_mb[\$interface]}" -eq 0 ]; then
                 prev_day_rx_mb[\$interface]=\${prev_rx_mb_0[\$interface]}
                 prev_day_tx_mb[\$interface]=\${prev_tx_mb_0[\$interface]}
@@ -2398,10 +2425,18 @@ while true; do
             diff_rx_day=\$(Bytes_MBtoGBKB "\$diff_day_rx_mb")
             diff_tx_day=\$(Bytes_MBtoGBKB "\$diff_day_tx_mb")
 
-            ov_diff_day_rx_mb=\$(awk -v v1="\$ov_diff_day_rx_mb" -v v2="\$diff_day_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
-            ov_diff_day_tx_mb=\$(awk -v v1="\$ov_diff_day_tx_mb" -v v2="\$diff_day_tx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
-            ov_diff_rx_day=\$(Bytes_MBtoGBKB "\$ov_diff_day_rx_mb")
-            ov_diff_tx_day=\$(Bytes_MBtoGBKB "\$ov_diff_day_tx_mb")
+            if [ "\$StatisticsMode" == "OV" ]; then
+                ov_diff_day_rx_mb=0
+                ov_diff_day_tx_mb=0
+                for interface in "\${interfaces[@]}"; do
+                    diff_day_rx_mb=\$(awk -v v1="\$current_rx_mb" -v v2="\${prev_day_rx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
+                    diff_day_tx_mb=\$(awk -v v1="\$current_tx_mb" -v v2="\${prev_day_tx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
+                    ov_diff_day_rx_mb=\$(awk -v v1="\$ov_diff_day_rx_mb" -v v2="\$diff_day_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+                    ov_diff_day_tx_mb=\$(awk -v v1="\$ov_diff_day_tx_mb" -v v2="\$diff_day_tx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+                done
+                ov_diff_rx_day=\$(Bytes_MBtoGBKB "\$ov_diff_day_rx_mb")
+                ov_diff_tx_day=\$(Bytes_MBtoGBKB "\$ov_diff_day_tx_mb")
+            fi
 
             # 月报告
             if [ "\$current_day" == "01" ]; then
@@ -2414,10 +2449,16 @@ while true; do
                 diff_rx_month=\$(Bytes_MBtoGBKB "\$diff_month_rx_mb")
                 diff_tx_month=\$(Bytes_MBtoGBKB "\$diff_month_tx_mb")
 
-                ov_diff_month_rx_mb=\$(awk -v v1="\$ov_diff_month_rx_mb" -v v2="\$diff_month_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
-                ov_diff_month_tx_mb=\$(awk -v v1="\$ov_diff_month_tx_mb" -v v2="\$diff_month_tx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
-                ov_diff_rx_month=\$(Bytes_MBtoGBKB "\$ov_diff_month_rx_mb")
-                ov_diff_tx_month=\$(Bytes_MBtoGBKB "\$ov_diff_month_tx_mb")
+                if [ "\$StatisticsMode" == "OV" ]; then
+                    for interface in "\${interfaces[@]}"; do
+                        diff_month_rx_mb=\$(awk -v v1="\$current_rx_mb" -v v2="\${prev_month_rx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
+                        diff_month_tx_mb=\$(awk -v v1="\$current_tx_mb" -v v2="\${prev_month_tx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
+                        ov_diff_month_rx_mb=\$(awk -v v1="\$ov_diff_month_rx_mb" -v v2="\$diff_month_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+                        ov_diff_month_tx_mb=\$(awk -v v1="\$ov_diff_month_tx_mb" -v v2="\$diff_month_tx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+                    done
+                    ov_diff_rx_month=\$(Bytes_MBtoGBKB "\$ov_diff_month_rx_mb")
+                    ov_diff_tx_month=\$(Bytes_MBtoGBKB "\$ov_diff_month_tx_mb")
+                fi
 
                 # 年报告
                 year_diff=$((current_year - prev_year))
@@ -2431,10 +2472,16 @@ while true; do
                     diff_rx_year=\$(Bytes_MBtoGBKB "\$diff_year_rx_mb")
                     diff_tx_year=\$(Bytes_MBtoGBKB "\$diff_year_tx_mb")
 
-                    ov_diff_year_rx_mb=\$(awk -v v1="\$ov_diff_year_rx_mb" -v v2="\$diff_year_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
-                    ov_diff_year_tx_mb=\$(awk -v v1="\$ov_diff_year_tx_mb" -v v2="\$diff_year_tx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
-                    ov_diff_rx_year=\$(Bytes_MBtoGBKB "\$ov_diff_year_rx_mb")
-                    ov_diff_tx_year=\$(Bytes_MBtoGBKB "\$ov_diff_year_tx_mb")
+                    if [ "\$StatisticsMode" == "OV" ]; then
+                        for interface in "\${interfaces[@]}"; do
+                            diff_year_rx_mb=\$(awk -v v1="\$current_rx_mb" -v v2="\${prev_year_rx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
+                            diff_year_tx_mb=\$(awk -v v1="\$current_tx_mb" -v v2="\${prev_year_tx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
+                            ov_diff_year_rx_mb=\$(awk -v v1="\$ov_diff_year_rx_mb" -v v2="\$diff_year_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+                            ov_diff_year_tx_mb=\$(awk -v v1="\$ov_diff_year_tx_mb" -v v2="\$diff_year_tx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+                        done
+                        ov_diff_rx_year=\$(Bytes_MBtoGBKB "\$ov_diff_year_rx_mb")
+                        ov_diff_tx_year=\$(Bytes_MBtoGBKB "\$ov_diff_year_tx_mb")
+                    fi
 
                     year_rp=true
                     prev_year=\$current_year
