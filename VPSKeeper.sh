@@ -1825,13 +1825,15 @@ while true; do
         tx_diff=\$((current_tx_bytes - prev_tx_data[\$interface]))
 
         # 叠加增量
-        ov_rx_diff=\$((ov_rx_diff + rx_diff))
-        ov_tx_diff=\$((ov_tx_diff + tx_diff))
+        ov_rx_diff=\$((ov_rx_diff + rx_diff - ov_rx_diff))
+        ov_tx_diff=\$((ov_tx_diff + tx_diff - ov_tx_diff))
 
         # 调试使用(tt秒的流量增量)
-        echo "Interface: \$interface RX_diff(BYTES): \$rx_diff TX_diff(BYTES): \$tx_diff"
+        echo "RX_diff(BYTES): \$rx_diff TX_diff(BYTES): \$tx_diff"
+        # 调试使用(叠加流量增量)
+        echo "OV_RX_diff(BYTES): \$ov_rx_diff OV_TX_diff(BYTES): \$ov_tx_diff"
         # 调试使用(持续的流量增加)
-        echo "Interface: \$interface Current_RX(BYTES): \$current_rx_bytes Current_TX(BYTES): \$current_tx_bytes"
+        echo "Current_RX(BYTES): \$current_rx_bytes Current_TX(BYTES): \$current_tx_bytes"
 
         # 检查是否超过阈值
         if [ "\$StatisticsMode" == "SE" ]; then
