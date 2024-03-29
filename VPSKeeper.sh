@@ -21,6 +21,14 @@ FlowThreshold_de="3GB"
 FlowThresholdMAX_de="500GB"
 ReportTime_de="00:00"
 AutoUpdateTime_de="01:01"
+interfaces_ST_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
+interfaces_ST_de=("${interfaces_ST_0[@]}")
+interfaces_RP_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
+interfaces_RP_de=("${interfaces_RP_0[@]}")
+StatisticsMode_ST_de="SE"
+# StatisticsMode_ST_de="OV" # 整体统计
+# StatisticsMode_ST_de="SE" # 单独统计
+StatisticsMode_RP_de="SE"
 
 # 检测是否root用户
 if [ "$UID" -ne 0 ]; then
@@ -771,15 +779,15 @@ CheckCPU_top() {
 
 CheckCPU_sar() {
     echo "正在检测 CPU 使用率..."
-    cpu_usage_ratio=$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f\n", 100 - $NF }')
+    cpu_usage_ratio=$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f", 100 - $NF }')
     echo "sar检测结果: $cpu_usage_ratio | 日期: $(date)"
 }
 
 CheckCPU_top_sar() {
     echo "正在检测 CPU 使用率..."
-    cpu_usage_sar=$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f\n", 100 - $NF }')
+    cpu_usage_sar=$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f", 100 - $NF }')
     cpu_usage_top=$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", $0); idle+=$5; count++ } END { printf "%.0f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
-    cpu_usage_ratio=$(awk -v sar="$cpu_usage_sar" -v top="$cpu_usage_top" 'BEGIN { printf "%.0f\n", (sar + top) / 2 }')
+    cpu_usage_ratio=$(awk -v sar="$cpu_usage_sar" -v top="$cpu_usage_top" 'BEGIN { printf "%.0f", (sar + top) / 2 }')
     echo "sar检测结果: $cpu_usage_sar | top检测结果: $cpu_usage_top | 平均值: $cpu_usage_ratio | 日期: $(date)"
 }
 
@@ -795,11 +803,17 @@ GetInfo_now() {
         cpu_h1=$(echo "$top_output_h" | awk 'NR == 1 || $9 > max { max = $9; process = $NF } END { print process }')
         cpu_h2=$(echo "$top_output_h" | awk 'NR == 2 || $9 > max { max = $9; process = $NF } END { print process }')
         mem_total=$(echo "$top_output" | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
+        if [ -z "$mem_total" ]; then
+            mem_total=$(echo "$top_output" | awk '/^KiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2/1024) }')
+        fi
         mem_used=$(echo "$top_output" | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($4) }')
-        mem_use_ratio=$(awk -v used="$mem_used" -v total="$mem_total" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
+        if [ -z "$mem_used" ]; then
+            mem_used=$(echo "$top_output" | awk '/^KiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($4/1024) }')
+        fi
+        mem_use_ratio=$(awk -v used="$mem_used" -v total="$mem_total" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
         swap_total=$(echo "$top_output" | awk '/^MiB Swap/ { gsub(/Swap|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
         swap_used=$(echo "$top_output" | awk '/^MiB Swap/ { gsub(/Swap|total,|free,|used,|buff\/cache|:/, " ", $0); print int($4) }')
-        swap_use_ratio=$(awk -v used="$swap_used" -v total="$swap_total" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
+        swap_use_ratio=$(awk -v used="$swap_used" -v total="$swap_total" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
     elif echo "$top_output" | grep -q "^CPU"; then
         top -V
         top_output_h=$(echo "$top_output" | awk 'NR > 4')
@@ -859,7 +873,7 @@ SetupCPU_TG() {
         return 1
     fi
     if [ "$autorun" == "false" ]; then
-        read -e -p "请输入 CPU 报警阀值 % (回车跳过修改): " threshold
+        read -e -p "请输入 CPU 报警阈值 % (回车跳过修改): " threshold
     else
         if [ ! -z "$CPUThreshold" ]; then
             threshold=$CPUThreshold
@@ -873,7 +887,7 @@ SetupCPU_TG() {
     fi
     threshold="${threshold//%/}"
     if [[ ! $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
-        echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是数字 (1-100) 的整数, 跳过操作."
+        echo -e "$Err ${REB}输入无效${NC}, 报警阈值 必须是数字 (1-100) 的整数, 跳过操作."
         return 1
     fi
     writeini "CPUThreshold" "$threshold"
@@ -999,7 +1013,7 @@ while true; do
         fi
 
         current_date_send=\$(date +"%Y.%m.%d %T")
-        message="CPU 使用率超过阀值 > $CPUThreshold%❗️"'
+        message="CPU 使用率超过阈值 > $CPUThreshold%❗️"'
 '"主机名: \$(hostname)"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
 '"内存: \$mem_use_progress \$mem_use_ratio"'
@@ -1046,7 +1060,7 @@ SetupMEM_TG() {
         return 1
     fi
     if [ "$autorun" == "false" ]; then
-        read -e -p "请输入 内存阀值 % (回车跳过修改): " threshold
+        read -e -p "请输入 内存阈值 % (回车跳过修改): " threshold
     else
         if [ ! -z "$MEMThreshold" ]; then
             threshold=$MEMThreshold
@@ -1060,7 +1074,7 @@ SetupMEM_TG() {
     fi
     threshold="${threshold//%/}"
     if [[ ! $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
-        echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是数字 (1-100) 的整数, 跳过操作."
+        echo -e "$Err ${REB}输入无效${NC}, 报警阈值 必须是数字 (1-100) 的整数, 跳过操作."
         return 1
     fi
     writeini "MEMThreshold" "$threshold"
@@ -1186,7 +1200,7 @@ while true; do
         fi
 
         current_date_send=\$(date +"%Y.%m.%d %T")
-        message="内存 使用率超过阀值 > $MEMThreshold%❗️"'
+        message="内存 使用率超过阈值 > $MEMThreshold%❗️"'
 '"主机名: \$(hostname)"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
 '"内存: \$mem_use_progress \$mem_use_ratio"'
@@ -1234,7 +1248,7 @@ SetupDISK_TG() {
         return 1
     fi
     if [ "$autorun" == "false" ]; then
-        read -e -p "请输入 磁盘报警阀值 % (回车跳过修改): " threshold
+        read -e -p "请输入 磁盘报警阈值 % (回车跳过修改): " threshold
     else
         if [ ! -z "$DISKThreshold" ]; then
             threshold=$DISKThreshold
@@ -1248,7 +1262,7 @@ SetupDISK_TG() {
     fi
     threshold="${threshold//%/}"
     if [[ ! $threshold =~ ^([1-9][0-9]?|100)$ ]]; then
-        echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是数字 (1-100) 的整数, 跳过操作."
+        echo -e "$Err ${REB}输入无效${NC}, 报警阈值 必须是数字 (1-100) 的整数, 跳过操作."
         return 1
     fi
     writeini "DISKThreshold" "$threshold"
@@ -1374,7 +1388,7 @@ while true; do
         fi
 
         current_date_send=\$(date +"%Y.%m.%d %T")
-        message="磁盘 使用率超过阀值 > $DISKThreshold%❗️"'
+        message="磁盘 使用率超过阈值 > $DISKThreshold%❗️"'
 '"主机名: \$(hostname)"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
 '"内存: \$mem_use_progress \$mem_use_ratio"'
@@ -1427,7 +1441,7 @@ SetupFlow_TG() {
         return 1
     fi
     if [ "$autorun" == "false" ]; then
-        read -e -p "请输入 流量报警阀值 数字 + MB/GB/TB (回车跳过修改): " threshold
+        read -e -p "请输入 流量报警阈值 数字 + MB/GB/TB (回车跳过修改): " threshold
     else
         if [ ! -z "$FlowThreshold" ]; then
             threshold=$FlowThreshold
@@ -1468,7 +1482,7 @@ SetupFlow_TG() {
         threshold="${threshold}TB"
         writeini "FlowThreshold" "$threshold"
     else
-        echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
+        echo -e "$Err ${REB}输入无效${NC}, 报警阈值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
         return 1
     fi
     if [ "$autorun" == "false" ]; then
@@ -1510,13 +1524,120 @@ SetupFlow_TG() {
             threshold_max="${threshold_max}TB"
             writeini "FlowThresholdMAX" "$threshold_max"
         else
-            echo -e "$Err ${REB}输入无效${NC}, 报警阀值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
+            echo -e "$Err ${REB}输入无效${NC}, 报警阈值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
             return 1
         fi
     else
         writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
         echo -e "$Tip 输入为空, 默认最大流量上限为: $FlowThresholdMAX_de"
     fi
+    if [ "$autorun" == "false" ]; then
+        interfaces_ST_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
+        output=$(ip -br link)
+        IFS=$'\n'
+        count=1
+        for line in $output; do
+            columns_1=$(echo "$line" | awk '{print $1}')
+            columns_1_array+=("$columns_1")
+            columns_2=$(echo "$line" | awk '{print $1"\t"$2}')
+            if [[ $interfaces_ST_0 =~ $columns_1 ]]; then
+                printf "${GR}%d. %s${NC}\n" "$count" "$columns_2"
+            else
+                printf "${GR}%d. ${NC}%s\n" "$count" "$columns_1"
+            fi
+            ((count++))
+        done
+        echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活动接口:"
+        read -e -p "请输入统计接口编号: " choice
+        if [[ $choice == *0* ]]; then
+            tips="$Err 接口编号中没有 0 选项"
+            return 1
+        fi
+        if [ ! -z "$choice" ]; then
+            choice_array=()
+            interfaces_ST=()
+            choice="${choice//[, ]/}"
+            for (( i=0; i<${#choice}; i++ )); do
+            char="${choice:$i:1}"
+            if [[ "$char" =~ [0-9] ]]; then
+                choice_array+=("$char")
+            fi
+            done
+            # echo "解析后的接口编号数组: ${choice_array[@]}"
+            for item in "${choice_array[@]}"; do
+                index=$((item - 1))
+                if [ -z "${columns_1_array[index]}" ]; then
+                    tips="$Err 错误: 输入的编号 $item 无效或超出范围."
+                    return 1
+                else
+                    interfaces_ST+=("${columns_1_array[index]}")
+                fi
+            done
+            for ((i = 0; i < ${#interfaces_ST[@]}; i++)); do
+                w_interfaces_ST+="${interfaces_ST[$i]}"
+                if ((i < ${#interfaces_ST[@]} - 1)); then
+                    w_interfaces_ST+=","
+                fi
+            done
+            # echo "确认选择接口: $w_interfaces_ST"
+            writeini "interfaces_ST" "$w_interfaces_ST"
+        else
+            # IFS=',' read -ra interfaces_ST_de <<< "$interfaces_ST_de"
+            # interfaces_ST=("${interfaces_ST_de[@]}")
+            interfaces_all=$(ip -br link | awk '{print $1}')
+            active_interfaces=()
+            echo "检查网络接口流量情况..."
+            for interface in $interfaces_all
+            do
+            clean_interface=${interface%%@*}
+            stats=$(ip -s link show $clean_interface)
+            rx_packets=$(echo "$stats" | awk '/RX:/{getline; print $2}')
+            tx_packets=$(echo "$stats" | awk '/TX:/{getline; print $2}')
+            if [ "$rx_packets" -gt 0 ] || [ "$tx_packets" -gt 0 ]; then
+                echo "接口: $clean_interface 活跃, 接收: $rx_packets 包, 发送: $tx_packets 包."
+                active_interfaces+=($clean_interface)
+            else
+                echo "接口: $clean_interface 不活跃."
+            fi
+            done
+            echo -e "$Tip 检测到活动的接口: ${active_interfaces[@]}"
+            interfaces_ST=("${active_interfaces[@]}")
+            for ((i = 0; i < ${#interfaces_ST[@]}; i++)); do
+                w_interfaces_ST+="${interfaces_ST[$i]}"
+                if ((i < ${#interfaces_ST[@]} - 1)); then
+                    w_interfaces_ST+=","
+                fi
+            done
+            # echo "确认选择接口: $w_interfaces_ST"
+            writeini "interfaces_ST" "$w_interfaces_ST"
+        fi
+    else
+        if [ ! -z "${interfaces_ST+x}" ]; then
+            interfaces_ST=("${interfaces_ST[@]}")
+        else
+            interfaces_ST=("${interfaces_ST_de[@]}")
+        fi
+        echo "interfaces_ST: $interfaces_ST"
+    fi
+    if [ "$autorun" == "false" ]; then
+        read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为单独发送): " mode
+        if [ "$mode" == "1" ]; then
+            StatisticsMode="OV"
+        elif [ "$mode" == "2" ]; then
+            StatisticsMode="SE"
+        else
+            StatisticsMode=$StatisticsMode_ST_de
+        fi
+        writeini "StatisticsMode" "$StatisticsMode"
+    else
+        if [ ! -z "$StatisticsMode" ]; then
+            StatisticsMode=$StatisticsMode
+        else
+            StatisticsMode=$StatisticsMode_ST_de
+        fi
+    fi
+    echo "统计模式为: $StatisticsMode"
+
     source $ConfigFile
     FlowThreshold_UB=$FlowThreshold
     FlowThreshold_U=$(Remove_B "$FlowThreshold")
@@ -1549,46 +1670,84 @@ $(declare -f create_progress_bar)
 $(declare -f Remove_B)
 
 tt=10
+ov_rx_diff=0
+ov_tx_diff=0
+StatisticsMode="$StatisticsMode"
 
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
-interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+# interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces=\$(ip -br link | awk '{print \$1}')
+IFS=',' read -ra interfaces <<< "$interfaces_ST"
+echo "统计接口: \${interfaces[@]}"
+for ((i = 0; i < \${#interfaces[@]}; i++)); do
+    echo "\$((i+1)): \${interfaces[i]}"
+done
+for ((i = 0; i < \${#interfaces[@]}; i++)); do
+    show_interfaces+="\${interfaces[\$i]}"
+    if ((i < \${#interfaces[@]} - 1)); then
+        show_interfaces+=","
+    fi
+done
 declare -A prev_rx_data
 declare -A prev_tx_data
 
 for ((i=0; i<\${#interfaces[@]}; i++)); do
-    # 如果端口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
-    sanitized_interface=\${interfaces[\$i]%@*}
-    sanitized_interface=\${sanitized_interface%:*}
-    interfaces[\$i]=\$sanitized_interface
+    # 如果接口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
+    interface=\${interfaces[\$i]%@*}
+    interface=\${interface%:*}
+    interfaces[\$i]=\$interface
 done
-echo "\${interfaces[@]}"
+echo "纺计接口(处理后): \${interfaces[@]}"
 
 # 初始化接口流量数据
-for interface in \$interfaces; do
-    sanitized_interface=\$interface
-
-    rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
-    tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
-    prev_rx_data[\$sanitized_interface]=\$rx_bytes
-    prev_tx_data[\$sanitized_interface]=\$tx_bytes
+for interface in "\${interfaces[@]}"; do
+    rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+    tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+    prev_rx_data[\$interface]=\$rx_bytes
+    prev_tx_data[\$interface]=\$tx_bytes
 done
 
 # 循环检查
 while true; do
-    n=1
-    for interface in \$interfaces; do
-        echo "NO.\$n ----------------------------------------- interface: \$interface"
-        start_time=\$(date +%s)
-        sanitized_interface=\$interface
+    start_time=\$(date +%s)
+    nline=1
+    ov_current_rx_bytes=0
+    ov_current_tx_bytes=0
+    for interface in "\${interfaces[@]}"; do
+        interface_tt=\$interface
+        rx_bytes=\$(ip -s link show \$interface_tt | awk '/RX:/ { getline; print \$1 }')
+        tx_bytes=\$(ip -s link show \$interface_tt | awk '/TX:/ { getline; print \$1 }')
+        ov_current_rx_bytes=\$((ov_current_rx_bytes + rx_bytes))
+        ov_current_tx_bytes=\$((ov_current_tx_bytes + tx_bytes))
+    done
+    for interface in "\${interfaces[@]}"; do
+        echo "NO.\$nline ----------------------------------------- interface: \$interface"
+        # start_time=\$(date +%s)
 
         # 获取当前流量数据
-        current_rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
-        current_tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
-        
+        current_rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        current_tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+
+        # 计算网速
+        if [ ! -z "\${ov_prev_tt_rx_data}" ]; then
+            rx_diff_tt=\$((ov_current_rx_bytes - ov_prev_tt_rx_data))
+        else
+            rx_diff_tt=0
+        fi
+        if [ ! -z "\${ov_prev_tt_tx_data}" ]; then
+            tx_diff_tt=\$((ov_current_tx_bytes - ov_prev_tt_tx_data))
+        else
+            tx_diff_tt=0
+        fi
+        rx_speed=\$(awk "BEGIN { speed = \$rx_diff_tt / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+        tx_speed=\$(awk "BEGIN { speed = \$tx_diff_tt / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+
+        rx_speed=\$(Remove_B "\$rx_speed")
+        tx_speed=\$(Remove_B "\$tx_speed")
+
         # all_rx_mb=\$((current_rx_bytes / 1024 / 1024)) # 只能输出整数
         all_rx_mb=\$(awk -v current_rx_bytes="\$current_rx_bytes" 'BEGIN { printf "%.1f", current_rx_bytes / (1024 * 1024) }')
-        all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
+        all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
         if awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_rx_ratio=1
             all_rx_lto=true
@@ -1624,7 +1783,7 @@ while true; do
 
         # all_tx_mb=\$((current_tx_bytes / 1024 / 1024)) # 只能输出整数
         all_tx_mb=\$(awk -v current_tx_bytes="\$current_tx_bytes" 'BEGIN { printf "%.1f", current_tx_bytes / (1024 * 1024) }')
-        all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
+        all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
         if awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_tx_ratio=1
             all_tx_lto=true
@@ -1658,67 +1817,56 @@ while true; do
             all_tx_mb="\${all_tx_mb}MB"
         fi
 
+        all_rx_mb=\$(Remove_B "\$all_rx_mb")
+        all_tx_mb=\$(Remove_B "\$all_tx_mb")
+
         # 计算增量
-        rx_diff=\$((current_rx_bytes - prev_rx_data[\$sanitized_interface]))
-        tx_diff=\$((current_tx_bytes - prev_tx_data[\$sanitized_interface]))
+        rx_diff=\$((current_rx_bytes - prev_rx_data[\$interface]))
+        tx_diff=\$((current_tx_bytes - prev_tx_data[\$interface]))
+
+        # 叠加增量
+        ov_rx_diff=\$((ov_rx_diff + rx_diff))
+        ov_tx_diff=\$((ov_tx_diff + tx_diff))
 
         # 调试使用(tt秒的流量增量)
-        echo "Interface: \$sanitized_interface RX_diff(BYTES): \$rx_diff TX_diff(BYTES): \$tx_diff"
-
+        echo "Interface: \$interface RX_diff(BYTES): \$rx_diff TX_diff(BYTES): \$tx_diff"
         # 调试使用(持续的流量增加)
-        echo "Interface: \$sanitized_interface Current_RX(BYTES): \$current_rx_bytes Current_TX(BYTES): \$current_tx_bytes"
+        echo "Interface: \$interface Current_RX(BYTES): \$current_rx_bytes Current_TX(BYTES): \$current_tx_bytes"
 
         # 检查是否超过阈值
-        # if [ \$rx_diff -ge \$THRESHOLD_BYTES ] || [ \$tx_diff -ge \$THRESHOLD_BYTES ]; then # 仅支持整数计算 (已经被下面两行代码替换)
-        threshold_reached=\$(awk -v rx_diff="\$rx_diff" -v tx_diff="\$tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (rx_diff >= threshold) || (tx_diff >= threshold) ? 1 : 0}')
-        if [ "\$threshold_reached" -eq 1 ]; then
-            # rx_mb=\$((rx_diff / 1024 / 1024)) # 只能输出整数
-            rx_mb=\$(awk -v rx_diff="\$rx_diff" 'BEGIN { printf "%.1f", rx_diff / (1024 * 1024) }')
-            # if [ "\$rx_mb" -ge 1024 ]; then # 只能比较整数
-            if awk -v rx_mb="\$rx_mb" 'BEGIN { exit !(rx_mb >= 1024) }'; then
-                rx_mb=\$(awk -v value=\$rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-            # elif [ "\$rx_mb" -lt 1 ]; then # 只能比较整数
-            elif awk -v rx_mb="\$rx_mb" 'BEGIN { exit !(rx_mb < 1) }'; then
-                rx_mb=\$(awk -v value=\$rx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-            else
-                rx_mb="\${rx_mb}MB"
-            fi
-            # tx_mb=\$((tx_diff / 1024 / 1024)) # 只能输出整数
-            tx_mb=\$(awk -v tx_diff="\$tx_diff" 'BEGIN { printf "%.1f", tx_diff / (1024 * 1024) }')
-            # if [ "\$tx_mb" -ge 1024 ]; then # 只能比较整数
-            if awk -v tx_mb="\$tx_mb" 'BEGIN { exit !(tx_mb >= 1024) }'; then
-                tx_mb=\$(awk -v value=\$tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-            # elif [ "\$tx_mb" -lt 1 ]; then # 只能比较整数
-            elif awk -v tx_mb="\$tx_mb" 'BEGIN { exit !(tx_mb < 1) }'; then
-                tx_mb=\$(awk -v value=\$tx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-            else
-                tx_mb="\${tx_mb}MB"
-            fi
-            if [ ! -z "\${prev_tt_rx_data[\$sanitized_interface]}" ]; then
-                rx_diff_tt=\$((current_rx_bytes - prev_tt_rx_data[\$sanitized_interface]))
-            else
-                rx_diff_tt=0
-            fi
-            if [ ! -z "\${prev_tt_tx_data[\$sanitized_interface]}" ]; then
-                tx_diff_tt=\$((current_tx_bytes - prev_tt_tx_data[\$sanitized_interface]))
-            else
-                tx_diff_tt=0
-            fi
+        if [ "\$StatisticsMode" == "SE" ]; then
+            # if [ \$rx_diff -ge \$THRESHOLD_BYTES ] || [ \$tx_diff -ge \$THRESHOLD_BYTES ]; then # 仅支持整数计算 (已经被下面两行代码替换)
+            threshold_reached=\$(awk -v rx_diff="\$rx_diff" -v tx_diff="\$tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (rx_diff >= threshold) || (tx_diff >= threshold) ? 1 : 0}')
+            if [ "\$threshold_reached" -eq 1 ]; then
+                # rx_mb=\$((rx_diff / 1024 / 1024)) # 只能输出整数
+                rx_mb=\$(awk -v rx_diff="\$rx_diff" 'BEGIN { printf "%.1f", rx_diff / (1024 * 1024) }')
+                # if [ "\$rx_mb" -ge 1024 ]; then # 只能比较整数
+                if awk -v rx_mb="\$rx_mb" 'BEGIN { exit !(rx_mb >= 1024) }'; then
+                    rx_mb=\$(awk -v value=\$rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
+                # elif [ "\$rx_mb" -lt 1 ]; then # 只能比较整数
+                elif awk -v rx_mb="\$rx_mb" 'BEGIN { exit !(rx_mb < 1) }'; then
+                    rx_mb=\$(awk -v value=\$rx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
+                else
+                    rx_mb="\${rx_mb}MB"
+                fi
+                # tx_mb=\$((tx_diff / 1024 / 1024)) # 只能输出整数
+                tx_mb=\$(awk -v tx_diff="\$tx_diff" 'BEGIN { printf "%.1f", tx_diff / (1024 * 1024) }')
+                # if [ "\$tx_mb" -ge 1024 ]; then # 只能比较整数
+                if awk -v tx_mb="\$tx_mb" 'BEGIN { exit !(tx_mb >= 1024) }'; then
+                    tx_mb=\$(awk -v value=\$tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
+                # elif [ "\$tx_mb" -lt 1 ]; then # 只能比较整数
+                elif awk -v tx_mb="\$tx_mb" 'BEGIN { exit !(tx_mb < 1) }'; then
+                    tx_mb=\$(awk -v value=\$tx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
+                else
+                    tx_mb="\${tx_mb}MB"
+                fi
 
-            rx_speed=\$(awk "BEGIN { speed = \$rx_diff_tt / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-            tx_speed=\$(awk "BEGIN { speed = \$tx_diff_tt / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+                rx_mb=\$(Remove_B "\$rx_mb")
+                tx_mb=\$(Remove_B "\$tx_mb")
+                current_date_send=\$(date +"%Y.%m.%d %T")
 
-            current_date_send=\$(date +"%Y.%m.%d %T")
-
-            rx_mb=\$(Remove_B "\$rx_mb")
-            tx_mb=\$(Remove_B "\$tx_mb")
-            all_rx_mb=\$(Remove_B "\$all_rx_mb")
-            all_tx_mb=\$(Remove_B "\$all_tx_mb")
-            rx_speed=\$(Remove_B "\$rx_speed")
-            tx_speed=\$(Remove_B "\$tx_speed")
-
-            message="流量已达到阀值🧭 > ${FlowThreshold_U}❗️"'
-'"主机名: \$(hostname) 端口: \$sanitized_interface"'
+                message="流量已达到阈值🧭 > ${FlowThreshold_U}❗️"'
+'"主机名: \$(hostname) 接口: \$interface"'
 '"已接收: \${rx_mb}  已发送: \${tx_mb}"'
 '"───────────────"'
 '"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
@@ -1727,19 +1875,78 @@ while true; do
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
 '"网络⬇️: \${rx_speed}/s  网络⬆️: \${tx_speed}/s"'
 '"服务器时间: \$current_date_send"
-            curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                -d chat_id="$ChatID_1" -d text="\$message"
-            echo "报警信息已发出..."
+                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+                    -d chat_id="$ChatID_1" -d text="\$message"
+                echo "报警信息已发出..."
 
-            # 更新前一个状态的流量数据
-            prev_rx_data[\$sanitized_interface]=\$current_rx_bytes
-            prev_tx_data[\$sanitized_interface]=\$current_tx_bytes
+                # 更新前一个状态的流量数据
+                prev_rx_data[\$interface]=\$current_rx_bytes
+                prev_tx_data[\$interface]=\$current_tx_bytes
+            fi
+        elif [ "\$StatisticsMode" == "OV" ]; then
+            threshold_reached=\$(awk -v ov_rx_diff="\$ov_rx_diff" -v ov_tx_diff="\$ov_tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (ov_rx_diff >= threshold) || (ov_tx_diff >= threshold) ? 1 : 0}')
+            if [ "\$threshold_reached" -eq 1 ]; then
+                # ov_rx_mb=\$((ov_rx_diff / 1024 / 1024)) # 只能输出整数
+                ov_rx_mb=\$(awk -v ov_rx_diff="\$ov_rx_diff" 'BEGIN { printf "%.1f", ov_rx_diff / (1024 * 1024) }')
+                # if [ "\$ov_rx_mb" -ge 1024 ]; then # 只能比较整数
+                if awk -v ov_rx_mb="\$ov_rx_mb" 'BEGIN { exit !(ov_rx_mb >= 1024) }'; then
+                    ov_rx_mb=\$(awk -v value=\$ov_rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
+                # elif [ "\$ov_rx_mb" -lt 1 ]; then # 只能比较整数
+                elif awk -v ov_rx_mb="\$ov_rx_mb" 'BEGIN { exit !(ov_rx_mb < 1) }'; then
+                    ov_rx_mb=\$(awk -v value=\$ov_rx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
+                else
+                    ov_rx_mb="\${ov_rx_mb}MB"
+                fi
+                # ov_tx_mb=\$((ov_tx_diff / 1024 / 1024)) # 只能输出整数
+                ov_tx_mb=\$(awk -v ov_tx_diff="\$ov_tx_diff" 'BEGIN { printf "%.1f", ov_tx_diff / (1024 * 1024) }')
+                # if [ "\$ov_tx_mb" -ge 1024 ]; then # 只能比较整数
+                if awk -v ov_tx_mb="\$ov_tx_mb" 'BEGIN { exit !(ov_tx_mb >= 1024) }'; then
+                    ov_tx_mb=\$(awk -v value=\$ov_tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
+                # elif [ "\$ov_tx_mb" -lt 1 ]; then # 只能比较整数
+                elif awk -v ov_tx_mb="\$ov_tx_mb" 'BEGIN { exit !(ov_tx_mb < 1) }'; then
+                    ov_tx_mb=\$(awk -v value=\$ov_tx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
+                else
+                    ov_tx_mb="\${ov_tx_mb}MB"
+                fi
+
+                ov_rx_mb=\$(Remove_B "\$ov_rx_mb")
+                ov_tx_mb=\$(Remove_B "\$ov_tx_mb")
+                current_date_send=\$(date +"%Y.%m.%d %T")
+
+                message="流量已达到阈值🧭 > ${FlowThreshold_U}❗️"'
+'"主机名: \$(hostname) 接口: \$show_interfaces"'
+'"已接收: \${ov_rx_mb}  已发送: \${ov_tx_mb}"'
+'"───────────────"'
+'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
+'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
+'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
+'"网络⬇️: \${rx_speed}/s  网络⬆️: \${tx_speed}/s"'
+'"服务器时间: \$current_date_send"
+                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+                    -d chat_id="$ChatID_1" -d text="\$message"
+                echo "报警信息已发出..."
+
+                # 更新前一个状态的流量数据
+                prev_rx_data[\$interface]=\$current_rx_bytes
+                prev_tx_data[\$interface]=\$current_tx_bytes
+                ov_rx_diff=0
+                ov_tx_diff=0
+            fi
+        else
+            echo "StatisticsMode Err!!! \$StatisticsMode"
         fi
-
-        # 把当前的流量数据保存到一个变量用于计算速率
-        prev_tt_rx_data[\$sanitized_interface]=\$current_rx_bytes
-        prev_tt_tx_data[\$sanitized_interface]=\$current_tx_bytes
-        n=\$((n + 1))
+        nline=\$((nline + 1))
+    done
+    # 把当前的流量数据保存到一个变量用于计算速率
+    ov_prev_tt_rx_data=0
+    ov_prev_tt_tx_data=0
+    for interface in "\${interfaces[@]}"; do
+        interface_tt=\$interface
+        rx_bytes=\$(ip -s link show \$interface_tt | awk '/RX:/ { getline; print \$1 }')
+        tx_bytes=\$(ip -s link show \$interface_tt | awk '/TX:/ { getline; print \$1 }')
+        ov_prev_tt_rx_data=\$((ov_prev_tt_rx_data + rx_bytes))
+        ov_prev_tt_tx_data=\$((ov_prev_tt_tx_data + tx_bytes))
     done
     # 等待tt秒
     end_time=\$(date +%s)
@@ -1755,8 +1962,92 @@ EOF
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
     fi
+    cat <<EOF > $FolderPath/tg_interface_re.sh
+#!/bin/bash
+
+FolderPath="/root/.shfile"
+interfaces=(\$(ip -br link | awk '{print \$1}'))
+for ((i=0; i<\${#interfaces[@]}; i++)); do
+    interface=\${interfaces[\$i]%@*}
+    interface=\${interface%:*}
+    interfaces[\$i]=\$interface
+done
+TT=10
+CLEAR_TAG=10
+CLEAR_TAG_OLD=\$CLEAR_TAG
+ov_rx_bytes=0
+ov_tx_bytes=0
+
+while true; do
+    start_time=\$(date +%s)
+    for interface in "\${interfaces[@]}"; do
+        echo "interface: \$interface"
+        rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        ov_rx_bytes=\$((ov_rx_bytes + rx_bytes - ov_rx_bytes))
+        ov_tx_bytes=\$((ov_tx_bytes + tx_bytes - ov_tx_bytes))
+    done
+    echo "ov_rx_bytes: \$ov_rx_bytes  ov_tx_bytes: \$ov_tx_bytes"
+    if [ -f "\$FolderPath/interface_re.txt" ]; then
+        touch "\$FolderPath/interface_re.txt"
+    fi
+    RX_old=\$(tail -n 2 \$FolderPath/interface_re.txt | head -n 1 | sed 's/[a-zA-Z=_]//g' | awk '{print \$1}')
+    if [[ -n "\$RX_old" && "\$RX_old" =~ ^[0-9]+$ ]]; then
+        DIFF_RX=\$(( ov_rx_bytes - RX_old ))
+        SPEED_RX=\$(awk -v DIFF="\$DIFF_RX" -v TT="\$TT" 'BEGIN { speed = DIFF / (TT * 1024); if (speed >= 1024) { printf "%.1fMB", speed / 1024 } else { printf "%.1fKB", speed } }')
+    else
+        DIFF_RX=0
+        SPEED_RX=0
+    fi
+    TX_old=\$(tail -n 2 \$FolderPath/interface_re.txt | head -n 1 | sed 's/[a-zA-Z=_]//g' | awk '{print \$2}')
+    if [[ -n "\$TX_old" && "\$TX_old" =~ ^[0-9]+$ ]]; then
+        DIFF_TX=\$(( ov_tx_bytes - TX_old ))
+        SPEED_TX=\$(awk -v DIFF="\$DIFF_TX" -v TT="\$TT" 'BEGIN { speed = DIFF / (TT * 1024); if (speed >= 1024) { printf "%.1fMB", speed / 1024 } else { printf "%.1fKB", speed } }')
+    else
+        DIFF_TX=0
+        SPEED_TX=0
+    fi
+    echo "RX_old: \$RX_old TX_old: \$TX_old SPEED_RX: \$SPEED_RX SPEED_TX: \$SPEED_TX"
+
+    if (( CLEAR_TAG=0 )); then
+        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
+        CLEAR_TAG=\$CLEAR_TAG_OLD
+    else
+        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
+    fi
+    echo -e "SPEED_RX: \$SPEED_RX  SPEED_TX: \$SPEED_TX" >> \$FolderPath/interface_re.txt
+    echo -e "RX=\$ov_rx_bytes TX=\$ov_tx_bytes DIFF_RX=\$DIFF_RX DIFF_TX=\$DIFF_TX" >> \$FolderPath/interface_re.txt
+    echo -e "---------------------------------------------------" >> \$FolderPath/interface_re.txt
+    end_time=\$(date +%s)
+    duration=$((end_time - start_time))
+    sleep_time=\$((\$TT - duration))
+    sleep \$sleep_time
+    CLEAR_TAG=\$((\$CLEAR_TAG - 1))
+done
+EOF
+    # # 此为单独计算网速的子脚本（暂未启用）
+    # chmod +x $FolderPath/tg_interface_re.sh
+    # pkill -f tg_interface_re.sh
+    # pkill -f tg_interface_re.sh
+    # nohup $FolderPath/tg_interface_re.sh > $FolderPath/tg_interface_re.log 2>&1 &
+    ##############################################################################
+#     cat <<EOF > /etc/systemd/system/tg_interface_re.service
+# [Unit]
+# Description=tg_interface_re
+# DefaultDependencies=no
+# Before=shutdown.target
+
+# [Service]
+# Type=oneshot
+# ExecStart=$FolderPath/tg_interface_re.sh
+# TimeoutStartSec=0
+
+# [Install]
+# WantedBy=shutdown.target
+# EOF
+#     systemctl enable tg_interface_re.service > /dev/null
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当流量达阀值 $FlowThreshold_UB 时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"检测接口: $interfaces_ST"$'\n'"💡当流量达阈值 $FlowThreshold_UB 时将收到通知." &
     fi
     tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_UB 时将收到通知."
 }
@@ -1806,6 +2097,115 @@ SetFlowReport_TG() {
     fi
     echo -e "$Tip 流量报告时间: $hour_rp 时 $minute_rp 分."
     cronrp="$minute_rp $hour_rp * * *"
+
+    if [ "$autorun" == "false" ]; then
+        interfaces_RP_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
+        output=$(ip -br link)
+        IFS=$'\n'
+        count=1
+        for line in $output; do
+            columns_1=$(echo "$line" | awk '{print $1}')
+            columns_1_array+=("$columns_1")
+            columns_2=$(echo "$line" | awk '{print $1"\t"$2}')
+            if [[ $interfaces_RP_0 =~ $columns_1 ]]; then
+                printf "${GR}%d. %s${NC}\n" "$count" "$columns_2"
+            else
+                printf "${GR}%d. ${NC}%s\n" "$count" "$columns_1"
+            fi
+            ((count++))
+        done
+        echo -e "请选择编号进行报告, 例如报告1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活动接口:"
+        read -e -p "请输入统计接口编号: " choice
+        if [[ $choice == *0* ]]; then
+            tips="$Err 接口编号中没有 0 选项"
+            return 1
+        fi
+        if [ ! -z "$choice" ]; then
+            choice_array=()
+            interfaces_RP=()
+            choice="${choice//[, ]/}"
+            for (( i=0; i<${#choice}; i++ )); do
+            char="${choice:$i:1}"
+            if [[ "$char" =~ [0-9] ]]; then
+                choice_array+=("$char")
+            fi
+            done
+            # echo "解析后的接口编号数组: ${choice_array[@]}"
+            for item in "${choice_array[@]}"; do
+                index=$((item - 1))
+                if [ -z "${columns_1_array[index]}" ]; then
+                    tips="$Err 错误: 输入的编号 $item 无效或超出范围."
+                    return 1
+                else
+                    interfaces_RP+=("${columns_1_array[index]}")
+                fi
+            done
+            for ((i = 0; i < ${#interfaces_RP[@]}; i++)); do
+                w_interfaces_RP+="${interfaces_RP[$i]}"
+                if ((i < ${#interfaces_RP[@]} - 1)); then
+                    w_interfaces_RP+=","
+                fi
+            done
+            # echo "确认选择接口: $w_interfaces_RP"
+            writeini "interfaces_RP" "$w_interfaces_RP"
+        else
+            # IFS=',' read -ra interfaces_RP_de <<< "$interfaces_RP_de"
+            # interfaces_RP=("${interfaces_RP_de[@]}")
+            interfaces_all=$(ip -br link | awk '{print $1}')
+            active_interfaces=()
+            echo "检查网络接口流量情况..."
+            for interface in $interfaces_all
+            do
+            clean_interface=${interface%%@*}
+            stats=$(ip -s link show $clean_interface)
+            rx_packets=$(echo "$stats" | awk '/RX:/{getline; print $2}')
+            tx_packets=$(echo "$stats" | awk '/TX:/{getline; print $2}')
+            if [ "$rx_packets" -gt 0 ] || [ "$tx_packets" -gt 0 ]; then
+                echo "接口: $clean_interface 活跃, 接收: $rx_packets 包, 发送: $tx_packets 包."
+                active_interfaces+=($clean_interface)
+            else
+                echo "接口: $clean_interface 不活跃."
+            fi
+            done
+            echo -e "$Tip 检测到活动的接口: ${active_interfaces[@]}"
+            interfaces_RP=("${active_interfaces[@]}")
+            for ((i = 0; i < ${#interfaces_RP[@]}; i++)); do
+                w_interfaces_RP+="${interfaces_RP[$i]}"
+                if ((i < ${#interfaces_RP[@]} - 1)); then
+                    w_interfaces_RP+=","
+                fi
+            done
+            # echo "确认选择接口: $w_interfaces_RP"
+            writeini "interfaces_RP" "$w_interfaces_RP"
+        fi
+    else
+        if [ ! -z "${interfaces_RP+x}" ]; then
+            interfaces_RP=("${interfaces_RP[@]}")
+        else
+            interfaces_RP=("${interfaces_RP_de[@]}")
+        fi
+        echo "interfaces_RP: $interfaces_RP"
+    fi
+    if [ "$autorun" == "false" ]; then
+        read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为单独发送): " mode
+        if [ "$mode" == "1" ]; then
+            StatisticsMode="OV"
+        elif [ "$mode" == "2" ]; then
+            StatisticsMode="SE"
+        else
+            StatisticsMode=$StatisticsMode_RP_de
+        fi
+        writeini "StatisticsMode" "$StatisticsMode"
+    else
+        if [ ! -z "$StatisticsMode" ]; then
+            StatisticsMode=$StatisticsMode
+        else
+            StatisticsMode=$StatisticsMode_RP_de
+        fi
+    fi
+    echo "统计模式为: $StatisticsMode"
+
+
     source $ConfigFile
     FlowThresholdMAX_UB=$FlowThresholdMAX
     FlowThresholdMAX_U=$(Remove_B "$FlowThresholdMAX_UB")
@@ -1825,34 +2225,69 @@ SetFlowReport_TG() {
 $(declare -f create_progress_bar)
 $(declare -f Bytes_MBtoGBKB)
 $(declare -f Remove_B)
+StatisticsMode="$StatisticsMode"
 
-interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+# interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces=\$(ip -br link | awk '{print \$1}')
+IFS=',' read -ra interfaces <<< "$interfaces_RP"
+echo "统计接口: \${interfaces[@]}"
+for ((i = 0; i < \${#interfaces[@]}; i++)); do
+    echo "\$((i+1)): \${interfaces[i]}"
+done
+for ((i = 0; i < \${#interfaces[@]}; i++)); do
+    show_interfaces+="\${interfaces[\$i]}"
+    if ((i < \${#interfaces[@]} - 1)); then
+        show_interfaces+=","
+    fi
+done
+
 declare -A prev_rx_data
 declare -A prev_tx_data
+declare -A prev_rx_mb_0
+declare -A prev_tx_mb_0
 
 for ((i=0; i<\${#interfaces[@]}; i++)); do
-    # 如果端口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
-    sanitized_interface=\${interfaces[\$i]%@*}
-    sanitized_interface=\${sanitized_interface%:*}
-    interfaces[\$i]=\$sanitized_interface
+    # 如果接口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
+    interface=\${interfaces[\$i]%@*}
+    interface=\${interface%:*}
+    interfaces[\$i]=\$interface
 done
-echo "\${interfaces[@]}"
+echo "纺计接口(处理后): \${interfaces[@]}"
 
 # 获取当前日期
 current_date=\$(date +%Y-%m-%d)
 
 # 初始化变量
-prev_day_rx_mb=0
-prev_day_tx_mb=0
+declare -A prev_day_rx_mb
+declare -A prev_day_tx_mb
+declare -A ov_diff_day_rx_mb
+declare -A ov_diff_day_tx_mb
+declare -A ov_diff_month_rx_mb
+declare -A ov_diff_month_tx_mb
+declare -A ov_diff_year_rx_mb
+declare -A ov_diff_year_tx_mb
+for interface in "\${interfaces[@]}"; do
+    prev_rx_mb_0[\$interface]=0
+    prev_tx_mb_0[\$interface]=0
+    prev_day_rx_mb[\$interface]=0
+    prev_day_tx_mb[\$interface]=0
+    ov_diff_day_rx_mb[\$interface]=0
+    ov_diff_day_tx_mb[\$interface]=0
+    ov_diff_month_rx_mb[\$interface]=0
+    ov_diff_month_tx_mb[\$interface]=0
+    ov_diff_year_rx_mb[\$interface]=0
+    ov_diff_year_tx_mb[\$interface]=0
+done
 executed=false
+interfaces_length=\${#interfaces[@]}
 year_rp=false
 month_rp=false
 day_rp=false
 
 echo "runing..."
 while true; do
-    n=1
+    start_time=\$(date +%s)
+    nline=1
     # 获取当前时间的小时和分钟
     current_year=\$(date +"%Y")
     current_month=\$(date +"%m")
@@ -1861,24 +2296,16 @@ while true; do
     current_minute=\$(date +"%M")
     tail_day=\$(date -d "\$(date +'%Y-%m-01 next month') -1 day" +%d)
 
-    for interface in \$interfaces; do
-        echo "NO.\$n --------------------------------------rp--- interface: \$interface"
-        start_time=\$(date +%s)
-
-        # 如果接口名称中包含 '@'或':'，则仅保留 '@'或':' 之前的部分
-        # sanitized_interface=\${interface%@*}
-        # sanitized_interface=\${sanitized_interface%:*}
-        # echo "for in: interface: \$interface sanitized_interface: \$sanitized_interface"
-        sanitized_interface=\$interface
+    for interface in "\${interfaces[@]}"; do
+        echo "NO.\$nline --------------------------------------rp--- interface: \$interface"
 
         # 获取当前流量数据
-        current_rx_bytes=\$(ip -s link show \$sanitized_interface | awk '/RX:/ { getline; print \$1 }')
-        current_tx_bytes=\$(ip -s link show \$sanitized_interface | awk '/TX:/ { getline; print \$1 }')
+        current_rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        current_tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
         
-        # all_rx_mb=\$((current_rx_bytes / 1024 / 1024)) # 只能输出整数
-        all_rx_mb=\$(awk -v current_rx_bytes="\$current_rx_bytes" 'BEGIN { printf "%.1f", current_rx_bytes / (1024 * 1024) }')
+        all_rx_mb=\$(awk -v v1="\$current_rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
         current_rx_mb=\$all_rx_mb
-        all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
+        all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
         if awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_rx_ratio=1
             all_rx_lto=true
@@ -1904,18 +2331,18 @@ while true; do
 
         # if [ "\$all_rx_mb" -ge 1024 ]; then # 只能比较整数
         if awk -v all_rx_mb="\$all_rx_mb" 'BEGIN { exit !(all_rx_mb >= 1024) }'; then
-            all_rx_mb=\$(awk -v value=\$all_rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
+            all_rx_mb=\$(awk -v v1="\$all_rx_mb" 'BEGIN { printf "%.1fGB", v1 / 1024 }')
         # elif [ "\$all_rx_mb" -lt 1 ]; then # 只能比较整数
         elif awk -v all_rx_mb="\$all_rx_mb" 'BEGIN { exit !(all_rx_mb < 1) }'; then
-            all_rx_mb=\$(awk -v value=\$all_rx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
+            all_rx_mb=\$(awk -v v1="\$all_rx_mb" 'BEGIN { printf "%.0fKB", v1 * 1024 }')
         else
             all_rx_mb="\${all_rx_mb}MB"
         fi
 
         # all_tx_mb=\$((current_tx_bytes / 1024 / 1024)) # 只能输出整数
-        all_tx_mb=\$(awk -v current_tx_bytes="\$current_tx_bytes" 'BEGIN { printf "%.1f", current_tx_bytes / (1024 * 1024) }')
+        all_tx_mb=\$(awk -v v1="\$current_tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
         current_tx_mb=\$all_tx_mb
-        all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f\n", ( used / total ) * 100 }')
+        all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
         if awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_tx_ratio=1
             all_tx_lto=true
@@ -1941,90 +2368,104 @@ while true; do
 
         # if [ "\$all_tx_mb" -ge 1024 ]; then # 只能比较整数
         if awk -v all_tx_mb="\$all_tx_mb" 'BEGIN { exit !(all_tx_mb >= 1024) }'; then
-            all_tx_mb=\$(awk -v value=\$all_tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
+            all_tx_mb=\$(awk -v v1="\$all_tx_mb" 'BEGIN { printf "%.1fGB", v1 / 1024 }')
         # elif [ "\$all_tx_mb" -lt 1 ]; then # 只能比较整数
         elif awk -v all_tx_mb="\$all_tx_mb" 'BEGIN { exit !(all_tx_mb < 1) }'; then
-            all_tx_mb=\$(awk -v value=\$all_tx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
+            all_tx_mb=\$(awk -v v1="\$all_tx_mb" 'BEGIN { printf "%.0fKB", v1 * 1024 }')
         else
             all_tx_mb="\${all_tx_mb}MB"
         fi
 
         if ! \$executed; then
-            prev_rx_mb_0=\$current_rx_mb
-            prev_tx_mb_0=\$current_tx_mb
+            echo "\$interface 只执行一次..."
+            prev_rx_mb_0[\$interface]=\$current_rx_mb
+            prev_tx_mb_0[\$interface]=\$current_tx_mb
             prev_year=\$current_year
-            executed=true
         fi
-        echo "脚本开始时记录值: prev_rx_mb_0: \$prev_rx_mb_0"
-        echo "脚本开始时记录值: prev_tx_mb_0: \$prev_tx_mb_0"
+        echo "脚本开始时记录值: current_rx_mb: \$current_rx_mb | prev_rx_mb_0[\$interface]: \${prev_rx_mb_0[\$interface]}"
+        echo "脚本开始时记录值: current_tx_mb: \$current_tx_mb | prev_tx_mb_0[\$interface]: \${prev_tx_mb_0[\$interface]}"
 
         # 日报告
-        echo "判断记录时间 interface: \$interface sanitized_interface: \$sanitized_interface"
-        if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
-            if [ "\$prev_day_rx_mb" -eq 0 ] && [ "\$prev_day_tx_mb" -eq 0 ]; then
-                prev_day_rx_mb=\$prev_rx_mb_0
-                prev_day_tx_mb=\$prev_tx_mb_0
+        if [ "\$current_hour" == "16" ] && [ "\$current_minute" == "17" ]; then
+            if [ "\${prev_day_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_day_tx_mb[\$interface]}" -eq 0 ]; then
+                prev_day_rx_mb[\$interface]=\${prev_rx_mb_0[\$interface]}
+                prev_day_tx_mb[\$interface]=\${prev_tx_mb_0[\$interface]}
             fi
-            diff_day_rx_mb=\$(awk -v current="\$current_rx_mb" -v prev="\$prev_day_rx_mb" 'BEGIN { printf "%.1f", current - prev }')
-            diff_day_tx_mb=\$(awk -v current="\$current_tx_mb" -v prev="\$prev_day_tx_mb" 'BEGIN { printf "%.1f", current - prev }')
+            diff_day_rx_mb=\$(awk -v v1="\$current_rx_mb" -v v2="\${prev_day_rx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
+            diff_day_tx_mb=\$(awk -v v1="\$current_tx_mb" -v v2="\${prev_day_tx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
             diff_rx_day=\$(Bytes_MBtoGBKB "\$diff_day_rx_mb")
             diff_tx_day=\$(Bytes_MBtoGBKB "\$diff_day_tx_mb")
 
-             # 月报告
+            ov_diff_day_rx_mb=\$(awk -v v1="\$ov_diff_day_rx_mb" -v v2="\$diff_day_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+            ov_diff_day_tx_mb=\$(awk -v v1="\$ov_diff_day_tx_mb" -v v2="\$diff_day_tx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+            ov_diff_rx_day=\$(Bytes_MBtoGBKB "\$ov_diff_day_rx_mb")
+            ov_diff_tx_day=\$(Bytes_MBtoGBKB "\$ov_diff_day_tx_mb")
+
+            # 月报告
             if [ "\$current_day" == "01" ]; then
-                if [ "\$prev_month_rx_mb" -eq 0 ] && [ "\$prev_month_tx_mb" -eq 0 ]; then
-                    prev_month_rx_mb=\$prev_rx_mb_0
-                    prev_month_tx_mb=\$prev_tx_mb_0
+                if [ "\${prev_month_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_month_tx_mb[\$interface]}" -eq 0 ]; then
+                    prev_month_rx_mb[\$interface]=\$prev_rx_mb_0
+                    prev_month_tx_mb[\$interface]=\$prev_tx_mb_0
                 fi
-                diff_month_rx_mb=\$(awk -v current="\$current_rx_mb" -v prev="\$prev_month_rx_mb" 'BEGIN { printf "%.1f", current - prev }')
-                diff_month_tx_mb=\$(awk -v current="\$current_tx_mb" -v prev="\$prev_month_tx_mb" 'BEGIN { printf "%.1f", current - prev }')
+                diff_month_rx_mb=\$(awk -v v1="\$current_rx_mb" -v v2="\${prev_month_rx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
+                diff_month_tx_mb=\$(awk -v v1="\$current_tx_mb" -v v2="\${prev_month_tx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
                 diff_rx_month=\$(Bytes_MBtoGBKB "\$diff_month_rx_mb")
                 diff_tx_month=\$(Bytes_MBtoGBKB "\$diff_month_tx_mb")
 
-                 # 年报告
+                ov_diff_month_rx_mb=\$(awk -v v1="\$ov_diff_month_rx_mb" -v v2="\$diff_month_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+                ov_diff_month_tx_mb=\$(awk -v v1="\$ov_diff_month_tx_mb" -v v2="\$diff_month_tx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+                ov_diff_rx_month=\$(Bytes_MBtoGBKB "\$ov_diff_month_rx_mb")
+                ov_diff_tx_month=\$(Bytes_MBtoGBKB "\$ov_diff_month_tx_mb")
+
+                # 年报告
                 year_diff=$((current_year - prev_year))
                 if [ "\$year_diff" -eq 1 ]; then
-                    if [ "\$prev_year_rx_mb" -eq 0 ] && [ "\$prev_year_tx_mb" -eq 0 ]; then
-                        prev_year_rx_mb=\$prev_rx_mb_0
-                        prev_year_tx_mb=\$prev_tx_mb_0
+                    if [ "\${prev_year_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_year_tx_mb[\$interface]}" -eq 0 ]; then
+                        prev_year_rx_mb[\$interface]=\$prev_rx_mb_0
+                        prev_year_tx_mb[\$interface]=\$prev_tx_mb_0
                     fi
-                    diff_year_rx_mb=\$(awk -v current="\$current_rx_mb" -v prev="\$prev_year_rx_mb" 'BEGIN { printf "%.1f", current - prev }')
-                    diff_year_tx_mb=\$(awk -v current="\$current_tx_mb" -v prev="\$prev_year_tx_mb" 'BEGIN { printf "%.1f", current - prev }')
+                    diff_year_rx_mb=\$(awk -v v1="\$current_rx_mb" -v v2="\${prev_year_rx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
+                    diff_year_tx_mb=\$(awk -v v1="\$current_tx_mb" -v v2="\${prev_year_tx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
                     diff_rx_year=\$(Bytes_MBtoGBKB "\$diff_year_rx_mb")
                     diff_tx_year=\$(Bytes_MBtoGBKB "\$diff_year_tx_mb")
 
+                    ov_diff_year_rx_mb=\$(awk -v v1="\$ov_diff_year_rx_mb" -v v2="\$diff_year_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+                    ov_diff_year_tx_mb=\$(awk -v v1="\$ov_diff_year_tx_mb" -v v2="\$diff_year_tx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+                    ov_diff_rx_year=\$(Bytes_MBtoGBKB "\$ov_diff_year_rx_mb")
+                    ov_diff_tx_year=\$(Bytes_MBtoGBKB "\$ov_diff_year_tx_mb")
+
                     year_rp=true
                     prev_year=\$current_year
-                    prev_year_rx_mb=\$current_rx_mb
-                    prev_year_tx_mb=\$current_tx_mb
+                    prev_year_rx_mb[\$interface]=\$current_rx_mb
+                    prev_year_tx_mb[\$interface]=\$current_tx_mb
                 fi
 
                 month_rp=true
-                prev_month_rx_mb=\$current_rx_mb
-                prev_month_tx_mb=\$current_tx_mb
+                prev_month_rx_mb[\$interface]=\$current_rx_mb
+                prev_month_tx_mb[\$interface]=\$current_tx_mb
             fi
 
-        day_rp=true
-        prev_day_rx_mb=\$current_rx_mb
-        prev_day_tx_mb=\$current_tx_mb
+            day_rp=true
+            # fi
+            prev_day_rx_mb[\$interface]=\$current_rx_mb
+            prev_day_tx_mb[\$interface]=\$current_tx_mb
         fi
 
-        # 发送报告
-        echo "判断报告时间 interface: \$interface sanitized_interface: \$sanitized_interface"
-        if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
-
-            if \$day_rp; then
+        # SE发送报告
+        if [ "\$StatisticsMode" == "SE" ]; then
+            if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
                 current_date_send=\$(date +"%Y.%m.%d %T")
-                # last_day=\$(date -d "1 day ago" +%d)
-                month_last_day=\$(date -d "1 day ago" +%m月%d日)
-
-                diff_rx_day=\$(Remove_B "\$diff_rx_day")
-                diff_tx_day=\$(Remove_B "\$diff_tx_day")
                 all_rx_mb=\$(Remove_B "\$all_rx_mb")
                 all_tx_mb=\$(Remove_B "\$all_tx_mb")
+                if \$day_rp; then
+                    # yesterday=\$(date -d "1 day ago" +%d)
+                    yesterday=\$(date -d "1 day ago" +%m月%d日)
 
-                message="\${month_last_day}🌞流量报告 📈"'
-'"主机名: \$(hostname) 端口: \$sanitized_interface"'
+                    diff_rx_day=\$(Remove_B "\$diff_rx_day")
+                    diff_tx_day=\$(Remove_B "\$diff_tx_day")
+
+                    message="\${yesterday}🌞流量报告 📈"'
+'"主机名: \$(hostname) 接口: \$interface"'
 '"🌞接收: \${diff_rx_day}  🌞发送: \${diff_tx_day}"'
 '"───────────────"'
 '"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
@@ -2032,26 +2473,80 @@ while true; do
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
 '"服务器时间: \$current_date_send"
-                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                    -d chat_id="$ChatID_1" -d text="\$message"
-                echo "报告信息已发出..."
-                echo "时间: \$current_date, 活动端口: \$sanitized_interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
-                echo "----------------------------------------------------------------"
-            fi
+                    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+                        -d chat_id="$ChatID_1" -d text="\$message"
+                    echo "报告信息已发出..."
+                    echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
+                    echo "----------------------------------------------------------------"
+                fi
 
-            if \$month_rp; then
-                current_date_send=\$(date +"%Y.%m.%d %T")
-                # last_month=\$(date -d "1 month ago" +%m)
-                year_last_month=\$(date -d "1 month ago" +%Y年%m月份)
+                if \$month_rp; then
+                    # last_month=\$(date -d "1 month ago" +%m)
+                    last_month=\$(date -d "1 month ago" +%Y年%m月份)
 
-                diff_rx_month=\$(Remove_B "\$diff_rx_month")
-                diff_tx_month=\$(Remove_B "\$diff_tx_month")
-                all_rx_mb=\$(Remove_B "\$all_rx_mb")
-                all_tx_mb=\$(Remove_B "\$all_tx_mb")
+                    diff_rx_month=\$(Remove_B "\$diff_rx_month")
+                    diff_tx_month=\$(Remove_B "\$diff_tx_month")
 
-                message="\${year_last_month}🌙总流量报告 📈"'
-'"主机名: \$(hostname) 端口: \$sanitized_interface"'
+                    message="\${last_month}🌙总流量报告 📈"'
+'"主机名: \$(hostname) 接口: \$interface"'
 '"🌙接收: \${diff_rx_month}  🌙发送: \${diff_tx_month}"'
+'"───────────────"'
+'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
+'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
+'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
+'"服务器时间: \$current_date_send"
+                    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+                        -d chat_id="$ChatID_1" -d text="\$message"
+                    echo "报告信息已发出..."
+                    echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
+                    echo "----------------------------------------------------------------"
+                fi
+
+                if \$year_rp; then
+                    last_year=\$(date -d "1 year ago" +%Y)
+
+                    diff_rx_year=\$(Remove_B "\$diff_rx_year")
+                    diff_tx_year=\$(Remove_B "\$diff_tx_year")
+
+                    message="\${last_year}年🧧总流量报告 📈"'
+'"主机名: \$(hostname) 接口: \$interface"'
+'"🧧接收: \${diff_rx_year}  🧧发送: \${diff_tx_year}"'
+'"───────────────"'
+'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
+'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
+'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
+'"服务器时间: \$current_date_send"
+                    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+                        -d chat_id="$ChatID_1" -d text="\$message"
+                    echo "报告信息已发出..."
+                    echo "年报告信息:"
+                    echo "时间: \$current_date, 活动接口: \$interface, 年接收: \$diff_rx_year, 年发送: \$diff_tx_year"
+                    echo "----------------------------------------------------------------"
+                fi
+            fi
+        fi
+    nline=\$((nline + 1))
+    done
+    executed=true
+
+    # OV发送报告
+    if [ "\$StatisticsMode" == "OV" ]; then
+        if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
+            current_date_send=\$(date +"%Y.%m.%d %T")
+            all_rx_mb=\$(Remove_B "\$all_rx_mb")
+            all_tx_mb=\$(Remove_B "\$all_tx_mb")
+            if \$day_rp; then
+                # yesterday=\$(date -d "1 day ago" +%d)
+                yesterday=\$(date -d "1 day ago" +%m月%d日)
+
+                diff_rx_day=\$(Remove_B "\$diff_rx_day")
+                diff_tx_day=\$(Remove_B "\$diff_tx_day")
+
+                message="\${yesterday}🌞流量报告 📈"'
+'"主机名: \$(hostname) 接口: \$show_interfaces"'
+'"🌞接收: \${ov_diff_rx_day}  🌞发送: \${ov_diff_tx_day}"'
 '"───────────────"'
 '"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
@@ -2061,22 +2556,46 @@ while true; do
                 curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
                     -d chat_id="$ChatID_1" -d text="\$message"
                 echo "报告信息已发出..."
-                echo "时间: \$current_date, 活动端口: \$sanitized_interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
+                echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
                 echo "----------------------------------------------------------------"
+                ov_diff_rx_day=0
+                ov_diff_tx_day=0
             fi
- 
+
+            if \$month_rp; then
+                # last_month=\$(date -d "1 month ago" +%m)
+                last_month=\$(date -d "1 month ago" +%Y年%m月份)
+
+                diff_rx_month=\$(Remove_B "\$diff_rx_month")
+                diff_tx_month=\$(Remove_B "\$diff_tx_month")
+
+                message="\${last_month}🌙总流量报告 📈"'
+'"主机名: \$(hostname) 接口: \$show_interfaces"'
+'"🌙接收: \${ov_diff_rx_month}  🌙发送: \${ov_diff_tx_month}"'
+'"───────────────"'
+'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
+'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
+'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
+'"服务器时间: \$current_date_send"
+                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+                    -d chat_id="$ChatID_1" -d text="\$message"
+                echo "报告信息已发出..."
+                echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
+                echo "----------------------------------------------------------------"
+                ov_diff_rx_month=0
+                ov_diff_tx_month=0
+            fi
+
             if \$year_rp; then
-                current_date_send=\$(date +"%Y.%m.%d %T")
                 last_year=\$(date -d "1 year ago" +%Y)
 
                 diff_rx_year=\$(Remove_B "\$diff_rx_year")
                 diff_tx_year=\$(Remove_B "\$diff_tx_year")
-                all_rx_mb=\$(Remove_B "\$all_rx_mb")
-                all_tx_mb=\$(Remove_B "\$all_tx_mb")
 
                 message="\${last_year}年🧧总流量报告 📈"'
-'"主机名: \$(hostname) 端口: \$sanitized_interface"'
-'"🧧接收: \${diff_rx_year}  🧧发送: \${diff_tx_year}"'
+'"主机名: \$(hostname) 接口: \$show_interfaces"'
+'"🧧接收: \${ov_diff_rx_year}  🧧发送: \${ov_diff_tx_year}"'
 '"───────────────"'
 '"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
@@ -2087,28 +2606,34 @@ while true; do
                     -d chat_id="$ChatID_1" -d text="\$message"
                 echo "报告信息已发出..."
                 echo "年报告信息:"
-                echo "时间: \$current_date, 活动端口: \$sanitized_interface, 年接收: \$diff_rx_year, 年发送: \$diff_tx_year"
+                echo "时间: \$current_date, 活动接口: \$interface, 年接收: \$diff_rx_year, 年发送: \$diff_tx_year"
                 echo "----------------------------------------------------------------"
+                ov_diff_rx_year=0
+                ov_diff_tx_year=0
             fi
         fi
-        n=\$((n + 1))
+    fi
+    for interface in "\${interfaces[@]}"; do
+        echo "prev_rx_mb_0[\$interface]: \${prev_rx_mb_0[\$interface]}"
+        echo "prev_tx_mb_0[\$interface]: \${prev_tx_mb_0[\$interface]}"
     done
-
-    echo "prev_rx_mb_0: \$prev_rx_mb_0"
-    echo "prev_tx_mb_0: \$prev_tx_mb_0"
     echo "prev_year: \$prev_year"
 
-    echo "活动端口: \$sanitized_interface  当前接收流量: \$current_rx_mb 当前发送流量: \$current_tx_mb"
-    echo "活动端口: \$sanitized_interface  接收日流量: \$diff_rx_day  发送日流量: \$diff_tx_day 报告时间: $hour_rp 时 $minute_rp 分"
-    echo "活动端口: \$sanitized_interface  接收月流量: \$diff_rx_month  发送月流量: \$diff_tx_month 报告时间: $hour_rp 时 $minute_rp 分"
-    echo "活动端口: \$sanitized_interface  接收年流量: \$diff_rx_year  发送年流量: \$diff_tx_year 报告时间: $hour_rp 时 $minute_rp 分"
+    echo "活动接口: \$interface  接收总流量: \$current_rx_mb 发送总流量: \$current_tx_mb"
+    echo "活动接口: \$interface  接收日流量: \$diff_rx_day  发送日流量: \$diff_tx_day 报告时间: $hour_rp 时 $minute_rp 分"
+    echo "活动接口: \$interface  接收月流量: \$diff_rx_month  发送月流量: \$diff_tx_month 报告时间: $hour_rp 时 $minute_rp 分"
+    echo "活动接口: \$interface  接收年流量: \$diff_rx_year  发送年流量: \$diff_tx_year 报告时间: $hour_rp 时 $minute_rp 分"
     echo "当前时间: \$(date)"
     echo "------------------------------------------------------"
     # 每隔一段时间执行一次循环检测，这里设定为60秒
     end_time=\$(date +%s)
     duration=\$((end_time - start_time))
     sleep_time=\$((60 - duration))
+    if [ \$sleep_time -lt 0 ]; then
+        sleep_time=0
+    fi
     sleep \$sleep_time
+    # sleep 5
 done
 EOF
     chmod +x $FolderPath/tg_flowrp.sh
@@ -2421,10 +2946,10 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
  ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知 \t\t\t$boot_menu_tag
  ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知 \t\t\t$login_menu_tag
  ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知 \t\t\t$shutdown_menu_tag
- ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 ${REB}阀值${NC}: $CPUThreshold_tag \t$cpu_menu_tag
- ${GR}5.${NC} 设置 ${GR}[内存报警]${NC} Telgram 通知 ${REB}阀值${NC}: $MEMThreshold_tag \t$mem_menu_tag
- ${GR}6.${NC} 设置 ${GR}[磁盘报警]${NC} Telgram 通知 ${REB}阀值${NC}: $DISKThreshold_tag \t$disk_menu_tag
- ${GR}7.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 ${REB}阀值${NC}: $FlowThreshold_tag \t$flow_menu_tag
+ ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 ${REB}阈值${NC}: $CPUThreshold_tag \t$cpu_menu_tag
+ ${GR}5.${NC} 设置 ${GR}[内存报警]${NC} Telgram 通知 ${REB}阈值${NC}: $MEMThreshold_tag \t$mem_menu_tag
+ ${GR}6.${NC} 设置 ${GR}[磁盘报警]${NC} Telgram 通知 ${REB}阈值${NC}: $DISKThreshold_tag \t$disk_menu_tag
+ ${GR}7.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 ${REB}阈值${NC}: $FlowThreshold_tag \t$flow_menu_tag
  ${GR}8.${NC} 设置 ${GR}[流量定时报告]${NC} Telgram 通知 \t\t$flowrp_menu_tag${NC}
  ${GR}9.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知 \t\t$docker_menu_tag${NC} ${REB}$reDockerSet${NC}
  ———————————————————————————————————————————————————————
@@ -2537,7 +3062,11 @@ case "$num" in
     OneKeydefault
     ;;
     c|C)
+    echo "卸载前:"
+    pgrep '^tg_' | xargs -I {} ps -p {} -o pid,cmd
     UN_ALL
+    echo "卸载后:"
+    pgrep '^tg_' | xargs -I {} ps -p {} -o pid,cmd
     ;;
     f|F)
     DELFOLDER
