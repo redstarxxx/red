@@ -2416,7 +2416,8 @@ while true; do
 
         # 日报告
         if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
-            if [ "\${prev_day_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_day_tx_mb[\$interface]}" -eq 0 ]; then
+            # if [ "\${prev_day_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_day_tx_mb[\$interface]}" -eq 0 ]; then
+            if [ \$(echo "(\${prev_day_rx_mb[\$interface]} + 0)" | awk '{print int(\$1)}') -eq 0 ] && [ \$(echo "(\${prev_day_tx_mb[\$interface]} + 0)" | awk '{print int(\$1)}') -eq 0 ]; then
                 prev_day_rx_mb[\$interface]=\${prev_rx_mb_0[\$interface]}
                 prev_day_tx_mb[\$interface]=\${prev_tx_mb_0[\$interface]}
             fi
@@ -2429,10 +2430,16 @@ while true; do
                 ov_diff_day_rx_mb=0
                 ov_diff_day_tx_mb=0
                 for interface in "\${interfaces[@]}"; do
+                    current_rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+                    current_rx_mb=\$(awk -v v1="\$current_rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
+                    current_tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+                    current_tx_mb=\$(awk -v v1="\$current_tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
                     diff_day_rx_mb=\$(awk -v v1="\$current_rx_mb" -v v2="\${prev_day_rx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
                     diff_day_tx_mb=\$(awk -v v1="\$current_tx_mb" -v v2="\${prev_day_tx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
                     ov_diff_day_rx_mb=\$(awk -v v1="\$ov_diff_day_rx_mb" -v v2="\$diff_day_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
                     ov_diff_day_tx_mb=\$(awk -v v1="\$ov_diff_day_tx_mb" -v v2="\$diff_day_tx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
+                    echo "interface: \$interface diff_day_rx_mb: \$diff_day_rx_mb diff_day_tx_mb: \$diff_day_tx_mb"
+                    echo "ov_diff_day_rx_mb: \$ov_diff_day_rx_mb ov_diff_day_tx_mb: \$ov_diff_day_tx_mb"
                 done
                 ov_diff_rx_day=\$(Bytes_MBtoGBKB "\$ov_diff_day_rx_mb")
                 ov_diff_tx_day=\$(Bytes_MBtoGBKB "\$ov_diff_day_tx_mb")
@@ -2440,7 +2447,8 @@ while true; do
 
             # 月报告
             if [ "\$current_day" == "01" ]; then
-                if [ "\${prev_month_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_month_tx_mb[\$interface]}" -eq 0 ]; then
+                # if [ "\${prev_month_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_month_tx_mb[\$interface]}" -eq 0 ]; then
+                if [ \$(echo "(\${prev_month_rx_mb[\$interface]} + 0)" | awk '{print int(\$1)}') -eq 0 ] && [ \$(echo "(\${prev_month_tx_mb[\$interface]} + 0)" | awk '{print int(\$1)}') -eq 0 ]; then
                     prev_month_rx_mb[\$interface]=\$prev_rx_mb_0
                     prev_month_tx_mb[\$interface]=\$prev_tx_mb_0
                 fi
@@ -2451,6 +2459,10 @@ while true; do
 
                 if [ "\$StatisticsMode" == "OV" ]; then
                     for interface in "\${interfaces[@]}"; do
+                        current_rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+                        current_rx_mb=\$(awk -v v1="\$current_rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
+                        current_tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+                        current_tx_mb=\$(awk -v v1="\$current_tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
                         diff_month_rx_mb=\$(awk -v v1="\$current_rx_mb" -v v2="\${prev_month_rx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
                         diff_month_tx_mb=\$(awk -v v1="\$current_tx_mb" -v v2="\${prev_month_tx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
                         ov_diff_month_rx_mb=\$(awk -v v1="\$ov_diff_month_rx_mb" -v v2="\$diff_month_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
@@ -2463,7 +2475,8 @@ while true; do
                 # 年报告
                 year_diff=$((current_year - prev_year))
                 if [ "\$year_diff" -eq 1 ]; then
-                    if [ "\${prev_year_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_year_tx_mb[\$interface]}" -eq 0 ]; then
+                    # if [ "\${prev_year_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_year_tx_mb[\$interface]}" -eq 0 ]; then
+                    if [ \$(echo "(\${prev_year_rx_mb[\$interface]} + 0)" | awk '{print int(\$1)}') -eq 0 ] && [ \$(echo "(\${prev_year_tx_mb[\$interface]} + 0)" | awk '{print int(\$1)}') -eq 0 ]; then
                         prev_year_rx_mb[\$interface]=\$prev_rx_mb_0
                         prev_year_tx_mb[\$interface]=\$prev_tx_mb_0
                     fi
@@ -2474,6 +2487,10 @@ while true; do
 
                     if [ "\$StatisticsMode" == "OV" ]; then
                         for interface in "\${interfaces[@]}"; do
+                            current_rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+                            current_rx_mb=\$(awk -v v1="\$current_rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
+                            current_tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+                            current_tx_mb=\$(awk -v v1="\$current_tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
                             diff_year_rx_mb=\$(awk -v v1="\$current_rx_mb" -v v2="\${prev_year_rx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
                             diff_year_tx_mb=\$(awk -v v1="\$current_tx_mb" -v v2="\${prev_year_tx_mb[\$interface]}" 'BEGIN { printf "%.1f", v1 - v2 }')
                             ov_diff_year_rx_mb=\$(awk -v v1="\$ov_diff_year_rx_mb" -v v2="\$diff_year_rx_mb" 'BEGIN { printf "%.1f", v1 + v2 }')
