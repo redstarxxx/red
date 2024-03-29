@@ -25,10 +25,10 @@ interfaces_ST_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
 interfaces_ST_de=("${interfaces_ST_0[@]}")
 interfaces_RP_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
 interfaces_RP_de=("${interfaces_RP_0[@]}")
-StatisticsMode_ST_de="OV"
+StatisticsMode_ST_de="SE"
 # StatisticsMode_ST_de="OV" # 整体统计
 # StatisticsMode_ST_de="SE" # 单独统计
-StatisticsMode_RP_de="OV"
+StatisticsMode_RP_de="SE"
 
 # 检测是否root用户
 if [ "$UID" -ne 0 ]; then
@@ -1620,12 +1620,13 @@ SetupFlow_TG() {
         echo "interfaces_ST: $interfaces_ST"
     fi
     if [ "$autorun" == "false" ]; then
-        read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为合计发送): " mode
-        if [ "$mode" == "2" ]; then
+        read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为单独发送): " mode
+        if [ "$mode" == "1" ]; then
+            StatisticsMode="OV"
+        elif [ "$mode" == "2" ]; then
             StatisticsMode="SE"
         else
             StatisticsMode=$StatisticsMode_ST_de
-            # StatisticsMode="OV"
         fi
         writeini "StatisticsMode" "$StatisticsMode"
     else
@@ -2024,10 +2025,12 @@ while true; do
     CLEAR_TAG=\$((\$CLEAR_TAG - 1))
 done
 EOF
-    chmod +x $FolderPath/tg_interface_re.sh
-    pkill -f tg_interface_re.sh
-    pkill -f tg_interface_re.sh
-    nohup $FolderPath/tg_interface_re.sh > $FolderPath/tg_interface_re.log 2>&1 &
+    # # 此为单独计算网速的子脚本（暂未启用）
+    # chmod +x $FolderPath/tg_interface_re.sh
+    # pkill -f tg_interface_re.sh
+    # pkill -f tg_interface_re.sh
+    # nohup $FolderPath/tg_interface_re.sh > $FolderPath/tg_interface_re.log 2>&1 &
+    ##############################################################################
 #     cat <<EOF > /etc/systemd/system/tg_interface_re.service
 # [Unit]
 # Description=tg_interface_re
@@ -2184,12 +2187,13 @@ SetFlowReport_TG() {
         echo "interfaces_RP: $interfaces_RP"
     fi
     if [ "$autorun" == "false" ]; then
-        read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为合计发送): " mode
-        if [ "$mode" == "2" ]; then
+        read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为单独发送): " mode
+        if [ "$mode" == "1" ]; then
+            StatisticsMode="OV"
+        elif [ "$mode" == "2" ]; then
             StatisticsMode="SE"
         else
             StatisticsMode=$StatisticsMode_RP_de
-            # StatisticsMode="OV"
         fi
         writeini "StatisticsMode" "$StatisticsMode"
     else
