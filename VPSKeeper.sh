@@ -1832,10 +1832,6 @@ $(declare -f create_progress_bar)
 $(declare -f Remove_B)
 
 tt=10
-ov_rx_diff=0
-ov_tx_diff=0
-ov_prev_tt_rx_data=0
-ov_prev_tt_tx_data=0
 StatisticsMode="$StatisticsMode"
 
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
@@ -1853,15 +1849,19 @@ for ((i = 0; i < \${#interfaces[@]}; i++)); do
         show_interfaces+=","
     fi
 done
-declare -A prev_rx_data
-declare -A prev_tx_data
-declare -A prev_rx_diff
-declare -A prev_tx_diff
+
+# 定义数组
+declare -A prev_rx_bytes
+declare -A prev_tx_bytes
+declare -A prev_rx_bytes_T
+declare -A prev_tx_bytes_T
+declare -A current_rx_bytes
+declare -A current_tx_bytes
 declare -A INTERFACE_RT_RX_MB
 declare -A INTERFACE_RT_TX_MB
 
+# 如果接口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
 for ((i=0; i<\${#interfaces[@]}; i++)); do
-    # 如果接口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
     interface=\${interfaces[\$i]%@*}
     interface=\${interface%:*}
     interfaces[\$i]=\$interface
@@ -1871,10 +1871,6 @@ echo "纺计接口(处理后): \${interfaces[@]}"
 # 初始化接口流量数据
 source $ConfigFile
 for interface in "\${interfaces[@]}"; do
-    prev_rx_data[\$interface]=0
-    prev_tx_data[\$interface]=0
-    prev_rx_diff[\$interface]=0
-    prev_tx_diff[\$interface]=0
     INTERFACE_RT_RX_MB[\$interface]=\${INTERFACE_RT_RX_MB[\$interface]}
     echo "读取: INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
     INTERFACE_RT_TX_MB[\$interface]=\${INTERFACE_RT_TX_MB[\$interface]}
@@ -1882,46 +1878,67 @@ for interface in "\${interfaces[@]}"; do
 done
 
 # 循环检查
+sendtag=true
 while true; do
+
+    # 获取tt秒前数据
+    ov_prev_rx_bytes=0
+    ov_prev_tx_bytes=0
+    for interface in "\${interfaces[@]}"; do
+        prev_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        prev_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        ov_prev_rx_bytes=\$((ov_prev_rx_bytes + prev_rx_bytes[\$interface]))
+        ov_prev_tx_bytes=\$((ov_prev_tx_bytes + prev_tx_bytes[\$interface]))
+        if \$sendtag; then
+            echo "发送 \$interface 前只执行一次."
+            prev_rx_bytes_T[\$interface]=\${prev_rx_bytes[\$interface]}
+            prev_tx_bytes_T[\$interface]=\${prev_tx_bytes[\$interface]}
+            ov_prev_rx_bytes_T=\$ov_prev_rx_bytes
+            ov_prev_tx_bytes_T=\$ov_prev_tx_bytes
+            echo "\${prev_rx_bytes_T[\$interface]} \${prev_tx_bytes_T[\$interface]} \$ov_prev_rx_bytes_T \$ov_prev_tx_bytes_T"
+        fi
+    done
+    sendtag=false
+
+    # 等待tt秒
+    end_time=\$(date +%s)
+    if [ ! -z "\$start_time" ]; then
+        duration=\$((end_time - start_time))
+        sleep_time=\$((\$tt - duration))
+    else
+        sleep_time=\$tt
+    fi
+    echo "sleep_time: \$sleep_time   duration: \$duration"
+    sleep \$sleep_time
     start_time=\$(date +%s)
-    nline=1
+
+    # 获取tt秒后数据
     ov_current_rx_bytes=0
     ov_current_tx_bytes=0
     for interface in "\${interfaces[@]}"; do
-        interface_tt=\$interface
-        rx_bytes=\$(ip -s link show \$interface_tt | awk '/RX:/ { getline; print \$1 }')
-        tx_bytes=\$(ip -s link show \$interface_tt | awk '/TX:/ { getline; print \$1 }')
-        ov_current_rx_bytes=\$((ov_current_rx_bytes + rx_bytes))
-        ov_current_tx_bytes=\$((ov_current_tx_bytes + tx_bytes))
+        current_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        current_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        ov_current_rx_bytes=\$((ov_current_rx_bytes + current_rx_bytes[\$interface]))
+        ov_current_tx_bytes=\$((ov_current_tx_bytes + current_tx_bytes[\$interface]))
     done
+
+    nline=1
     for interface in "\${interfaces[@]}"; do
         echo "NO.\$nline ----------------------------------------- interface: \$interface"
-        # start_time=\$(date +%s)
-
-        # 获取当前流量数据
-        current_rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
-        current_tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
 
         # 计算网速
-        if (( ov_prev_tt_rx_data != 0 )); then
-            rx_diff_tt=\$((ov_current_rx_bytes - ov_prev_tt_rx_data))
-        else
-            rx_diff_tt=0
-        fi
-        if (( ov_prev_tt_tx_data != 0 )); then
-            tx_diff_tt=\$((ov_current_tx_bytes - ov_prev_tt_tx_data))
-        else
-            tx_diff_tt=0
-        fi
-        rx_speed=\$(awk "BEGIN { speed = \$rx_diff_tt / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-        tx_speed=\$(awk "BEGIN { speed = \$tx_diff_tt / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-
+        rx_diff=\$((current_rx_bytes[\$interface] - prev_rx_bytes_T[\$interface]))
+        tx_diff=\$((current_tx_bytes[\$interface] - prev_tx_bytes_T[\$interface]))
+        ov_rx_diff=\$((ov_current_rx_bytes - ov_prev_rx_bytes_T))
+        ov_tx_diff=\$((ov_current_tx_bytes - ov_prev_tx_bytes_T))
+        rx_speed=\$(awk "BEGIN { speed = \$ov_rx_diff / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+        tx_speed=\$(awk "BEGIN { speed = \$ov_tx_diff / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
         rx_speed=\$(Remove_B "\$rx_speed")
         tx_speed=\$(Remove_B "\$tx_speed")
 
-        all_rx_mb=\$(awk -v current_rx_bytes="\$current_rx_bytes" 'BEGIN { printf "%.1f", current_rx_bytes / (1024 * 1024) }')
+        # 总流量百分比计算
+        all_rx_mb=\$(awk -v v1="\$ov_current_rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
         if [ ! -z "\${INTERFACE_RT_RX_MB[\$interface]}" ]; then
-            # all_rx_mb=\$(( all_rx_mb + \${INTERFACE_RT_RX_MB[\$interface]} ))
             all_rx_mb=\$(awk -v v1=\$all_rx_mb -v v2="\${INTERFACE_RT_RX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
         fi
         echo "all_rx_mb: \$all_rx_mb INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
@@ -1948,7 +1965,6 @@ while true; do
                 all_rx_ratio=\${all_rx_ratio}%
             fi
         fi
-
         if awk -v all_rx_mb="\$all_rx_mb" 'BEGIN { exit !(all_rx_mb >= 1024) }'; then
             all_rx_mb=\$(awk -v value=\$all_rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
         elif awk -v all_rx_mb="\$all_rx_mb" 'BEGIN { exit !(all_rx_mb < 1) }'; then
@@ -1957,9 +1973,8 @@ while true; do
             all_rx_mb="\${all_rx_mb}MB"
         fi
 
-        all_tx_mb=\$(awk -v current_tx_bytes="\$current_tx_bytes" 'BEGIN { printf "%.1f", current_tx_bytes / (1024 * 1024) }')
+        all_tx_mb=\$(awk -v v1="\$ov_current_tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
         if [ ! -z "\${INTERFACE_RT_TX_MB[\$interface]}" ]; then
-            # all_tx_mb=\$(( all_tx_mb + \${INTERFACE_RT_TX_MB[\$interface]} ))
             all_tx_mb=\$(awk -v v1=\$all_tx_mb -v v2="\${INTERFACE_RT_TX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
         fi
         echo "all_tx_mb: \$all_tx_mb INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
@@ -1986,7 +2001,6 @@ while true; do
                 all_tx_ratio=\${all_tx_ratio}%
             fi
         fi
-
         if awk -v all_tx_mb="\$all_tx_mb" 'BEGIN { exit !(all_tx_mb >= 1024) }'; then
             all_tx_mb=\$(awk -v value=\$all_tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
         elif awk -v all_tx_mb="\$all_tx_mb" 'BEGIN { exit !(all_tx_mb < 1) }'; then
@@ -1998,37 +2012,16 @@ while true; do
         all_rx_mb=\$(Remove_B "\$all_rx_mb")
         all_tx_mb=\$(Remove_B "\$all_tx_mb")
 
-        # 计算增量
-        if (( prev_rx_data[\$interface] == 0 )); then
-            prev_rx_data[\$interface]=\$current_rx_bytes
-        fi
-        if (( prev_tx_data[\$interface] == 0 )); then
-            prev_tx_data[\$interface]=\$current_tx_bytes
-        fi
-        rx_diff=\$((current_rx_bytes - prev_rx_data[\$interface]))
-        tx_diff=\$((current_tx_bytes - prev_tx_data[\$interface]))
-
-        if (( prev_rx_diff[\$interface] == 0 )); then
-            prev_rx_diff[\$interface]=\$rx_diff
-        fi
-        if (( prev_tx_diff[\$interface] == 0 )); then
-            prev_tx_diff[\$interface]=\$tx_diff
-        fi
-
-        # 叠加增量
-        ov_rx_diff=\$((ov_rx_diff + rx_diff - prev_rx_diff[\$interface]))
-        ov_tx_diff=\$((ov_tx_diff + tx_diff - prev_tx_diff[\$interface]))
-
-        # 计算增量
-        prev_rx_diff[\$interface]=\$((current_rx_bytes - prev_rx_data[\$interface]))
-        prev_tx_diff[\$interface]=\$((current_tx_bytes - prev_tx_data[\$interface]))
-
         # 调试使用(tt秒的流量增量)
         echo "RX_diff(BYTES): \$rx_diff TX_diff(BYTES): \$tx_diff"
         # 调试使用(叠加流量增量)
-        echo "OV_RX_diff(BYTES): \$ov_rx_diff OV_TX_diff(BYTES): \$ov_tx_diff"
+        echo "OV_RX_diff(BYTES): \$ov_rx_diff OV_TX_diff(BYTES): \$ov_tx_diff "
         # 调试使用(持续的流量增加)
-        echo "Current_RX(BYTES): \$current_rx_bytes Current_TX(BYTES): \$current_tx_bytes"
+        echo "Current_RX(BYTES): \${current_rx_bytes[\$interface]} Current_TX(BYTES): \${current_tx_bytes[\$interface]}"
+        # 调试使用(叠加持续的流量增加)
+        echo "OV_Current_RX(BYTES): \$ov_current_rx_bytes OV_Current_TX(BYTES): \$ov_current_tx_bytes"
+        # 调试使用(网速)
+        echo "rx_speed: \$rx_speed  tx_speed: \$tx_speed"
 
         # 检查是否超过阈值
         if [ "\$StatisticsMode" == "SE" ]; then
@@ -2077,8 +2070,7 @@ while true; do
                 echo "报警信息已发出..."
 
                 # 更新前一个状态的流量数据
-                prev_rx_data[\$interface]=\$current_rx_bytes
-                prev_tx_data[\$interface]=\$current_tx_bytes
+                sendtag=true
             fi
         fi
         nline=\$((nline + 1))
@@ -2128,30 +2120,12 @@ while true; do
             echo "报警信息已发出..."
 
             # 更新前一个状态的流量数据
-            prev_rx_data[\$interface]=\$current_rx_bytes
-            prev_tx_data[\$interface]=\$current_tx_bytes
-            ov_rx_diff=0
-            ov_tx_diff=0
+            sendtag=true
         fi
     fi
     if [ "\$StatisticsMode" != "SE" ] && [ "\$StatisticsMode" != "OV" ]; then
         echo "StatisticsMode Err!!! \$StatisticsMode"
     fi
-
-    # 把当前的流量数据保存到一个变量用于计算速率
-    ov_prev_tt_rx_data=0
-    ov_prev_tt_tx_data=0
-    for interface in "\${interfaces[@]}"; do
-        rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
-        tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
-        ov_prev_tt_rx_data=\$((ov_prev_tt_rx_data + rx_bytes))
-        ov_prev_tt_tx_data=\$((ov_prev_tt_tx_data + tx_bytes))
-    done
-    # 等待tt秒
-    end_time=\$(date +%s)
-    duration=\$((end_time - start_time))
-    sleep_time=\$((\$tt - duration))
-    sleep \$sleep_time
 done
 EOF
     chmod +x $FolderPath/tg_flow.sh
@@ -2607,7 +2581,7 @@ while true; do
         echo "脚本开始时记录值: current_tx_mb: \$current_tx_mb | prev_tx_mb_0[\$interface]: \${prev_tx_mb_0[\$interface]}"
 
         # 日报告
-        if [ "\$current_hour" == "19" ] && [ "\$current_minute" == "03" ]; then
+        if [ "\$current_hour" == "19" ] && [ "\$current_minute" == "35" ]; then
             # if [ "\${prev_day_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_day_tx_mb[\$interface]}" -eq 0 ]; then
             if [ \$(echo "(\${prev_day_rx_mb[\$interface]} + 0)" | awk '{print int(\$1)}') -eq 0 ] && [ \$(echo "(\${prev_day_tx_mb[\$interface]} + 0)" | awk '{print int(\$1)}') -eq 0 ]; then
                 prev_day_rx_mb[\$interface]=\${prev_rx_mb_0[\$interface]}
