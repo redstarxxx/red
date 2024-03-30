@@ -448,7 +448,8 @@ SetupIniFile() {
     echo -e "$Tip 默认机器人: @iekeeperbot 使用前必须添加并点击 start"
     while true; do
         divline
-        echo -e "${GR}1${NC}.BOT Token ${GR}2${NC}.CHAT ID ${GR}3${NC}.CPU检测工具 (默认使用 top) ${GR}回车${NC}.退出设置"
+        echo -e "${GR}1${NC}.BOT Token ${GR}2${NC}.CHAT ID ${GR}3${NC}.CPU检测工具 (默认使用 top)"
+        echo -e "${GR}4${NC}.设置流量上限（仅参考） ${GR}5${NC}.设置关机记录流量 ${GR}回车${NC}.退出设置"
         divline
         read -e -p "请输入你的选择: " choice
         case $choice in
@@ -532,6 +533,163 @@ SetupIniFile() {
                     tips=""
                 fi
                 ;;
+            4)
+                # 设置流量上限（仅参考）
+                read -e -p "请设置 流量上限 数字 + MB/GB/TB (回车默认: $FlowThresholdMAX_de): " threshold_max
+                if [ ! -z "$threshold_max" ]; then
+                    if [[ $threshold_max =~ ^[0-9]+(\.[0-9])?$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(M)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
+                        threshold_max=${threshold_max%M}
+                        threshold_max=${threshold_max%MB}
+                        if awk -v value="$threshold_max" 'BEGIN { exit !(value >= 1024 * 1024) }'; then
+                            threshold_max=$(awk -v value="$threshold_max" 'BEGIN { printf "%.1f", value / (1024 * 1024) }')
+                            threshold_max="${threshold_max}TB"
+                        elif awk -v value="$threshold_max" 'BEGIN { exit !(value >= 1024) }'; then
+                            threshold_max=$(awk -v value="$threshold_max"_max 'BEGIN { printf "%.1f", value / 1024 }')
+                            threshold_max="${threshold_max}GB"
+                        else
+                            threshold_max="${threshold_max}MB"
+                        fi
+                        writeini "FlowThresholdMAX" "$threshold_max"
+                    elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(G)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
+                        threshold_max=${threshold_max%G}
+                        threshold_max=${threshold_max%GB}
+                        if awk -v value="$threshold_max" 'BEGIN { exit !(value >= 1024) }'; then
+                            threshold_max=$(awk -v value="$threshold_max"_max 'BEGIN { printf "%.1f", value / 1024 }')
+                            threshold_max="${threshold_max}TB"
+                        else
+                            threshold_max="${threshold_max}GB"
+                        fi
+                        writeini "FlowThresholdMAX" "$threshold_max"
+                    elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(T)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(TB)$ ]]; then
+                        threshold_max=${threshold_max%T}
+                        threshold_max=${threshold_max%TB}
+                        threshold_max="${threshold_max}TB"
+                        writeini "FlowThresholdMAX" "$threshold_max"
+                    else
+                        echo -e "$Err ${REB}输入无效${NC}, 报警阈值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
+                        return 1
+                    fi
+                else
+                    writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
+                    echo -e "$Tip 输入为空, 默认最大流量上限为: $FlowThresholdMAX_de"
+                fi
+            ;;
+            5)
+                # 设置关机记录流量
+                read -e -p "请选择是否开启 设置关机记录流量  N.关闭(删除记录)  回车.开启(默认): " choice
+                if ! command -v systemd &>/dev/null; then
+                    tips="$Err 系统未检测到 \"systemd\" 程序, 无法设置关机通知."
+                    break
+                fi
+                if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
+                    tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+                    break
+                fi
+                if [ "$choice" == "n" ] || [ "$choice" == "N" ]; then
+                    systemctl stop tg_shutdown_rt.service > /dev/null 2>&1
+                    systemctl disable tg_shutdown_rt.service > /dev/null 2>&1
+                    sleep 1
+                    rm -f /etc/systemd/system/tg_shutdown_rt.service
+
+                    interfaces_get=$(ip -br link | awk '{print $1}')
+                    declare -a interfaces=($interfaces_get)
+                    for ((i=0; i<${#interfaces[@]}; i++)); do
+                        interface=${interfaces[$i]%@*}
+                        interface=${interface%:*}
+                        interfaces[$i]=$interface
+                        sed -i "/^INTERFACE_RT_RX_MB\[$interface\]=/d" $ConfigFile
+                        sed -i "/^INTERFACE_RT_TX_MB\[$interface\]=/d" $ConfigFile
+                    done
+                    echo -e "$Tip 关机记录流量 (已删除记录) 已经取消 / 删除."
+                else
+                    cat <<EOF > $FolderPath/tg_shutdown_rt.sh
+#!/bin/bash
+
+ConfigFile=$ConfigFile
+$(declare -f writeini)
+
+declare -A INTERFACE_RT_RX
+declare -A INTERFACE_RT_TX
+declare -A INTERFACE_RT_RX_MB
+declare -A INTERFACE_RT_TX_MB
+
+interfaces_get=\$(ip -br link | awk '{print \$1}')
+declare -a interfaces=(\$interfaces_get)
+echo "1统计接口: \${interfaces[@]}"
+for ((i = 0; i < \${#interfaces[@]}; i++)); do
+    echo "\$((i+1)): \${interfaces[i]}"
+done
+for ((i=0; i<\${#interfaces[@]}; i++)); do
+    interface=\${interfaces[\$i]%@*}
+    interface=\${interface%:*}
+    interfaces[\$i]=\$interface
+done
+source \$ConfigFile
+for interface in "\${interfaces[@]}"; do
+    echo "----------------------------------- FOR: \$interface"
+    rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+    echo "rx_bytes: \$rx_bytes"
+    if [ ! -z "\$rx_bytes" ] && [[ \$rx_bytes =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+        INTERFACE_RT_RX[\$interface]=\$rx_bytes
+        # writeini "INTERFACE_RT_RX[\$interface]" "\${INTERFACE_RT_RX[\$interface]}"
+        INTERFACE_RT_RX_MB[\$interface]=\$(awk -v v1="\$rx_bytes" 'BEGIN { printf "%.1f", v1 / 1024 }')
+
+        if [ ! -z "\${INTERFACE_RT_RX_MB[\$interface]}" ] && [[ \${INTERFACE_RT_RX_MB[\$interface]} =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+            INTERFACE_RT_RX_MB[\$interface]=\$(awk -v v1="\$rx_bytes" -v v2="\${INTERFACE_RT_RX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
+        fi
+
+        sed -i "/^INTERFACE_RT_RX_MB\[\$interface\]=/d" \$ConfigFile
+        writeini "INTERFACE_RT_RX_MB[\$interface]" "\${INTERFACE_RT_RX_MB[\$interface]}"
+        echo "INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
+    fi
+
+    tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+    echo "tx_bytes: \$tx_bytes"
+    if [ ! -z "\$tx_bytes" ] && [[ \$tx_bytes =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+        INTERFACE_RT_TX[\$interface]=\$tx_bytes
+        # writeini "INTERFACE_RT_TX[\$interface]" "\${INTERFACE_RT_TX[\$interface]}"
+        INTERFACE_RT_TX_MB[\$interface]=\$(awk -v v1="\$tx_bytes" 'BEGIN { printf "%.1f", v1 / 1024 }')
+
+        if [ ! -z "\${INTERFACE_RT_TX_MB[\$interface]}" ] && [[ \${INTERFACE_RT_TX_MB[\$interface]} =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+            INTERFACE_RT_TX_MB[\$interface]=\$(awk -v v1="\$rx_bytes" -v v2="\${INTERFACE_RT_TX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
+        fi
+
+        sed -i "/^INTERFACE_RT_TX_MB\[\$interface\]=/d" \$ConfigFile
+        writeini "INTERFACE_RT_TX_MB[\$interface]" "\${INTERFACE_RT_TX_MB[\$interface]}"
+        echo "INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
+    fi
+
+done
+echo "====================================== 检正部分"
+cat \$ConfigFile
+echo
+source \$ConfigFile
+for interface in "\${interfaces[@]}"; do
+    INTERFACE_RT_RX_MB[\$interface]=\${INTERFACE_RT_RX_MB[\$interface]}
+    echo "读取: INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
+    INTERFACE_RT_TX_MB[\$interface]=\${INTERFACE_RT_TX_MB[\$interface]}
+    echo "读取: INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
+done
+EOF
+                    chmod +x $FolderPath/tg_shutdown_rt.sh
+                    cat <<EOF > /etc/systemd/system/tg_shutdown_rt.service
+[Unit]
+Description=tg_shutdown
+DefaultDependencies=no
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=$FolderPath/tg_shutdown_rt.sh
+TimeoutStartSec=0
+
+[Install]
+WantedBy=shutdown.target
+EOF
+                    systemctl enable tg_shutdown_rt.service > /dev/null
+                    echo -e "$Tip 关机记录流量 已经成功设置."
+                fi
+            ;;
             *)
                 echo "退出设置."
                 tips=""
@@ -706,8 +864,8 @@ message="\$(hostname) \$(id -nu) 正在执行关机...❗️"'
 curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message"
 EOF
-            chmod +x $FolderPath/tg_shutdown.sh
-            cat <<EOF > /etc/systemd/system/tg_shutdown.service
+    chmod +x $FolderPath/tg_shutdown.sh
+    cat <<EOF > /etc/systemd/system/tg_shutdown.service
 [Unit]
 Description=tg_shutdown
 DefaultDependencies=no
@@ -1678,7 +1836,8 @@ StatisticsMode="$StatisticsMode"
 
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
 # interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
-# interfaces=\$(ip -br link | awk '{print \$1}')
+# interfaces_get=\$(ip -br link | awk '{print \$1}')
+# declare -a interfaces=(\$interfaces_get)
 IFS=',' read -ra interfaces <<< "$interfaces_ST"
 echo "统计接口: \${interfaces[@]}"
 for ((i = 0; i < \${#interfaces[@]}; i++)); do
@@ -1694,6 +1853,8 @@ declare -A prev_rx_data
 declare -A prev_tx_data
 declare -A prev_rx_diff
 declare -A prev_tx_diff
+declare -A INTERFACE_RT_RX_MB
+declare -A INTERFACE_RT_TX_MB
 
 for ((i=0; i<\${#interfaces[@]}; i++)); do
     # 如果接口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
@@ -1704,11 +1865,16 @@ done
 echo "纺计接口(处理后): \${interfaces[@]}"
 
 # 初始化接口流量数据
+source $ConfigFile
 for interface in "\${interfaces[@]}"; do
     prev_rx_data[\$interface]=0
     prev_tx_data[\$interface]=0
     prev_rx_diff[\$interface]=0
     prev_tx_diff[\$interface]=0
+    INTERFACE_RT_RX_MB[\$interface]=\${INTERFACE_RT_RX_MB[\$interface]}
+    echo "读取: INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
+    INTERFACE_RT_TX_MB[\$interface]=\${INTERFACE_RT_TX_MB[\$interface]}
+    echo "读取: INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
 done
 
 # 循环检查
@@ -1749,8 +1915,12 @@ while true; do
         rx_speed=\$(Remove_B "\$rx_speed")
         tx_speed=\$(Remove_B "\$tx_speed")
 
-        # all_rx_mb=\$((current_rx_bytes / 1024 / 1024)) # 只能输出整数
         all_rx_mb=\$(awk -v current_rx_bytes="\$current_rx_bytes" 'BEGIN { printf "%.1f", current_rx_bytes / (1024 * 1024) }')
+        if [ ! -z "\${INTERFACE_RT_RX_MB[\$interface]}" ]; then
+            # all_rx_mb=\$(( all_rx_mb + \${INTERFACE_RT_RX_MB[\$interface]} ))
+            all_rx_mb=\$(awk -v v1=\$all_rx_mb -v v2="\${INTERFACE_RT_RX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
+        fi
+        echo "all_rx_mb: \$all_rx_mb INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
         all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
         if awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_rx_ratio=1
@@ -1775,18 +1945,20 @@ while true; do
             fi
         fi
 
-        # if [ "\$all_rx_mb" -ge 1024 ]; then # 只能比较整数
         if awk -v all_rx_mb="\$all_rx_mb" 'BEGIN { exit !(all_rx_mb >= 1024) }'; then
             all_rx_mb=\$(awk -v value=\$all_rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-        # elif [ "\$all_rx_mb" -lt 1 ]; then # 只能比较整数
         elif awk -v all_rx_mb="\$all_rx_mb" 'BEGIN { exit !(all_rx_mb < 1) }'; then
             all_rx_mb=\$(awk -v value=\$all_rx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
         else
             all_rx_mb="\${all_rx_mb}MB"
         fi
 
-        # all_tx_mb=\$((current_tx_bytes / 1024 / 1024)) # 只能输出整数
         all_tx_mb=\$(awk -v current_tx_bytes="\$current_tx_bytes" 'BEGIN { printf "%.1f", current_tx_bytes / (1024 * 1024) }')
+        if [ ! -z "\${INTERFACE_RT_TX_MB[\$interface]}" ]; then
+            # all_tx_mb=\$(( all_tx_mb + \${INTERFACE_RT_TX_MB[\$interface]} ))
+            all_tx_mb=\$(awk -v v1=\$all_tx_mb -v v2="\${INTERFACE_RT_TX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
+        fi
+        echo "all_tx_mb: \$all_tx_mb INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
         all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
         if awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_tx_ratio=1
@@ -1811,10 +1983,8 @@ while true; do
             fi
         fi
 
-        # if [ "\$all_tx_mb" -ge 1024 ]; then # 只能比较整数
         if awk -v all_tx_mb="\$all_tx_mb" 'BEGIN { exit !(all_tx_mb >= 1024) }'; then
             all_tx_mb=\$(awk -v value=\$all_tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-        # elif [ "\$all_tx_mb" -lt 1 ]; then # 只能比较整数
         elif awk -v all_tx_mb="\$all_tx_mb" 'BEGIN { exit !(all_tx_mb < 1) }'; then
             all_tx_mb=\$(awk -v value=\$all_tx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
         else
@@ -2295,6 +2465,10 @@ declare -A ov_diff_month_rx_mb
 declare -A ov_diff_month_tx_mb
 declare -A ov_diff_year_rx_mb
 declare -A ov_diff_year_tx_mb
+declare -A INTERFACE_RT_RX_MB
+declare -A INTERFACE_RT_TX_MB
+
+source $ConfigFile
 for interface in "\${interfaces[@]}"; do
     prev_rx_mb_0[\$interface]=0
     prev_tx_mb_0[\$interface]=0
@@ -2306,6 +2480,10 @@ for interface in "\${interfaces[@]}"; do
     ov_diff_month_tx_mb[\$interface]=0
     ov_diff_year_rx_mb[\$interface]=0
     ov_diff_year_tx_mb[\$interface]=0
+    INTERFACE_RT_RX_MB[\$interface]=\${INTERFACE_RT_RX_MB[\$interface]}
+    echo "读取: INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
+    INTERFACE_RT_TX_MB[\$interface]=\${INTERFACE_RT_TX_MB[\$interface]}
+    echo "读取: INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
 done
 executed=false
 interfaces_length=\${#interfaces[@]}
@@ -2334,6 +2512,11 @@ while true; do
         
         all_rx_mb=\$(awk -v v1="\$current_rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
         current_rx_mb=\$all_rx_mb
+        if [ ! -z "\${INTERFACE_RT_RX_MB[\$interface]}" ]; then
+            # all_rx_mb=\$(( all_rx_mb + \${INTERFACE_RT_RX_MB[\$interface]} ))
+            all_rx_mb=\$(awk -v v1=\$all_rx_mb -v v2="\${INTERFACE_RT_RX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
+        fi
+        echo "all_rx_mb: \$all_rx_mb INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
         all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
         if awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_rx_ratio=1
@@ -2371,6 +2554,11 @@ while true; do
         # all_tx_mb=\$((current_tx_bytes / 1024 / 1024)) # 只能输出整数
         all_tx_mb=\$(awk -v v1="\$current_tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
         current_tx_mb=\$all_tx_mb
+        if [ ! -z "\${INTERFACE_RT_TX_MB[\$interface]}" ]; then
+            # all_tx_mb=\$(( all_tx_mb + \${INTERFACE_RT_TX_MB[\$interface]} ))
+            all_tx_mb=\$(awk -v v1=\$all_tx_mb -v v2="\${INTERFACE_RT_TX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
+        fi
+        echo "all_tx_mb: \$all_tx_mb INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
         all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
         if awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
             all_tx_ratio=1
