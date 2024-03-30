@@ -632,10 +632,12 @@ for interface in "\${interfaces[@]}"; do
     if [ ! -z "\$rx_bytes" ] && [[ \$rx_bytes =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
         INTERFACE_RT_RX[\$interface]=\$rx_bytes
         # writeini "INTERFACE_RT_RX[\$interface]" "\${INTERFACE_RT_RX[\$interface]}"
-        INTERFACE_RT_RX_MB[\$interface]=\$(awk -v v1="\$rx_bytes" 'BEGIN { printf "%.1f", v1 / 1024 }')
+        INTERFACE_RT_RX_MB_TEMP=\$(awk -v v1="\$rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
 
         if [ ! -z "\${INTERFACE_RT_RX_MB[\$interface]}" ] && [[ \${INTERFACE_RT_RX_MB[\$interface]} =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-            INTERFACE_RT_RX_MB[\$interface]=\$(awk -v v1="\$rx_bytes" -v v2="\${INTERFACE_RT_RX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
+            INTERFACE_RT_RX_MB[\$interface]=\$(awk -v v1="\$INTERFACE_RT_RX_MB_TEMP" -v v2="\${INTERFACE_RT_RX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
+        else
+            INTERFACE_RT_RX_MB[\$interface]=\$(awk -v v1="\$rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
         fi
 
         sed -i "/^INTERFACE_RT_RX_MB\[\$interface\]=/d" \$ConfigFile
@@ -648,10 +650,12 @@ for interface in "\${interfaces[@]}"; do
     if [ ! -z "\$tx_bytes" ] && [[ \$tx_bytes =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
         INTERFACE_RT_TX[\$interface]=\$tx_bytes
         # writeini "INTERFACE_RT_TX[\$interface]" "\${INTERFACE_RT_TX[\$interface]}"
-        INTERFACE_RT_TX_MB[\$interface]=\$(awk -v v1="\$tx_bytes" 'BEGIN { printf "%.1f", v1 / 1024 }')
+        INTERFACE_RT_TX_MB_TEMP=\$(awk -v v1="\$tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
 
         if [ ! -z "\${INTERFACE_RT_TX_MB[\$interface]}" ] && [[ \${INTERFACE_RT_TX_MB[\$interface]} =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-            INTERFACE_RT_TX_MB[\$interface]=\$(awk -v v1="\$rx_bytes" -v v2="\${INTERFACE_RT_TX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
+            INTERFACE_RT_TX_MB[\$interface]=\$(awk -v v1="\$INTERFACE_RT_TX_MB_TEMP" -v v2="\${INTERFACE_RT_TX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
+        else
+            INTERFACE_RT_TX_MB[\$interface]=\$(awk -v v1="\$tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
         fi
 
         sed -i "/^INTERFACE_RT_TX_MB\[\$interface\]=/d" \$ConfigFile
@@ -2603,7 +2607,7 @@ while true; do
         echo "脚本开始时记录值: current_tx_mb: \$current_tx_mb | prev_tx_mb_0[\$interface]: \${prev_tx_mb_0[\$interface]}"
 
         # 日报告
-        if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
+        if [ "\$current_hour" == "19" ] && [ "\$current_minute" == "03" ]; then
             # if [ "\${prev_day_rx_mb[\$interface]}" -eq 0 ] && [ "\${prev_day_tx_mb[\$interface]}" -eq 0 ]; then
             if [ \$(echo "(\${prev_day_rx_mb[\$interface]} + 0)" | awk '{print int(\$1)}') -eq 0 ] && [ \$(echo "(\${prev_day_tx_mb[\$interface]} + 0)" | awk '{print int(\$1)}') -eq 0 ]; then
                 prev_day_rx_mb[\$interface]=\${prev_rx_mb_0[\$interface]}
