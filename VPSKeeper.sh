@@ -1934,8 +1934,10 @@ while true; do
         tx_diff=\$((current_tx_bytes[\$interface] - prev_tx_bytes_T[\$interface]))
         ov_rx_diff=\$((ov_current_rx_bytes - ov_prev_rx_bytes_T))
         ov_tx_diff=\$((ov_current_tx_bytes - ov_prev_tx_bytes_T))
-        rx_speed=\$(awk "BEGIN { speed = \$ov_rx_diff / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-        tx_speed=\$(awk "BEGIN { speed = \$ov_tx_diff / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+        ov_rx_diff_speed=\$((ov_current_rx_bytes - ov_prev_rx_bytes))
+        ov_tx_diff_speed=\$((ov_current_tx_bytes - ov_prev_tx_bytes))
+        rx_speed=\$(awk "BEGIN { speed = \$ov_rx_diff_speed / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+        tx_speed=\$(awk "BEGIN { speed = \$ov_tx_diff_speed / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
         rx_speed=\$(Remove_B "\$rx_speed")
         tx_speed=\$(Remove_B "\$tx_speed")
 
