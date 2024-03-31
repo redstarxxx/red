@@ -1832,6 +1832,7 @@ $(declare -f create_progress_bar)
 $(declare -f Remove_B)
 
 tt=10
+duration=0
 StatisticsMode="$StatisticsMode"
 
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
@@ -2167,63 +2168,40 @@ EOF
     cat <<EOF > $FolderPath/tg_interface_re.sh
 #!/bin/bash
 
-FolderPath="/root/.shfile"
+$(declare -f Remove_B)
+
+FolderPath="$FolderPath"
 interfaces=(\$(ip -br link | awk '{print \$1}'))
 for ((i=0; i<\${#interfaces[@]}; i++)); do
     interface=\${interfaces[\$i]%@*}
     interface=\${interface%:*}
     interfaces[\$i]=\$interface
 done
+
 TT=10
-CLEAR_TAG=10
+duration=0
+CLEAR_TAG=9
 CLEAR_TAG_OLD=\$CLEAR_TAG
-# ov_rx_bytes=0
-# ov_tx_bytes=0
 
+# 定义数组
+declare -A prev_rx_bytes
+declare -A prev_tx_bytes
+declare -A current_rx_bytes
+declare -A current_tx_bytes
+
+clear
 while true; do
-    start_time=\$(date +%s%N)
-    ov_rx_bytes=0
-    ov_tx_bytes=0
-    for interface in "\${interfaces[@]}"; do
-        echo "interface: \$interface"
-        rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
-        tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
-        # ov_rx_bytes=\$((ov_rx_bytes + rx_bytes - ov_rx_bytes))
-        # ov_tx_bytes=\$((ov_tx_bytes + tx_bytes - ov_tx_bytes))
-        ov_rx_bytes=\$((ov_rx_bytes + rx_bytes))
-        ov_tx_bytes=\$((ov_tx_bytes + tx_bytes))
-    done
-    echo "ov_rx_bytes: \$ov_rx_bytes  ov_tx_bytes: \$ov_tx_bytes"
-    if [ -f "\$FolderPath/interface_re.txt" ]; then
-        touch "\$FolderPath/interface_re.txt"
-    fi
-    RX_old=\$(tail -n 2 \$FolderPath/interface_re.txt | head -n 1 | sed 's/[a-zA-Z=_]//g' | awk '{print \$1}')
-    if [[ -n "\$RX_old" && "\$RX_old" =~ ^[0-9]+$ ]]; then
-        DIFF_RX=\$(( ov_rx_bytes - RX_old ))
-        SPEED_RX=\$(awk -v DIFF="\$DIFF_RX" -v TT="\$TT" 'BEGIN { speed = DIFF / (TT * 1024); if (speed >= 1024) { printf "%.1fMB", speed / 1024 } else { printf "%.1fKB", speed } }')
-    else
-        DIFF_RX=0
-        SPEED_RX=0
-    fi
-    TX_old=\$(tail -n 2 \$FolderPath/interface_re.txt | head -n 1 | sed 's/[a-zA-Z=_]//g' | awk '{print \$2}')
-    if [[ -n "\$TX_old" && "\$TX_old" =~ ^[0-9]+$ ]]; then
-        DIFF_TX=\$(( ov_tx_bytes - TX_old ))
-        SPEED_TX=\$(awk -v DIFF="\$DIFF_TX" -v TT="\$TT" 'BEGIN { speed = DIFF / (TT * 1024); if (speed >= 1024) { printf "%.1fMB", speed / 1024 } else { printf "%.1fKB", speed } }')
-    else
-        DIFF_TX=0
-        SPEED_TX=0
-    fi
-    echo "RX_old: \$RX_old TX_old: \$TX_old SPEED_RX: \$SPEED_RX SPEED_TX: \$SPEED_TX"
 
-    if (( CLEAR_TAG=0 )); then
-        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
-        CLEAR_TAG=\$CLEAR_TAG_OLD
-    else
-        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
-    fi
-    echo -e "SPEED_RX: \$SPEED_RX  SPEED_TX: \$SPEED_TX" >> \$FolderPath/interface_re.txt
-    echo -e "RX=\$ov_rx_bytes TX=\$ov_tx_bytes DIFF_RX=\$DIFF_RX DIFF_TX=\$DIFF_TX" >> \$FolderPath/interface_re.txt
-    echo -e "---------------------------------------------------" >> \$FolderPath/interface_re.txt
+    # 获取tt秒前数据
+    ov_prev_rx_bytes=0
+    ov_prev_tx_bytes=0
+    for interface in "\${interfaces[@]}"; do
+        prev_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        prev_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        ov_prev_rx_bytes=\$((ov_prev_rx_bytes + prev_rx_bytes[\$interface]))
+        ov_prev_tx_bytes=\$((ov_prev_tx_bytes + prev_tx_bytes[\$interface]))
+    done
+    sendtag=false
 
     # 等待TT秒
     end_time=\$(date +%s%N)
@@ -2232,7 +2210,7 @@ while true; do
         time_diff_ms=\$((time_diff / 1000000))
 
         # 输出执行FOR所花费时间
-        echo "上一个 FOR循环 所执行时间 \$time_diff_ms 毫秒."
+        # echo "上一个 FOR循环 所执行时间 \$time_diff_ms 毫秒."
 
         duration=\$(awk "BEGIN {print \$time_diff_ms/1000}")
         sleep_time=\$(awk -v v1=\$TT -v v2=\$duration 'BEGIN { printf "%.3f", v1 - v2 }')
@@ -2240,8 +2218,41 @@ while true; do
         sleep_time=\$TT
     fi
     sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
-    echo "sleep_time: \$sleep_time   duration: \$duration"
+    echo "休眠时间 (等..): \$sleep_time 秒  时间差: \$duration 秒  清屏: \$CLEAR_TAG"
     sleep \$sleep_time
+    start_time=\$(date +%s%N)
+
+    # 获取TT秒后数据
+    ov_current_rx_bytes=0
+    ov_current_tx_bytes=0
+    for interface in "\${interfaces[@]}"; do
+        current_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        current_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        ov_current_rx_bytes=\$((ov_current_rx_bytes + current_rx_bytes[\$interface]))
+        ov_current_tx_bytes=\$((ov_current_tx_bytes + current_tx_bytes[\$interface]))
+    done
+
+    # 计算网速
+    ov_rx_diff_speed=\$((ov_current_rx_bytes - ov_prev_rx_bytes))
+    ov_tx_diff_speed=\$((ov_current_tx_bytes - ov_prev_tx_bytes))
+    rx_speed=\$(awk "BEGIN { speed = \$ov_rx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+    tx_speed=\$(awk "BEGIN { speed = \$ov_tx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+    rx_speed=\$(Remove_B "\$rx_speed")
+    tx_speed=\$(Remove_B "\$tx_speed")
+
+    echo "==================================================="
+    echo -e "SPEED_RX: \033[32m\$rx_speed\033[0m   SPEED_TX: \033[32m\$tx_speed\033[0m"
+    echo "-----------------------------------"
+
+    if [ \$CLEAR_TAG -eq 1 ]; then
+        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
+        CLEAR_TAG=\$((CLEAR_TAG_OLD + 1))
+        clear
+    else
+        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
+    fi
+    echo "SPEED_RX: \$rx_speed  SPEED_TX: \$tx_speed" >> \$FolderPath/interface_re.txt
+    echo "===================================================" >> \$FolderPath/interface_re.txt
 
     CLEAR_TAG=\$((\$CLEAR_TAG - 1))
 done
@@ -2512,6 +2523,7 @@ done
 # test_minute="47"
 
 tt=60
+duration=0
 year_rp=false
 month_rp=false
 day_rp=false
