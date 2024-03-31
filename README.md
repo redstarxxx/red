@@ -16,5 +16,5 @@ curl -o oc.sh https://raw.githubusercontent.com/redstarxxx/shell/main/oc.sh && c
 
 VPSKeeper:
 
-bash -c "$(curl -L https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh)"
-
+# bash -c "$(curl -L https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh)"
+curl -o oc.sh https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh && chmod +x VPSKeeper.sh && bash VPSKeeper.sh @ 
