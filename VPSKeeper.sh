@@ -5,11 +5,11 @@ export PATH
 #=================================================
 #	System Required: CentOS/Debian/Ubuntu
 #	Description: VPS keeper for telgram
-#	Version: 1.0.2
+#	Version: 1.0.3
 #	Author: tse
 #	Blog: https://vtse.eu.org
 #=================================================
-sh_ver="1.0.2"
+sh_ver="1.0.3"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
@@ -2649,6 +2649,7 @@ while true; do
                 diff_month_tx_bytes=\$(( current_tx_bytes[\$interface] - prev_month_tx_bytes[\$interface] ))
                 diff_rx_month=\$(Bytes_KBtoMBGB "\$diff_month_rx_bytes")
                 diff_tx_month=\$(Bytes_KBtoMBGB "\$diff_month_tx_bytes")
+
                 if [ "\$StatisticsMode" == "OV" ]; then
                     ov_diff_month_rx_bytes=\$(( ov_current_rx_bytes - ov_prev_month_rx_bytes ))
                     ov_diff_month_tx_bytes=\$(( ov_current_tx_bytes - ov_prev_month_tx_bytes ))
@@ -2661,6 +2662,7 @@ while true; do
                     diff_year_tx_bytes=\$(( current_tx_bytes[\$interface] - prev_year_tx_bytes[\$interface] ))
                     diff_rx_year=\$(Bytes_KBtoMBGB "\$diff_year_rx_bytes")
                     diff_tx_year=\$(Bytes_KBtoMBGB "\$diff_year_tx_bytes")
+
                     if [ "\$StatisticsMode" == "OV" ]; then
                         ov_diff_year_rx_bytes=\$(( ov_current_rx_bytes - ov_prev_year_rx_bytes ))
                         ov_diff_year_tx_bytes=\$(( ov_current_tx_bytes - ov_prev_year_tx_bytes ))
@@ -2700,6 +2702,7 @@ while true; do
                     echo "报告信息已发出..."
                     echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
                     echo "----------------------------------------------------------------"
+                    day_rp=false
                     day_sendtag=true
                 fi
 
@@ -2723,6 +2726,7 @@ while true; do
                     echo "报告信息已发出..."
                     echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
                     echo "----------------------------------------------------------------"
+                    month_rp=false
                     month_sendtag=true
                 fi
 
@@ -2747,6 +2751,7 @@ while true; do
                     echo "年报告信息:"
                     echo "时间: \$current_date, 活动接口: \$interface, 年接收: \$diff_rx_year, 年发送: \$diff_tx_year"
                     echo "----------------------------------------------------------------"
+                    year_rp=false
                     year_sendtag=true
                 fi
             fi
@@ -2780,6 +2785,7 @@ while true; do
                 echo "报告信息已发出..."
                 echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
                 echo "----------------------------------------------------------------"
+                day_rp=false
                 day_sendtag=true
             fi
 
@@ -2803,6 +2809,7 @@ while true; do
                 echo "报告信息已发出..."
                 echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
                 echo "----------------------------------------------------------------"
+                month_rp=false
                 month_sendtag=true
             fi
 
@@ -2827,6 +2834,7 @@ while true; do
                 echo "年报告信息:"
                 echo "时间: \$current_date, 活动接口: \$interface, 年接收: \$diff_rx_year, 年发送: \$diff_tx_year"
                 echo "----------------------------------------------------------------"
+                year_rp=false
                 year_sendtag=true
             fi
         fi
