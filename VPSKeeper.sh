@@ -1855,6 +1855,8 @@ declare -A prev_rx_bytes
 declare -A prev_tx_bytes
 declare -A prev_rx_bytes_T
 declare -A prev_tx_bytes_T
+declare -A tt_prev_rx_bytes_T
+declare -A tt_prev_tx_bytes_T
 declare -A current_rx_bytes
 declare -A current_tx_bytes
 declare -A INTERFACE_RT_RX_MB
@@ -1879,6 +1881,7 @@ done
 
 # 循环检查
 sendtag=true
+tt_prev=false
 while true; do
 
     # 获取tt秒前数据
@@ -1891,29 +1894,50 @@ while true; do
         ov_prev_tx_bytes=\$((ov_prev_tx_bytes + prev_tx_bytes[\$interface]))
         if \$sendtag; then
             echo "发送 \$interface 前只执行一次."
-            prev_rx_bytes_T[\$interface]=\${prev_rx_bytes[\$interface]}
-            prev_tx_bytes_T[\$interface]=\${prev_tx_bytes[\$interface]}
-            ov_prev_rx_bytes_T=\$ov_prev_rx_bytes
-            ov_prev_tx_bytes_T=\$ov_prev_tx_bytes
-            echo "\${prev_rx_bytes_T[\$interface]} \${prev_tx_bytes_T[\$interface]} \$ov_prev_rx_bytes_T \$ov_prev_tx_bytes_T"
+
+            if ! \$tt_prev; then
+                prev_rx_bytes_T[\$interface]=\${prev_rx_bytes[\$interface]}
+                prev_tx_bytes_T[\$interface]=\${prev_tx_bytes[\$interface]}
+                ov_prev_rx_bytes_T=\$ov_prev_rx_bytes
+                ov_prev_tx_bytes_T=\$ov_prev_tx_bytes
+            else
+                prev_rx_bytes_T[\$interface]=\${tt_prev_rx_bytes_T[\$interface]}
+                prev_tx_bytes_T[\$interface]=\${tt_prev_tx_bytes_T[\$interface]}
+                ov_prev_rx_bytes_T=\$tt_ov_prev_rx_bytes_T
+                ov_prev_tx_bytes_T=\$tt_ov_prev_tx_bytes_T
+                tt_prev=false
+            fi
+
+        else
+            tt_prev_rx_bytes_T[\$interface]=\${prev_rx_bytes[\$interface]}
+            tt_prev_tx_bytes_T[\$interface]=\${prev_tx_bytes[\$interface]}
+            tt_ov_prev_rx_bytes_T=\$ov_prev_rx_bytes
+            tt_ov_prev_tx_bytes_T=\$ov_prev_tx_bytes
+            tt_prev=true
         fi
+
+        echo "\${prev_rx_bytes_T[\$interface]} \${prev_tx_bytes_T[\$interface]} \$ov_prev_rx_bytes_T \$ov_prev_tx_bytes_T"
     done
     sendtag=false
 
     # 等待tt秒
-    end_time=\$(date +%s)
+    end_time=\$(date +%s%N)
     if [ ! -z "\$start_time" ]; then
-        duration=\$((end_time - start_time))
-        sleep_time=\$((\$tt - duration))
+        time_diff=\$((end_time - start_time))
+        time_diff_ms=\$((time_diff / 1000000))
+
+        # 输出执行FOR所花费时间
+        echo "上一个 FOR循环 所执行时间 \$time_diff_ms 毫秒."
+
+        duration=\$(awk "BEGIN {print \$time_diff_ms/1000}")
+        sleep_time=\$(awk -v v1=\$tt -v v2=\$duration 'BEGIN { printf "%.3f", v1 - v2 }')
     else
         sleep_time=\$tt
     fi
-    if [ \$sleep_time -lt 0 ]; then
-        sleep_time=0
-    fi
+    sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
     echo "sleep_time: \$sleep_time   duration: \$duration"
     sleep \$sleep_time
-    start_time=\$(date +%s)
+    start_time=\$(date +%s%N)
 
     # 获取tt秒后数据
     ov_current_rx_bytes=0
@@ -2157,7 +2181,7 @@ CLEAR_TAG_OLD=\$CLEAR_TAG
 # ov_tx_bytes=0
 
 while true; do
-    start_time=\$(date +%s)
+    start_time=\$(date +%s%N)
     ov_rx_bytes=0
     ov_tx_bytes=0
     for interface in "\${interfaces[@]}"; do
@@ -2200,10 +2224,25 @@ while true; do
     echo -e "SPEED_RX: \$SPEED_RX  SPEED_TX: \$SPEED_TX" >> \$FolderPath/interface_re.txt
     echo -e "RX=\$ov_rx_bytes TX=\$ov_tx_bytes DIFF_RX=\$DIFF_RX DIFF_TX=\$DIFF_TX" >> \$FolderPath/interface_re.txt
     echo -e "---------------------------------------------------" >> \$FolderPath/interface_re.txt
-    end_time=\$(date +%s)
-    duration=$((end_time - start_time))
-    sleep_time=\$((\$TT - duration))
+
+    # 等待TT秒
+    end_time=\$(date +%s%N)
+    if [ ! -z "\$start_time" ]; then
+        time_diff=\$((end_time - start_time))
+        time_diff_ms=\$((time_diff / 1000000))
+
+        # 输出执行FOR所花费时间
+        echo "上一个 FOR循环 所执行时间 \$time_diff_ms 毫秒."
+
+        duration=\$(awk "BEGIN {print \$time_diff_ms/1000}")
+        sleep_time=\$(awk -v v1=\$TT -v v2=\$duration 'BEGIN { printf "%.3f", v1 - v2 }')
+    else
+        sleep_time=\$TT
+    fi
+    sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
+    echo "sleep_time: \$sleep_time   duration: \$duration"
     sleep \$sleep_time
+
     CLEAR_TAG=\$((\$CLEAR_TAG - 1))
 done
 EOF
@@ -2472,7 +2511,7 @@ done
 # test_hour="01"
 # test_minute="47"
 
-tt=10
+tt=60
 year_rp=false
 month_rp=false
 day_rp=false
@@ -2519,19 +2558,23 @@ while true; do
     year_sendtag=false
 
     # 等待tt秒
-    end_time=\$(date +%s)
+    end_time=\$(date +%s%N)
     if [ ! -z "\$start_time" ]; then
-        duration=\$((end_time - start_time))
-        sleep_time=\$((\$tt - duration))
+        time_diff=\$((end_time - start_time))
+        time_diff_ms=\$((time_diff / 1000000))
+
+        # 输出执行FOR所花费时间
+        echo "上一个 FOR循环 所执行时间 \$time_diff_ms 毫秒."
+
+        duration=\$(awk "BEGIN {print \$time_diff_ms/1000}")
+        sleep_time=\$(awk -v v1=\$tt -v v2=\$duration 'BEGIN { printf "%.3f", v1 - v2 }')
     else
         sleep_time=\$tt
     fi
-    if [ \$sleep_time -lt 0 ]; then
-        sleep_time=0
-    fi
+    sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
     echo "sleep_time: \$sleep_time   duration: \$duration"
     sleep \$sleep_time
-    start_time=\$(date +%s)
+    start_time=\$(date +%s%N)
 
     # 获取tt秒后数据
     ov_current_rx_bytes=0
