@@ -2170,7 +2170,11 @@ EOF
 
 $(declare -f Remove_B)
 
+if [ ! -d "$FolderPath" ]; then
+    mkdir -p "$FolderPath"
+fi
 FolderPath="$FolderPath"
+
 interfaces=(\$(ip -br link | awk '{print \$1}'))
 for ((i=0; i<\${#interfaces[@]}; i++)); do
     interface=\${interfaces[\$i]%@*}
