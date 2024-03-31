@@ -2182,7 +2182,7 @@ for ((i=0; i<\${#interfaces[@]}; i++)); do
     interfaces[\$i]=\$interface
 done
 
-TT=10
+TT=5
 duration=0
 CLEAR_TAG=9
 CLEAR_TAG_OLD=\$CLEAR_TAG
