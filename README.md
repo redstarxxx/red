@@ -17,4 +17,5 @@ curl -o oc.sh https://raw.githubusercontent.com/redstarxxx/shell/main/oc.sh && c
 VPSKeeper:
 
 bash -c "$(curl -L https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh)" (参数过多，已经不支持)
+
 curl -o VPSKeeper.sh https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh && chmod +x VPSKeeper.sh && bash VPSKeeper.sh @ 
