@@ -2796,7 +2796,7 @@ while true; do
         fi
 
         # 日报告
-        if [ "\$current_hour" == "09" ] && [ "\$current_minute" == "42" ]; then
+        if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
             diff_day_rx_bytes=\$(( current_rx_bytes[\$interface] - prev_day_rx_bytes[\$interface] ))
             diff_day_tx_bytes=\$(( current_tx_bytes[\$interface] - prev_day_tx_bytes[\$interface] ))
             diff_rx_day=\$(Bytes_BtoKBMBGB "\$diff_day_rx_bytes")
