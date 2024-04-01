@@ -21,14 +21,14 @@ FlowThreshold_de="3GB"
 FlowThresholdMAX_de="500GB"
 ReportTime_de="00:00"
 AutoUpdateTime_de="01:01"
-interfaces_ST_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
-interfaces_ST_de=("${interfaces_ST_0[@]}")
 interfaces_RP_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
 interfaces_RP_de=("${interfaces_RP_0[@]}")
+StatisticsMode_RP_de="SE"
+interfaces_ST_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
+interfaces_ST_de=("${interfaces_ST_0[@]}")
 StatisticsMode_ST_de="SE"
 # StatisticsMode_ST_de="OV" # 整体统计
 # StatisticsMode_ST_de="SE" # 单独统计
-StatisticsMode_RP_de="SE"
 
 # 检测是否root用户
 if [ "$UID" -ne 0 ]; then
