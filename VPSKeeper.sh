@@ -2796,7 +2796,7 @@ while true; do
         fi
 
         # 日报告
-        if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
+        if [ "\$current_hour" == "09" ] && [ "\$current_minute" == "42" ]; then
             diff_day_rx_bytes=\$(( current_rx_bytes[\$interface] - prev_day_rx_bytes[\$interface] ))
             diff_day_tx_bytes=\$(( current_tx_bytes[\$interface] - prev_day_tx_bytes[\$interface] ))
             diff_rx_day=\$(Bytes_BtoKBMBGB "\$diff_day_rx_bytes")
@@ -2890,7 +2890,7 @@ while true; do
                     curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
                         -d chat_id="$ChatID_1" -d text="\$message"
                     echo "报告信息已发出..."
-                    echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
+                    echo "时间: \$current_date, 活动接口: \$interface, 月接收: \$diff_rx_day, 月发送: \$diff_tx_day"
                     echo "----------------------------------------------------------------"
                     month_rp=false
                     month_sendtag=true
@@ -2973,7 +2973,7 @@ while true; do
                 curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
                     -d chat_id="$ChatID_1" -d text="\$message"
                 echo "报告信息已发出..."
-                echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
+                echo "时间: \$current_date, 活动接口: \$interface, 月接收: \$diff_rx_day, 月发送: \$diff_tx_day"
                 echo "----------------------------------------------------------------"
                 month_rp=false
                 month_sendtag=true
