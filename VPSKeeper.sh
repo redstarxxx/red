@@ -1964,6 +1964,14 @@ while true; do
         ov_current_rx_bytes=\$((ov_current_rx_bytes + current_rx_bytes[\$interface]))
         ov_current_tx_bytes=\$((ov_current_tx_bytes + current_tx_bytes[\$interface]))
     done
+    sp_ov_current_rx_bytes=0
+    sp_ov_current_tx_bytes=0
+    for interface in "\${interfaces_up[@]}"; do
+        sp_current_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        sp_current_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        sp_ov_current_rx_bytes=\$((sp_ov_current_rx_bytes + sp_current_rx_bytes[\$interface]))
+        sp_ov_current_tx_bytes=\$((sp_ov_current_tx_bytes + sp_current_tx_bytes[\$interface]))
+    done
 
     for interface in "\${interfaces[@]}"; do
         tt_prev_rx_bytes_T[\$interface]=\${current_rx_bytes[\$interface]}
@@ -1984,8 +1992,8 @@ while true; do
         ov_tx_diff=\$((ov_current_tx_bytes - ov_prev_tx_bytes_T))
 
         # 计算网速
-        ov_rx_diff_speed=\$((ov_current_rx_bytes - sp_ov_prev_rx_bytes))
-        ov_tx_diff_speed=\$((ov_current_tx_bytes - sp_ov_prev_tx_bytes))
+        ov_rx_diff_speed=\$((sp_ov_current_rx_bytes - sp_ov_prev_rx_bytes))
+        ov_tx_diff_speed=\$((sp_ov_current_tx_bytes - sp_ov_prev_tx_bytes))
         rx_speed=\$(awk "BEGIN { speed = \$ov_rx_diff_speed / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
         tx_speed=\$(awk "BEGIN { speed = \$ov_tx_diff_speed / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
         rx_speed=\$(Remove_B "\$rx_speed")
@@ -2206,36 +2214,36 @@ FolderPath="$FolderPath"
 # interfaces=(\$(ip -br link | awk '{print \$1}'))
 
 # 统计接口网速（只统计 UP 接口）
-interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces=(\$(ip -br link | awk '{print \$1}'))
-for ((i=0; i<\${#interfaces[@]}; i++)); do
-    interface=\${interfaces[\$i]%@*}
+for ((i=0; i<\${#interfaces_up[@]}; i++)); do
+    interface=\${interfaces_up[\$i]%@*}
     interface=\${interface%:*}
-    interfaces[\$i]=\$interface
+    interfaces_up[\$i]=\$interface
 done
 
 TT=5
 duration=0
-CLEAR_TAG=9
+CLEAR_TAG=99
 CLEAR_TAG_OLD=\$CLEAR_TAG
 
 # 定义数组
-declare -A prev_rx_bytes
-declare -A prev_tx_bytes
-declare -A current_rx_bytes
-declare -A current_tx_bytes
+declare -A sp_prev_rx_bytes
+declare -A sp_prev_tx_bytes
+declare -A sp_current_rx_bytes
+declare -A sp_current_tx_bytes
 
 clear
 while true; do
 
     # 获取tt秒前数据
-    ov_prev_rx_bytes=0
-    ov_prev_tx_bytes=0
-    for interface in "\${interfaces[@]}"; do
-        prev_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
-        prev_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
-        ov_prev_rx_bytes=\$((ov_prev_rx_bytes + prev_rx_bytes[\$interface]))
-        ov_prev_tx_bytes=\$((ov_prev_tx_bytes + prev_tx_bytes[\$interface]))
+    sp_ov_prev_rx_bytes=0
+    sp_ov_prev_tx_bytes=0
+    for interface in "\${interfaces_up[@]}"; do
+        sp_prev_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        sp_prev_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        sp_ov_prev_rx_bytes=\$((sp_ov_prev_rx_bytes + sp_prev_rx_bytes[\$interface]))
+        sp_ov_prev_tx_bytes=\$((sp_ov_prev_tx_bytes + sp_prev_tx_bytes[\$interface]))
     done
 
     # 等待TT秒
@@ -2258,20 +2266,20 @@ while true; do
     start_time=\$(date +%s%N)
 
     # 获取TT秒后数据
-    ov_current_rx_bytes=0
-    ov_current_tx_bytes=0
-    for interface in "\${interfaces[@]}"; do
-        current_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
-        current_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
-        ov_current_rx_bytes=\$((ov_current_rx_bytes + current_rx_bytes[\$interface]))
-        ov_current_tx_bytes=\$((ov_current_tx_bytes + current_tx_bytes[\$interface]))
+    sp_ov_current_rx_bytes=0
+    sp_ov_current_tx_bytes=0
+    for interface in "\${interfaces_up[@]}"; do
+        sp_current_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        sp_current_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        sp_ov_current_rx_bytes=\$((sp_ov_current_rx_bytes + sp_current_rx_bytes[\$interface]))
+        sp_ov_current_tx_bytes=\$((sp_ov_current_tx_bytes + sp_current_tx_bytes[\$interface]))
     done
 
     # 计算网速
-    ov_rx_diff_speed=\$((ov_current_rx_bytes - ov_prev_rx_bytes))
-    ov_tx_diff_speed=\$((ov_current_tx_bytes - ov_prev_tx_bytes))
-    rx_speed=\$(awk "BEGIN { speed = \$ov_rx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-    tx_speed=\$(awk "BEGIN { speed = \$ov_tx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+    sp_ov_rx_diff_speed=\$((sp_ov_current_rx_bytes - sp_ov_prev_rx_bytes))
+    sp_ov_tx_diff_speed=\$((sp_ov_current_tx_bytes - sp_ov_prev_tx_bytes))
+    rx_speed=\$(awk "BEGIN { speed = \$sp_ov_rx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+    tx_speed=\$(awk "BEGIN { speed = \$sp_ov_tx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
     rx_speed=\$(Remove_B "\$rx_speed")
     tx_speed=\$(Remove_B "\$tx_speed")
 
