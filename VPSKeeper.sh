@@ -608,8 +608,8 @@ SetupIniFile() {
 ConfigFile=$ConfigFile
 $(declare -f writeini)
 
-declare -A INTERFACE_RT_RX
-declare -A INTERFACE_RT_TX
+declare -A INTERFACE_RT_RX_b
+declare -A INTERFACE_RT_TX_b
 declare -A INTERFACE_RT_RX_MB
 declare -A INTERFACE_RT_TX_MB
 
@@ -630,8 +630,8 @@ for interface in "\${interfaces[@]}"; do
     rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
     echo "rx_bytes: \$rx_bytes"
     if [ ! -z "\$rx_bytes" ] && [[ \$rx_bytes =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-        INTERFACE_RT_RX[\$interface]=\$rx_bytes
-        # writeini "INTERFACE_RT_RX[\$interface]" "\${INTERFACE_RT_RX[\$interface]}"
+        INTERFACE_RT_RX_b[\$interface]=\$rx_bytes
+        writeini "INTERFACE_RT_RX_b[\$interface]" "\${INTERFACE_RT_RX_b[\$interface]}"
         INTERFACE_RT_RX_MB_TEMP=\$(awk -v v1="\$rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
 
         if [ ! -z "\${INTERFACE_RT_RX_MB[\$interface]}" ] && [[ \${INTERFACE_RT_RX_MB[\$interface]} =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
@@ -641,15 +641,15 @@ for interface in "\${interfaces[@]}"; do
         fi
 
         sed -i "/^INTERFACE_RT_RX_MB\[\$interface\]=/d" \$ConfigFile
-        writeini "INTERFACE_RT_RX_MB[\$interface]" "\${INTERFACE_RT_RX_MB[\$interface]}"
+        # writeini "INTERFACE_RT_RX_MB[\$interface]" "\${INTERFACE_RT_RX_MB[\$interface]}"
         echo "INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
     fi
 
     tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
     echo "tx_bytes: \$tx_bytes"
     if [ ! -z "\$tx_bytes" ] && [[ \$tx_bytes =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-        INTERFACE_RT_TX[\$interface]=\$tx_bytes
-        # writeini "INTERFACE_RT_TX[\$interface]" "\${INTERFACE_RT_TX[\$interface]}"
+        INTERFACE_RT_TX_b[\$interface]=\$tx_bytes
+        writeini "INTERFACE_RT_TX_b[\$interface]" "\${INTERFACE_RT_TX_b[\$interface]}"
         INTERFACE_RT_TX_MB_TEMP=\$(awk -v v1="\$tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
 
         if [ ! -z "\${INTERFACE_RT_TX_MB[\$interface]}" ] && [[ \${INTERFACE_RT_TX_MB[\$interface]} =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
@@ -659,7 +659,7 @@ for interface in "\${interfaces[@]}"; do
         fi
 
         sed -i "/^INTERFACE_RT_TX_MB\[\$interface\]=/d" \$ConfigFile
-        writeini "INTERFACE_RT_TX_MB[\$interface]" "\${INTERFACE_RT_TX_MB[\$interface]}"
+        # writeini "INTERFACE_RT_TX_MB[\$interface]" "\${INTERFACE_RT_TX_MB[\$interface]}"
         echo "INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
     fi
 
@@ -668,6 +668,12 @@ echo "====================================== 检正部分"
 cat \$ConfigFile
 echo
 source \$ConfigFile
+for interface in "\${interfaces[@]}"; do
+    INTERFACE_RT_RX_b[\$interface]=\${INTERFACE_RT_RX_b[\$interface]}
+    echo "读取: INTERFACE_RT_RX_b[\$interface]: \${INTERFACE_RT_RX_b[\$interface]}"
+    INTERFACE_RT_TX_b[\$interface]=\${INTERFACE_RT_TX_b[\$interface]}
+    echo "读取: INTERFACE_RT_TX_b[\$interface]: \${INTERFACE_RT_TX_b[\$interface]}"
+done
 for interface in "\${interfaces[@]}"; do
     INTERFACE_RT_RX_MB[\$interface]=\${INTERFACE_RT_RX_MB[\$interface]}
     echo "读取: INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
@@ -1007,13 +1013,6 @@ create_progress_bar() {
     local used_count
     local bar_width=10  # 默认进度条宽度为10
     if [[ $percentage -ge 1 && $percentage -le 100 ]]; then
-        # if [[ $percentage -lt 10 ]]; then
-        #     used_count=1
-        # elif [[ $percentage -eq 100 ]]; then
-        #     used_count=10
-        # else
-        #     used_count=${percentage:0:1}
-        # fi
         used_count=$((percentage * bar_width / 100))
         for ((i=0; i<used_count; i++)); do
             progress_bar="${progress_bar}${used_symbol}"
@@ -1026,6 +1025,44 @@ create_progress_bar() {
         echo "错误: 参数无效, 必须为 1-100 之间的值."
         return 1
     fi
+}
+
+ratioandprogress() {
+    # 调用时需要定义全局变量: progress 和 ratio
+    lto=false
+    gtoh=false
+    if [ ! -z "$3" ]; then
+        ratio=$3
+    elif $(awk -v used="$1" -v total="$2" 'BEGIN { printf "%d", ( used >= 0 && total >= 0 ) }'); then
+        ratio=$(awk -v used="$1" -v total="$2" 'BEGIN { printf "%.2f", ( used / total ) * 100 }')
+    else
+        echo "错误: $1 或 $2 小于等于 0 ."
+        progress="Err 参数有误."
+        return 1
+    fi
+    if $(awk -v v1="$ratio" 'BEGIN { exit !(v1 < 1) }'); then
+        ratio=1
+        lto=true
+    elif $(awk -v v1="$ratio" 'BEGIN { exit !(v1 > 100) }'); then
+        ratio=100
+        gtoh=true
+    fi
+    progress=$(create_progress_bar "$ratio")
+    return_code=$?
+    if [ $return_code -eq 1 ]; then
+        progress="🚫"
+        ratio=""
+    else
+        if $lto; then
+            ratio="🔽"
+        elif $gtoh; then
+            ratio="🔼"
+        else
+            ratio="${ratio}%"
+        fi
+    fi
+    # echo "$progress"
+    # echo "$ratio"
 }
 
 # 设置CPU报警
@@ -1072,6 +1109,9 @@ SetupCPU_TG() {
 $(declare -f CheckCPU_$CPUTools)
 $(declare -f GetInfo_now)
 $(declare -f create_progress_bar)
+$(declare -f ratioandprogress)
+progress=""
+ratio=""
 count=0
 while true; do
     SleepTime=900
@@ -1086,93 +1126,25 @@ while true; do
         # 获取并计算其它参数
         GetInfo_now
 
-        if awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            cpu_usage_ratio=1
-            cpu_usage_lto=true
-        elif awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            cpu_usage_ratio=100
-            cpu_usage_gtoh=true
-        fi
-        cpu_usage_progress=\$(create_progress_bar "\$cpu_usage_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            cpu_usage_progress="🚫"
-            cpu_usage_ratio=""
-        else
-            if [ "\$cpu_usage_lto" == "true" ]; then
-                cpu_usage_ratio="🔽"
-            elif [ "\$cpu_usage_gtoh" == "true" ]; then
-                cpu_usage_ratio="🔼"
-            else
-                cpu_usage_ratio=\${cpu_usage_ratio}%
-            fi
-        fi
+        # output=\$(ratioandprogress "0" "0" "cpu_usage_ratio")
+        # cpu_usage_progress=\$(echo "\$output" | awk 'NR==1 {print \$1}')
+        # cpu_usage_ratio=\$(echo "\$output" | awk 'NR==2 {print \$1}')
 
-        if awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            mem_use_ratio=1
-            mem_use_lto=true
-        elif awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            mem_use_ratio=100
-            mem_usage_gtoh=true
-        fi
-        mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            mem_use_progress="🚫"
-            mem_use_ratio=""
-        else
-            if [ "\$mem_use_lto" == "true" ]; then
-                mem_use_ratio="🔽"
-            elif [ "\$mem_usage_gtoh" == "true" ]; then
-                mem_use_ratio="🔼"
-            else
-                mem_use_ratio=\${mem_use_ratio}%
-            fi
-        fi
+        ratioandprogress "0" "0" "\$cpu_usage_ratio"
+        cpu_usage_progress=\$progress
+        cpu_usage_ratio=\$ratio
 
-        if awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            swap_use_ratio=1
-            swap_use_lto=true
-        elif awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            swap_use_ratio=100
-            swap_usage_gtoh=true
-        fi
-        swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            swap_use_progress="🚫"
-            swap_use_ratio=""
-        else
-            if [ "\$swap_use_lto" == "true" ]; then
-                swap_use_ratio="🔽"
-            elif [ "\$swap_usage_gtoh" == "true" ]; then
-                swap_use_ratio="🔼"
-            else
-                swap_use_ratio=\${swap_use_ratio}%
-            fi
-        fi
+        ratioandprogress "0" "0" "\$mem_use_ratio"
+        mem_use_progress=\$progress
+        mem_use_ratio=\$ratio
 
-        if awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            disk_use_ratio=1
-            disk_use_lto=true
-        elif awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            disk_use_ratio=100
-            disk_usage_gtoh=true
-        fi
-        disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            disk_use_progress="🚫"
-            disk_use_ratio=""
-        else
-            if [ "\$disk_use_lto" == "true" ]; then
-                disk_use_ratio="🔽"
-            elif [ "\$disk_usage_gtoh" == "true" ]; then
-                disk_use_ratio="🔼"
-            else
-                disk_use_ratio=\${disk_use_ratio}%
-            fi
-        fi
+        ratioandprogress "0" "0" "\$swap_use_ratio"
+        swap_use_progress=\$progress
+        swap_use_ratio=\$ratio
+
+        ratioandprogress "0" "0" "\$disk_use_ratio"
+        disk_use_progress=\$progress
+        disk_use_ratio=\$ratio
 
         current_date_send=\$(date +"%Y.%m.%d %T")
         message="CPU 使用率超过阈值 > $CPUThreshold%❗️"'
@@ -1259,6 +1231,9 @@ SetupMEM_TG() {
 $(declare -f CheckCPU_$CPUTools)
 $(declare -f GetInfo_now)
 $(declare -f create_progress_bar)
+$(declare -f ratioandprogress)
+progress=""
+ratio=""
 count=0
 while true; do
     SleepTime=900
@@ -1273,93 +1248,21 @@ while true; do
         # 获取并计算其它参数
         CheckCPU_$CPUTools
 
-        if awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            cpu_usage_ratio=1
-            cpu_usage_lto=true
-        elif awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            cpu_usage_ratio=100
-            cpu_usage_gtoh=true
-        fi
-        cpu_usage_progress=\$(create_progress_bar "\$cpu_usage_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            cpu_usage_progress="🚫"
-            cpu_usage_ratio=""
-        else
-            if [ "\$cpu_usage_lto" == "true" ]; then
-                cpu_usage_ratio="🔽"
-            elif [ "\$cpu_usage_gtoh" == "true" ]; then
-                cpu_usage_ratio="🔼"
-            else
-                cpu_usage_ratio=\${cpu_usage_ratio}%
-            fi
-        fi
+        ratioandprogress "0" "0" "\$cpu_usage_ratio"
+        cpu_usage_progress=\$progress
+        cpu_usage_ratio=\$ratio
 
-        if awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            mem_use_ratio=1
-            mem_use_lto=true
-        elif awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            mem_use_ratio=100
-            mem_usage_gtoh=true
-        fi
-        mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            mem_use_progress="🚫"
-            mem_use_ratio=""
-        else
-            if [ "\$mem_use_lto" == "true" ]; then
-                mem_use_ratio="🔽"
-            elif [ "\$mem_usage_gtoh" == "true" ]; then
-                mem_use_ratio="🔼"
-            else
-                mem_use_ratio=\${mem_use_ratio}%
-            fi
-        fi
+        ratioandprogress "0" "0" "\$mem_use_ratio"
+        mem_use_progress=\$progress
+        mem_use_ratio=\$ratio
 
-        if awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            swap_use_ratio=1
-            swap_use_lto=true
-        elif awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            swap_use_ratio=100
-            swap_usage_gtoh=true
-        fi
-        swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            swap_use_progress="🚫"
-            swap_use_ratio=""
-        else
-            if [ "\$swap_use_lto" == "true" ]; then
-                swap_use_ratio="🔽"
-            elif [ "\$swap_usage_gtoh" == "true" ]; then
-                swap_use_ratio="🔼"
-            else
-                swap_use_ratio=\${swap_use_ratio}%
-            fi
-        fi
+        ratioandprogress "0" "0" "\$swap_use_ratio"
+        swap_use_progress=\$progress
+        swap_use_ratio=\$ratio
 
-        if awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            disk_use_ratio=1
-            disk_use_lto=true
-        elif awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            disk_use_ratio=100
-            disk_usage_gtoh=true
-        fi
-        disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            disk_use_progress="🚫"
-            disk_use_ratio=""
-        else
-            if [ "\$disk_use_lto" == "true" ]; then
-                disk_use_ratio="🔽"
-            elif [ "\$disk_usage_gtoh" == "true" ]; then
-                disk_use_ratio="🔼"
-            else
-                disk_use_ratio=\${disk_use_ratio}%
-            fi
-        fi
+        ratioandprogress "0" "0" "\$disk_use_ratio"
+        disk_use_progress=\$progress
+        disk_use_ratio=\$ratio
 
         current_date_send=\$(date +"%Y.%m.%d %T")
         message="内存 使用率超过阈值 > $MEMThreshold%❗️"'
@@ -1447,6 +1350,9 @@ SetupDISK_TG() {
 $(declare -f CheckCPU_$CPUTools)
 $(declare -f GetInfo_now)
 $(declare -f create_progress_bar)
+$(declare -f ratioandprogress)
+progress=""
+ratio=""
 count=0
 while true; do
     SleepTime=900
@@ -1461,93 +1367,21 @@ while true; do
         # 获取并计算其它参数
         CheckCPU_$CPUTools
 
-        if awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            cpu_usage_ratio=1
-            cpu_usage_lto=true
-        elif awk -v ratio="\$cpu_usage_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            cpu_usage_ratio=100
-            cpu_usage_gtoh=true
-        fi
-        cpu_usage_progress=\$(create_progress_bar "\$cpu_usage_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            cpu_usage_progress="🚫"
-            cpu_usage_ratio=""
-        else
-            if [ "\$cpu_usage_lto" == "true" ]; then
-                cpu_usage_ratio="🔽"
-            elif [ "\$cpu_usage_gtoh" == "true" ]; then
-                cpu_usage_ratio="🔼"
-            else
-                cpu_usage_ratio=\${cpu_usage_ratio}%
-            fi
-        fi
+        ratioandprogress "0" "0" "\$cpu_usage_ratio"
+        cpu_usage_progress=\$progress
+        cpu_usage_ratio=\$ratio
 
-        if awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            mem_use_ratio=1
-            mem_use_lto=true
-        elif awk -v ratio="\$mem_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            mem_use_ratio=100
-            mem_usage_gtoh=true
-        fi
-        mem_use_progress=\$(create_progress_bar "\$mem_use_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            mem_use_progress="🚫"
-            mem_use_ratio=""
-        else
-            if [ "\$mem_use_lto" == "true" ]; then
-                mem_use_ratio="🔽"
-            elif [ "\$mem_usage_gtoh" == "true" ]; then
-                mem_use_ratio="🔼"
-            else
-                mem_use_ratio=\${mem_use_ratio}%
-            fi
-        fi
+        ratioandprogress "0" "0" "\$mem_use_ratio"
+        mem_use_progress=\$progress
+        mem_use_ratio=\$ratio
 
-        if awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            swap_use_ratio=1
-            swap_use_lto=true
-        elif awk -v ratio="\$swap_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            swap_use_ratio=100
-            swap_usage_gtoh=true
-        fi
-        swap_use_progress=\$(create_progress_bar "\$swap_use_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            swap_use_progress="🚫"
-            swap_use_ratio=""
-        else
-            if [ "\$swap_use_lto" == "true" ]; then
-                swap_use_ratio="🔽"
-            elif [ "\$swap_usage_gtoh" == "true" ]; then
-                swap_use_ratio="🔼"
-            else
-                swap_use_ratio=\${swap_use_ratio}%
-            fi
-        fi
+        ratioandprogress "0" "0" "\$swap_use_ratio"
+        swap_use_progress=\$progress
+        swap_use_ratio=\$ratio
 
-        if awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            disk_use_ratio=1
-            disk_use_lto=true
-        elif awk -v ratio="\$disk_use_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            disk_use_ratio=100
-            disk_usage_gtoh=true
-        fi
-        disk_use_progress=\$(create_progress_bar "\$disk_use_ratio")
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            disk_use_progress="🚫"
-            disk_use_ratio=""
-        else
-            if [ "\$disk_use_lto" == "true" ]; then
-                disk_use_ratio="🔽"
-            elif [ "\$disk_usage_gtoh" == "true" ]; then
-                disk_use_ratio="🔼"
-            else
-                disk_use_ratio=\${disk_use_ratio}%
-            fi
-        fi
+        ratioandprogress "0" "0" "\$disk_use_ratio"
+        disk_use_progress=\$progress
+        disk_use_ratio=\$ratio
 
         current_date_send=\$(date +"%Y.%m.%d %T")
         message="磁盘 使用率超过阈值 > $DISKThreshold%❗️"'
@@ -1594,6 +1428,52 @@ EOF
 Remove_B() {
     local var="$1"
     echo "${var%B}"
+}
+
+Bytes_MBtoGBKB() {
+    bitvalue="$1"
+    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / 1024 }')
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue < 1) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.0fKB", value * 1024 }')
+    else
+        bitvalue="${bitvalue}MB"
+    fi
+    echo "$bitvalue"
+}
+
+Bytes_KBtoMBGB () 
+{ 
+    bitvalue="$1";
+    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024)) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / (1024 * 1024) }');
+    else
+        if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
+            bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMB", value / 1024 }');
+        else
+            bitvalue="${bitvalue}KB";
+        fi;
+    fi;
+    echo "$bitvalue"
+}
+
+Bytes_BtoKBMBGB () 
+{ 
+    bitvalue="$1";
+    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024 * 1024)) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / (1024 * 1024 * 1024) }');
+    else
+        if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024 * 1024) }'; then
+            bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMB", value / (1024 * 1024) }');
+        else
+            if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
+                bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fKB", value / 1024 }');
+            else
+                bitvalue="${bitvalue}bB";
+            fi;
+        fi;
+    fi;
+    echo "$bitvalue"
 }
 
 # 设置流量报警
@@ -1829,6 +1709,10 @@ SetupFlow_TG() {
 #!/bin/bash
 
 $(declare -f create_progress_bar)
+$(declare -f ratioandprogress)
+progress=""
+ratio=""
+$(declare -f Bytes_BtoKBMBGB)
 $(declare -f Remove_B)
 
 tt=10
@@ -1836,6 +1720,8 @@ duration=0
 StatisticsMode="$StatisticsMode"
 
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
+THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
+
 # interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces_get=\$(ip -br link | awk '{print \$1}')
 # declare -a interfaces=(\$interfaces_get)
@@ -1876,17 +1762,25 @@ declare -A tt_prev_rx_bytes_T
 declare -A tt_prev_tx_bytes_T
 declare -A current_rx_bytes
 declare -A current_tx_bytes
+declare -A INTERFACE_RT_RX_b
+declare -A INTERFACE_RT_TX_b
 declare -A INTERFACE_RT_RX_MB
 declare -A INTERFACE_RT_TX_MB
 
 # 初始化接口流量数据
 source $ConfigFile
 for interface in "\${interfaces[@]}"; do
-    INTERFACE_RT_RX_MB[\$interface]=\${INTERFACE_RT_RX_MB[\$interface]}
-    echo "读取: INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
-    INTERFACE_RT_TX_MB[\$interface]=\${INTERFACE_RT_TX_MB[\$interface]}
-    echo "读取: INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
+    INTERFACE_RT_RX_b[\$interface]=\${INTERFACE_RT_RX_b[\$interface]}
+    echo "读取: INTERFACE_RT_RX_b[\$interface]: \${INTERFACE_RT_RX_b[\$interface]}"
+    INTERFACE_RT_TX_b[\$interface]=\${INTERFACE_RT_TX_b[\$interface]}
+    echo "读取: INTERFACE_RT_TX_b[\$interface]: \${INTERFACE_RT_TX_b[\$interface]}"
 done
+# for interface in "\${interfaces[@]}"; do
+#     INTERFACE_RT_RX_MB[\$interface]=\${INTERFACE_RT_RX_MB[\$interface]}
+#     echo "读取: INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
+#     INTERFACE_RT_TX_MB[\$interface]=\${INTERFACE_RT_TX_MB[\$interface]}
+#     echo "读取: INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
+# done
 
 # 循环检查
 sendtag=true
@@ -1986,10 +1880,10 @@ while true; do
         echo "NO.\$nline ----------------------------------------- interface: \$interface"
 
         # 计算差值
-        rx_diff=\$((current_rx_bytes[\$interface] - prev_rx_bytes_T[\$interface]))
-        tx_diff=\$((current_tx_bytes[\$interface] - prev_tx_bytes_T[\$interface]))
-        ov_rx_diff=\$((ov_current_rx_bytes - ov_prev_rx_bytes_T))
-        ov_tx_diff=\$((ov_current_tx_bytes - ov_prev_tx_bytes_T))
+        rx_diff_bytes=\$((current_rx_bytes[\$interface] - prev_rx_bytes_T[\$interface]))
+        tx_diff_bytes=\$((current_tx_bytes[\$interface] - prev_tx_bytes_T[\$interface]))
+        ov_rx_diff_bytes=\$((ov_current_rx_bytes - ov_prev_rx_bytes_T))
+        ov_tx_diff_bytes=\$((ov_current_tx_bytes - ov_prev_tx_bytes_T))
 
         # 计算网速
         ov_rx_diff_speed=\$((sp_ov_current_rx_bytes - sp_ov_prev_rx_bytes))
@@ -2000,80 +1894,27 @@ while true; do
         tx_speed=\$(Remove_B "\$tx_speed")
 
         # 总流量百分比计算
-        all_rx_mb=\$(awk -v v1="\$ov_current_rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
-        if [ ! -z "\${INTERFACE_RT_RX_MB[\$interface]}" ]; then
-            all_rx_mb=\$(awk -v v1=\$all_rx_mb -v v2="\${INTERFACE_RT_RX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
-        fi
-        echo "all_rx_mb: \$all_rx_mb INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
-        all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
-        if awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            all_rx_ratio=1
-            all_rx_lto=true
-        elif awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            all_rx_ratio=100
-            all_rx_gtoh=true
-        fi
-        all_rx_progress=\$(create_progress_bar "\$all_rx_ratio")
-        echo "all_rx_ratio: \$all_rx_ratio"
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            all_rx_progress="🚫"
-            all_rx_ratio=""
-        else
-            if [ "\$all_rx_lto" == "true" ]; then
-                all_rx_ratio="🔽"
-            elif [ "\$all_rx_gtoh" == "true" ]; then
-                all_rx_ratio="🔼"
-            else
-                all_rx_ratio=\${all_rx_ratio}%
-            fi
-        fi
-        if awk -v all_rx_mb="\$all_rx_mb" 'BEGIN { exit !(all_rx_mb >= 1024) }'; then
-            all_rx_mb=\$(awk -v value=\$all_rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-        elif awk -v all_rx_mb="\$all_rx_mb" 'BEGIN { exit !(all_rx_mb < 1) }'; then
-            all_rx_mb=\$(awk -v value=\$all_rx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-        else
-            all_rx_mb="\${all_rx_mb}MB"
-        fi
+        all_rx_bytes=\$ov_current_rx_bytes
+        all_rx_bytes=\$((all_rx_bytes + INTERFACE_RT_RX_b[\$interface]))
+        all_rx_ratio=\$(awk -v used="\$all_rx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
 
-        all_tx_mb=\$(awk -v v1="\$ov_current_tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
-        if [ ! -z "\${INTERFACE_RT_TX_MB[\$interface]}" ]; then
-            all_tx_mb=\$(awk -v v1=\$all_tx_mb -v v2="\${INTERFACE_RT_TX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
-        fi
-        echo "all_tx_mb: \$all_tx_mb INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
-        all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
-        if awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            all_tx_ratio=1
-            all_tx_lto=true
-        elif awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            all_tx_ratio=100
-            all_tx_gtoh=true
-        fi
-        all_tx_progress=\$(create_progress_bar "\$all_tx_ratio")
-        echo "all_tx_ratio: \$all_tx_ratio"
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            all_tx_progress="🚫"
-            all_tx_ratio=""
-        else
-            if [ "\$all_tx_lto" == "true" ]; then
-                all_tx_ratio="🔽"
-            elif [ "\$all_tx_gtoh" == "true" ]; then
-                all_tx_ratio="🔼"
-            else
-                all_tx_ratio=\${all_tx_ratio}%
-            fi
-        fi
-        if awk -v all_tx_mb="\$all_tx_mb" 'BEGIN { exit !(all_tx_mb >= 1024) }'; then
-            all_tx_mb=\$(awk -v value=\$all_tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-        elif awk -v all_tx_mb="\$all_tx_mb" 'BEGIN { exit !(all_tx_mb < 1) }'; then
-            all_tx_mb=\$(awk -v value=\$all_tx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-        else
-            all_tx_mb="\${all_tx_mb}MB"
-        fi
+        ratioandprogress "0" "0" "\$all_rx_ratio"
+        all_rx_progress=\$progress
+        all_rx_ratio=\$ratio
 
-        all_rx_mb=\$(Remove_B "\$all_rx_mb")
-        all_tx_mb=\$(Remove_B "\$all_tx_mb")
+        all_rx=\$(Bytes_BtoKBMBGB "\$all_rx_bytes")
+        all_rx=\$(Remove_B "\$all_rx")
+
+        all_tx_bytes=\$ov_current_tx_bytes
+        all_tx_bytes=\$((all_tx_bytes + INTERFACE_RT_TX_b[\$interface]))
+        all_tx_ratio=\$(awk -v used="\$all_tx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
+
+        ratioandprogress "0" "0" "\$all_tx_ratio"
+        all_tx_progress=\$progress
+        all_tx_ratio=\$ratio
+
+        all_tx=\$(Bytes_BtoKBMBGB "\$all_tx_bytes")
+        all_tx=\$(Remove_B "\$all_tx")
 
         # 调试使用(tt秒的流量增量)
         echo "RX_diff(BYTES): \$rx_diff TX_diff(BYTES): \$tx_diff"
@@ -2090,41 +1931,24 @@ while true; do
 
         # 检查是否超过阈值
         if [ "\$StatisticsMode" == "SE" ]; then
-            # if [ \$rx_diff -ge \$THRESHOLD_BYTES ] || [ \$tx_diff -ge \$THRESHOLD_BYTES ]; then # 仅支持整数计算 (已经被下面两行代码替换)
-            threshold_reached=\$(awk -v rx_diff="\$rx_diff" -v tx_diff="\$tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (rx_diff >= threshold) || (tx_diff >= threshold) ? 1 : 0}')
-            if [ "\$threshold_reached" -eq 1 ]; then
-                # rx_mb=\$((rx_diff / 1024 / 1024)) # 只能输出整数
-                rx_mb=\$(awk -v rx_diff="\$rx_diff" 'BEGIN { printf "%.1f", rx_diff / (1024 * 1024) }')
-                # if [ "\$rx_mb" -ge 1024 ]; then # 只能比较整数
-                if awk -v rx_mb="\$rx_mb" 'BEGIN { exit !(rx_mb >= 1024) }'; then
-                    rx_mb=\$(awk -v value=\$rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-                # elif [ "\$rx_mb" -lt 1 ]; then # 只能比较整数
-                elif awk -v rx_mb="\$rx_mb" 'BEGIN { exit !(rx_mb < 1) }'; then
-                    rx_mb=\$(awk -v value=\$rx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-                else
-                    rx_mb="\${rx_mb}MB"
-                fi
-                # tx_mb=\$((tx_diff / 1024 / 1024)) # 只能输出整数
-                tx_mb=\$(awk -v tx_diff="\$tx_diff" 'BEGIN { printf "%.1f", tx_diff / (1024 * 1024) }')
-                # if [ "\$tx_mb" -ge 1024 ]; then # 只能比较整数
-                if awk -v tx_mb="\$tx_mb" 'BEGIN { exit !(tx_mb >= 1024) }'; then
-                    tx_mb=\$(awk -v value=\$tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-                # elif [ "\$tx_mb" -lt 1 ]; then # 只能比较整数
-                elif awk -v tx_mb="\$tx_mb" 'BEGIN { exit !(tx_mb < 1) }'; then
-                    tx_mb=\$(awk -v value=\$tx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-                else
-                    tx_mb="\${tx_mb}MB"
-                fi
 
-                rx_mb=\$(Remove_B "\$rx_mb")
-                tx_mb=\$(Remove_B "\$tx_mb")
+            # threshold_reached=\$(awk -v rx_diff="\$rx_diff" -v tx_diff="\$tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (rx_diff >= threshold) || (tx_diff >= threshold) ? 1 : 0}')
+            # if [ "\$threshold_reached" -eq 1 ]; then
+
+            if [ \$rx_diff_bytes -ge \$THRESHOLD_BYTES ] || [ \$tx_diff_bytes -ge \$THRESHOLD_BYTES ]; then
+
+                rx_diff=\$(Bytes_BtoKBMBGB "\$rx_diff_bytes")
+                tx_diff=\$(Bytes_BtoKBMBGB "\$tx_diff_bytes")
+                rx_diff=\$(Remove_B "\$rx_diff")
+                tx_diff=\$(Remove_B "\$tx_diff")
+
                 current_date_send=\$(date +"%Y.%m.%d %T")
 
                 message="流量已达到阈值🧭 > ${FlowThreshold_U}❗️"'
 '"主机名: \$(hostname) 接口: \$interface"'
-'"已接收: \${rx_mb}  已发送: \${tx_mb}"'
+'"已接收: \${rx_diff}  已发送: \${tx_diff}"'
 '"───────────────"'
-'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"总接收: \${all_rx}  总发送: \${all_tx}"'
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
@@ -2141,40 +1965,21 @@ while true; do
         nline=\$((nline + 1))
     done
     if [ "\$StatisticsMode" == "OV" ]; then
-        threshold_reached=\$(awk -v ov_rx_diff="\$ov_rx_diff" -v ov_tx_diff="\$ov_tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (ov_rx_diff >= threshold) || (ov_tx_diff >= threshold) ? 1 : 0}')
-        if [ "\$threshold_reached" -eq 1 ]; then
-            # ov_rx_mb=\$((ov_rx_diff / 1024 / 1024)) # 只能输出整数
-            ov_rx_mb=\$(awk -v ov_rx_diff="\$ov_rx_diff" 'BEGIN { printf "%.1f", ov_rx_diff / (1024 * 1024) }')
-            # if [ "\$ov_rx_mb" -ge 1024 ]; then # 只能比较整数
-            if awk -v ov_rx_mb="\$ov_rx_mb" 'BEGIN { exit !(ov_rx_mb >= 1024) }'; then
-                ov_rx_mb=\$(awk -v value=\$ov_rx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-            # elif [ "\$ov_rx_mb" -lt 1 ]; then # 只能比较整数
-            elif awk -v ov_rx_mb="\$ov_rx_mb" 'BEGIN { exit !(ov_rx_mb < 1) }'; then
-                ov_rx_mb=\$(awk -v value=\$ov_rx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-            else
-                ov_rx_mb="\${ov_rx_mb}MB"
-            fi
-            # ov_tx_mb=\$((ov_tx_diff / 1024 / 1024)) # 只能输出整数
-            ov_tx_mb=\$(awk -v ov_tx_diff="\$ov_tx_diff" 'BEGIN { printf "%.1f", ov_tx_diff / (1024 * 1024) }')
-            # if [ "\$ov_tx_mb" -ge 1024 ]; then # 只能比较整数
-            if awk -v ov_tx_mb="\$ov_tx_mb" 'BEGIN { exit !(ov_tx_mb >= 1024) }'; then
-                ov_tx_mb=\$(awk -v value=\$ov_tx_mb 'BEGIN { printf "%.1fGB", value / 1024 }')
-            # elif [ "\$ov_tx_mb" -lt 1 ]; then # 只能比较整数
-            elif awk -v ov_tx_mb="\$ov_tx_mb" 'BEGIN { exit !(ov_tx_mb < 1) }'; then
-                ov_tx_mb=\$(awk -v value=\$ov_tx_mb 'BEGIN { printf "%.0fKB", value * 1024 }')
-            else
-                ov_tx_mb="\${ov_tx_mb}MB"
-            fi
 
-            ov_rx_mb=\$(Remove_B "\$ov_rx_mb")
-            ov_tx_mb=\$(Remove_B "\$ov_tx_mb")
+        if [ \$ov_rx_diff_bytes -ge \$THRESHOLD_BYTES ] || [ \$ov_tx_diff_bytes -ge \$THRESHOLD_BYTES ]; then
+
+            ov_rx_diff=\$(Bytes_BtoKBMBGB "\$ov_rx_diff_bytes")
+            ov_tx_diff=\$(Bytes_BtoKBMBGB "\$ov_tx_diff_bytes")
+            ov_rx_diff=\$(Remove_B "\$ov_rx_diff")
+            ov_tx_diff=\$(Remove_B "\$ov_tx_diff")
+
             current_date_send=\$(date +"%Y.%m.%d %T")
 
             message="流量已达到阈值🧭 > ${FlowThreshold_U}❗️"'
 '"主机名: \$(hostname) 接口: \$show_interfaces"'
-'"已接收: \${ov_rx_mb}  已发送: \${ov_tx_mb}"'
+'"已接收: \${ov_rx_diff}  已发送: \${ov_tx_diff}"'
 '"───────────────"'
-'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"总接收: \${all_rx}  总发送: \${all_tx}"'
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
@@ -2327,52 +2132,6 @@ EOF
     tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_UB 时将收到通知."
 }
 
-Bytes_MBtoGBKB() {
-    bitvalue="$1"
-    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
-        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / 1024 }')
-    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue < 1) }'; then
-        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.0fKB", value * 1024 }')
-    else
-        bitvalue="${bitvalue}MB"
-    fi
-    echo "$bitvalue"
-}
-
-Bytes_KBtoMBGB () 
-{ 
-    bitvalue="$1";
-    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024)) }'; then
-        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / (1024 * 1024) }');
-    else
-        if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
-            bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMB", value / 1024 }');
-        else
-            bitvalue="${bitvalue}KB";
-        fi;
-    fi;
-    echo "$bitvalue"
-}
-
-Bytes_BtoKBMBGB () 
-{ 
-    bitvalue="$1";
-    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024 * 1024)) }'; then
-        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / (1024 * 1024 * 1024) }');
-    else
-        if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024 * 1024) }'; then
-            bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMB", value / (1024 * 1024) }');
-        else
-            if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
-                bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fKB", value / 1024 }');
-            else
-                bitvalue="${bitvalue}bB";
-            fi;
-        fi;
-    fi;
-    echo "$bitvalue"
-}
-
 SetFlowReport_TG() {
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -2514,7 +2273,6 @@ SetFlowReport_TG() {
     fi
     echo "统计模式为: $StatisticsMode"
 
-
     source $ConfigFile
     FlowThresholdMAX_UB=$FlowThresholdMAX
     FlowThresholdMAX_U=$(Remove_B "$FlowThresholdMAX_UB")
@@ -2532,9 +2290,14 @@ SetFlowReport_TG() {
 #!/bin/bash
 
 $(declare -f create_progress_bar)
+$(declare -f ratioandprogress)
+progress=""
+ratio=""
 $(declare -f Bytes_BtoKBMBGB)
 $(declare -f Remove_B)
 StatisticsMode="$StatisticsMode"
+
+THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
 
 # interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces=\$(ip -br link | awk '{print \$1}')
@@ -2719,89 +2482,34 @@ while true; do
     for interface in "\${interfaces[@]}"; do
         echo "NO.\$nline --------------------------------------rp--- interface: \$interface"
 
-        all_rx_mb=\$(awk -v v1="\$ov_current_rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
-        current_rx_mb=\$all_rx_mb
-        if [ ! -z "\${INTERFACE_RT_RX_MB[\$interface]}" ]; then
-            all_rx_mb=\$(awk -v v1=\$all_rx_mb -v v2="\${INTERFACE_RT_RX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
-        fi
-        echo "all_rx_mb: \$all_rx_mb INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
-        all_rx_ratio=\$(awk -v used="\$all_rx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
-        if awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            all_rx_ratio=1
-            all_rx_lto=true
-        elif awk -v ratio="\$all_rx_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            all_rx_ratio=100
-            all_rx_gtoh=true
-        fi
-        all_rx_progress=\$(create_progress_bar "\$all_rx_ratio")
-        echo "all_rx_ratio: \$all_rx_ratio"
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            all_rx_progress="🚫"
-            all_rx_ratio=""
-        else
-            if [ "\$all_rx_lto" == "true" ]; then
-                all_rx_ratio="🔽"
-            elif [ "\$all_rx_gtoh" == "true" ]; then
-                all_rx_ratio="🔼"
-            else
-                all_rx_ratio=\${all_rx_ratio}%
-            fi
-        fi
+        all_rx_bytes=\$ov_current_rx_bytes
+        all_rx_bytes=\$((all_rx_bytes + INTERFACE_RT_RX_b[\$interface]))
+        all_rx_ratio=\$(awk -v used="\$all_rx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
 
-        if awk -v all_rx_mb="\$all_rx_mb" 'BEGIN { exit !(all_rx_mb >= 1024) }'; then
-            all_rx_mb=\$(awk -v v1="\$all_rx_mb" 'BEGIN { printf "%.1fGB", v1 / 1024 }')
-        elif awk -v all_rx_mb="\$all_rx_mb" 'BEGIN { exit !(all_rx_mb < 1) }'; then
-            all_rx_mb=\$(awk -v v1="\$all_rx_mb" 'BEGIN { printf "%.0fKB", v1 * 1024 }')
-        else
-            all_rx_mb="\${all_rx_mb}MB"
-        fi
+        ratioandprogress "0" "0" "\$all_rx_ratio"
+        all_rx_progress=\$progress
+        all_rx_ratio=\$ratio
 
-        all_tx_mb=\$(awk -v v1="\$ov_current_tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
-        current_tx_mb=\$all_tx_mb
-        if [ ! -z "\${INTERFACE_RT_TX_MB[\$interface]}" ]; then
-            all_tx_mb=\$(awk -v v1=\$all_tx_mb -v v2="\${INTERFACE_RT_TX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
-        fi
-        echo "all_tx_mb: \$all_tx_mb INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
-        all_tx_ratio=\$(awk -v used="\$all_tx_mb" -v total="$FlowThresholdMAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
-        if awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio < 1) }'; then
-            all_tx_ratio=1
-            all_tx_lto=true
-        elif awk -v ratio="\$all_tx_ratio" 'BEGIN { exit !(ratio > 100) }'; then
-            all_tx_ratio=100
-            all_tx_gtoh=true
-        fi
-        all_tx_progress=\$(create_progress_bar "\$all_tx_ratio")
-        echo "all_tx_ratio: \$all_tx_ratio"
-        return_code=\$?
-        if [ \$return_code -eq 1 ]; then
-            all_tx_progress="🚫"
-            all_tx_ratio=""
-        else
-            if [ "\$all_tx_lto" == "true" ]; then
-                all_tx_ratio="🔽"
-            elif [ "\$all_tx_gtoh" == "true" ]; then
-                all_tx_ratio="🔼"
-            else
-                all_tx_ratio=\${all_tx_ratio}%
-            fi
-        fi
+        all_rx=\$(Bytes_BtoKBMBGB "\$all_rx_bytes")
+        all_rx=\$(Remove_B "\$all_rx")
 
-        if awk -v all_tx_mb="\$all_tx_mb" 'BEGIN { exit !(all_tx_mb >= 1024) }'; then
-            all_tx_mb=\$(awk -v v1="\$all_tx_mb" 'BEGIN { printf "%.1fGB", v1 / 1024 }')
-        elif awk -v all_tx_mb="\$all_tx_mb" 'BEGIN { exit !(all_tx_mb < 1) }'; then
-            all_tx_mb=\$(awk -v v1="\$all_tx_mb" 'BEGIN { printf "%.0fKB", v1 * 1024 }')
-        else
-            all_tx_mb="\${all_tx_mb}MB"
-        fi
+        all_tx_bytes=\$ov_current_tx_bytes
+        all_tx_bytes=\$((all_tx_bytes + INTERFACE_RT_TX_b[\$interface]))
+        all_tx_ratio=\$(awk -v used="\$all_tx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
 
-        # 日报告
+        ratioandprogress "0" "0" "\$all_tx_ratio"
+        all_tx_progress=\$progress
+        all_tx_ratio=\$ratio
+
+        all_tx=\$(Bytes_BtoKBMBGB "\$all_tx_bytes")
+        all_tx=\$(Remove_B "\$all_tx")
+
+        # 日报告 #################################################################################################################
         if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
             diff_day_rx_bytes=\$(( current_rx_bytes[\$interface] - prev_day_rx_bytes[\$interface] ))
             diff_day_tx_bytes=\$(( current_tx_bytes[\$interface] - prev_day_tx_bytes[\$interface] ))
             diff_rx_day=\$(Bytes_BtoKBMBGB "\$diff_day_rx_bytes")
             diff_tx_day=\$(Bytes_BtoKBMBGB "\$diff_day_tx_bytes")
-
 
             if [ "\$StatisticsMode" == "OV" ]; then
                 ov_diff_day_rx_bytes=\$(( ov_current_rx_bytes - ov_prev_day_rx_bytes ))
@@ -2845,9 +2553,9 @@ while true; do
         # SE发送报告
         if [ "\$StatisticsMode" == "SE" ]; then
             if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
+
                 current_date_send=\$(date +"%Y.%m.%d %T")
-                all_rx_mb=\$(Remove_B "\$all_rx_mb")
-                all_tx_mb=\$(Remove_B "\$all_tx_mb")
+
                 if \$day_rp; then
                     yesterday=\$(date -d "1 day ago" +%m月%d日)
 
@@ -2858,7 +2566,7 @@ while true; do
 '"主机名: \$(hostname) 接口: \$interface"'
 '"🌞接收: \${diff_rx_day}  🌞发送: \${diff_tx_day}"'
 '"───────────────"'
-'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"总接收: \${all_rx}  总发送: \${all_tx}"'
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
@@ -2882,7 +2590,7 @@ while true; do
 '"主机名: \$(hostname) 接口: \$interface"'
 '"🌙接收: \${diff_rx_month}  🌙发送: \${diff_tx_month}"'
 '"───────────────"'
-'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"总接收: \${all_rx}  总发送: \${all_tx}"'
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
@@ -2906,7 +2614,7 @@ while true; do
 '"主机名: \$(hostname) 接口: \$interface"'
 '"🧧接收: \${diff_rx_year}  🧧发送: \${diff_tx_year}"'
 '"───────────────"'
-'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"总接收: \${all_rx}  总发送: \${all_tx}"'
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
@@ -2928,9 +2636,9 @@ while true; do
     # OV发送报告
     if [ "\$StatisticsMode" == "OV" ]; then
         if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
+
             current_date_send=\$(date +"%Y.%m.%d %T")
-            all_rx_mb=\$(Remove_B "\$all_rx_mb")
-            all_tx_mb=\$(Remove_B "\$all_tx_mb")
+
             if \$day_rp; then
                 yesterday=\$(date -d "1 day ago" +%m月%d日)
 
@@ -2941,7 +2649,7 @@ while true; do
 '"主机名: \$(hostname) 接口: \$show_interfaces"'
 '"🌞接收: \${ov_diff_rx_day}  🌞发送: \${ov_diff_tx_day}"'
 '"───────────────"'
-'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"总接收: \${all_rx}  总发送: \${all_tx}"'
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
@@ -2965,7 +2673,7 @@ while true; do
 '"主机名: \$(hostname) 接口: \$show_interfaces"'
 '"🌙接收: \${ov_diff_rx_month}  🌙发送: \${ov_diff_tx_month}"'
 '"───────────────"'
-'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"总接收: \${all_rx}  总发送: \${all_tx}"'
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
@@ -2989,7 +2697,7 @@ while true; do
 '"主机名: \$(hostname) 接口: \$show_interfaces"'
 '"🧧接收: \${ov_diff_rx_year}  🧧发送: \${ov_diff_tx_year}"'
 '"───────────────"'
-'"总接收: \${all_rx_mb}  总发送: \${all_tx_mb}"'
+'"总接收: \${all_rx}  总发送: \${all_tx}"'
 '"设置流量上限: ${FlowThresholdMAX_U}🔒"'
 '"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
 '"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
