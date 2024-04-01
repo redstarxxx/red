@@ -61,6 +61,7 @@ CheckAndCreateFolder() {
         writeini "TelgramBotToken" "$BOTToken_de"
         writeini "CPUTools" "$CPUTools_de"
         writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
+        writeini "SHUTDOWN_RT" "false"
     fi
 }
 
@@ -447,9 +448,15 @@ SetupIniFile() {
     divline
     echo -e "$Tip 默认机器人: @iekeeperbot 使用前必须添加并点击 start"
     while true; do
+        source $ConfigFile
         divline
         echo -e "${GR}1${NC}.BOT Token ${GR}2${NC}.CHAT ID ${GR}3${NC}.CPU检测工具 (默认使用 top)"
-        echo -e "${GR}4${NC}.设置流量上限（仅参考） ${GR}5${NC}.设置关机记录流量 ${GR}回车${NC}.退出设置"
+        if $SHUTDOWN_RT; then
+            srtag="(${RE}已启动${NC})"
+        else
+            srtag=""
+        fi
+        echo -e "${GR}4${NC}.设置流量上限（仅参考） ${GR}5${NC}.设置关机记录流量$srtag ${GR}回车${NC}.退出设置"
         divline
         read -e -p "请输入你的选择: " choice
         case $choice in
@@ -600,6 +607,7 @@ SetupIniFile() {
                         sed -i "/^INTERFACE_RT_RX_MB\[$interface\]=/d" $ConfigFile
                         sed -i "/^INTERFACE_RT_TX_MB\[$interface\]=/d" $ConfigFile
                     done
+                    writeini "SHUTDOWN_RT" "false"
                     echo -e "$Tip 关机记录流量 (已删除记录) 已经取消 / 删除."
                 else
                     cat <<EOF > $FolderPath/tg_shutdown_rt.sh
@@ -697,6 +705,7 @@ TimeoutStartSec=0
 WantedBy=shutdown.target
 EOF
                     systemctl enable tg_shutdown_rt.service > /dev/null
+                    writeini "SHUTDOWN_RT" "true"
                     echo -e "$Tip 关机记录流量 已经成功设置."
                 fi
             ;;
