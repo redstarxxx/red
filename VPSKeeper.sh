@@ -2741,7 +2741,7 @@ EOF
     fi
     (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &") | crontab -
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "流量定时报告设置成功 ⚙️"$'\n'"主机名: $(hostname)"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分" &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "流量定时报告设置成功 ⚙️"$'\n'"主机名: $(hostname)"$'\n'"报告接口: ${interfaces_RP[@]}  报告模式: $StatisticsMode"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分" &
     fi
     tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
 }
