@@ -1187,11 +1187,16 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: CPU 报警通知⚙️"'
 '"主机名: $(hostname)"'
 '"CPU: $cpuusedOfcpus"'
-'"内存: ${mem_total}MB"'
-'"交换: ${swap_total}MB"'
-'"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 '"检测工具: $CPUTools"'
 '"💡当 CPU 使用达 $CPUThreshold % 时将收到通知." &
+#         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: CPU 报警通知⚙️"'
+# '"主机名: $(hostname)"'
+# '"CPU: $cpuusedOfcpus"'
+# '"内存: ${mem_total}MB"'
+# '"交换: ${swap_total}MB"'
+# '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
+# '"检测工具: $CPUTools"'
+# '"💡当 CPU 使用达 $CPUThreshold % 时将收到通知." &
     fi
     tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
 }
@@ -1304,11 +1309,8 @@ EOF
     if [ "$mute" == "false" ]; then
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 内存 报警通知⚙️"'
 '"主机名: $(hostname)"'
-'"CPU: $cpuusedOfcpus"'
 '"内存: ${mem_total}MB"'
 '"交换: ${swap_total}MB"'
-'"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
-'"检测工具: $CPUTools"'
 '"💡当 内存 使用达 $MEMThreshold % 时将收到通知." &
     fi
     tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
@@ -1423,11 +1425,7 @@ EOF
     if [ "$mute" == "false" ]; then
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 磁盘 报警通知⚙️"'
 '"主机名: $(hostname)"'
-'"CPU: $cpuusedOfcpus"'
-'"内存: ${mem_total}MB"'
-'"交换: ${swap_total}MB"'
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
-'"检测工具: $CPUTools"'
 '"💡当 磁盘 使用达 $DISKThreshold % 时将收到通知." &
     fi
     tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
