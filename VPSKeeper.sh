@@ -62,12 +62,16 @@ CheckAndCreateFolder() {
         writeini "CPUTools" "$CPUTools_de"
         writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
         writeini "SHUTDOWN_RT" "false"
+        hostname_show=$(hostname 2>/dev/null)
+        writeini "hostname_show" "$hostname_show"
     fi
 }
 
 # 清屏
 CLS() {
     if command -v apt &>/dev/null; then
+        clear
+    elif command -v opkg &>/dev/null; then
         clear
     elif command -v yum &>/dev/null; then
         printf "\033c"
@@ -103,9 +107,18 @@ CheckSys() {
         release="ubuntu"
     elif cat /proc/version 2>/dev/null | grep -q -E -i "centos|red hat|redhat"; then
         release="centos"
+    elif cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+        release="openwrt"
     else
         echo -e "$Err 系统不支持." >&2
         exit 1
+    fi
+    if [ -z $hostname_show ] && cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+        current_date=$(date +%m%d)
+        if [ -z "$hostname_show" ]; then
+            hostname_show="openwrt_$current_date"
+            writeini "hostname_show" "$hostname_show"
+        fi
     fi
 }
 
@@ -113,7 +126,7 @@ CheckSys() {
 CheckSetup() {
     echo "检测中..."
     if [ -f $FolderPath/tg_login.sh ]; then
-        if [ -f /etc/bash.bashrc ]; then
+        if [ -f /etc/bash.bashrc ] && [ "$release" != "openwrt" ]; then
             if grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
                 login_menu_tag="$SETTAG"
             else
@@ -134,6 +147,8 @@ CheckSetup() {
     if [ -f $FolderPath/tg_boot.sh ]; then
         if [ -f /etc/systemd/system/tg_boot.service ]; then
             boot_menu_tag="$SETTAG"
+        elif [ -f /etc/init.d/tg_boot.sh ]; then
+            boot_menu_tag="$SETTAG"
         else
             boot_menu_tag="$UNSETTAG"
         fi
@@ -142,6 +157,8 @@ CheckSetup() {
     fi
     if [ -f $FolderPath/tg_shutdown.sh ]; then
         if [ -f /etc/systemd/system/tg_shutdown.service ]; then
+            shutdown_menu_tag="$SETTAG"
+        elif [ -f /etc/init.d/tg_shutdown.sh ]; then
             shutdown_menu_tag="$SETTAG"
         else
             shutdown_menu_tag="$UNSETTAG"
@@ -409,7 +426,7 @@ EOF
         mute_mode="静音模式"
     fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"主机名: $(hostname)"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"通知模式: $mute_mode" &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"通知模式: $mute_mode" &
     fi
     tips="$Tip 自动更新设置成功, 更新时间: 每天 $hour_ud 时 $minute_ud 分, 通知模式: ${GR}$mute_mode${NC}"
 }
@@ -435,11 +452,15 @@ GetVPSInfo() {
     else
         cpuusedOfcpus=$(cat /proc/cpuinfo | grep "^core id" | wc -l)/$(lscpu | grep "^CPU(s):" | awk '{print $2}')
     fi
-    mem_total=$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
-    swap_total=$(top -bn1 | awk '/^MiB Swap/ { gsub(/Swap|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
+    # mem_total=$(top -bn1 | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
+    # swap_total=$(top -bn1 | awk '/^MiB Swap/ { gsub(/Swap|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
+    mem_total_bytes=$(free | grep 'Mem:' | awk '{print int($2)}')
+    mem_total=$((mem_total_bytes / 1024))
+    swap_total_bytes=$(free | grep 'Swap:' | awk '{print int($2)}')
+    swap_total=$((swap_total_bytes / 1024))
     disk_total=$(df -h / | awk 'NR==2 {print $2}')
     disk_used=$(df -h / | awk 'NR==2 {print $3}')
-    # echo "主机名: $(hostname)"$'\n'"CPUs: $cpuusedOfcpus"$'\n'"内存: $mem_total"\$'\n'"交换: $swap_total"$'\n'"磁盘: $disk_total"
+    # echo "主机名: $hostname_show"$'\n'"CPUs: $cpuusedOfcpus"$'\n'"内存: $mem_total"\$'\n'"交换: $swap_total"$'\n'"磁盘: $disk_total"
 }
 
 # 设置ini参数文件
@@ -761,34 +782,36 @@ test() {
         return 1
     fi
     curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-        -d chat_id="$ChatID_1" -d text="来自 $(hostname) 的测试信息" > /dev/null
-    tips="$Inf 测试信息已发出, 电报将收到一条\"来自 $(hostname) 的测试信息\"的信息."
+        -d chat_id="$ChatID_1" -d text="来自 $hostname_show 的测试信息" > /dev/null
+    tips="$Inf 测试信息已发出, 电报将收到一条\"来自 $hostname_show 的测试信息\"的信息."
 }
 
 # 修改Hostname
 ModifyHostname() {
-    if command -v hostnamectl &>/dev/null; then
-        echo "当前 Hostname : $(hostname)"
-        read -e -p "请输入要修改的 Hostname (回车跳过): " name
-        if [[ ! -z "${name}" ]]; then
-            echo "修改 hosts 和 hostname..."
-            sed -i "s/$(hostname)/$name/g" /etc/hosts
-            echo -e "$name" > /etc/hostname
-            hostnamectl set-hostname $name
+    echo "当前 主机名 : $hostname_show"
+    read -e -p "请输入要修改的 主机名 (回车跳过): " name
+    if [[ ! -z "${name}" ]]; then
+        writeini "hostname_show" "$name"
+        source $ConfigFile
+        if command -v hostnamectl &>/dev/null; then
+            read -e -p "是否要将 Hostmane 修改成 $hostname_show  Y/回车跳过 : " yorn
+            if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
+                echo "修改 hosts 和 hostname..."
+                sed -i "s/$hostname_show/$name/g" /etc/hosts
+                echo -e "$name" > /etc/hostname
+                hostnamectl set-hostname $name
+                tips="$Tip 修改后 主机名 : $hostname_show  Hostname: $hostname_show"
+            fi
         else
-            tips="$Tip 输入为空, 跳过操作."
+            tips="$Tip 修改后 主机名: $hostname_show, 但未检测到 hostnamectl, 无法修改 Hostname."
         fi
     else
-        tips="$Err 系统未检测到 \"hostnamectl\" 程序, 无法修改Hostname."
+        tips="$Tip 输入为空, 跳过操作."
     fi
 }
 
 # 设置开机通知
 SetupBoot_TG() {
-    if ! command -v systemd &>/dev/null; then
-        tips="$Err 系统未检测到 \"systemd\" 程序, 无法设置开机通知."
-        return 1
-    fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
         return 1
@@ -797,14 +820,15 @@ SetupBoot_TG() {
 #!/bin/bash
 
 current_date_send=\$(date +"%Y.%m.%d %T")
-message="\$(hostname) 已启动❗️"'
+message="$hostname_show 已启动❗️"'
 '"服务器时间: \$current_date_send"
 
 curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-            -d chat_id="$ChatID_1" -d text="\$message"
+    -d chat_id="$ChatID_1" -d text="\$message"
 EOF
-            chmod +x $FolderPath/tg_boot.sh
-            cat <<EOF > /etc/systemd/system/tg_boot.service
+    chmod +x $FolderPath/tg_boot.sh
+    if command -v systemd &>/dev/null; then
+        cat <<EOF > /etc/systemd/system/tg_boot.service
 [Unit]
 Description=Run tg_boot.sh script at boot time
 After=network.target
@@ -817,9 +841,31 @@ RemainAfterExit=true
 [Install]
 WantedBy=multi-user.target
 EOF
-    systemctl enable tg_boot.service > /dev/null
+        systemctl enable tg_boot.service > /dev/null
+    elif cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+        cat <<EOF > /etc/init.d/tg_boot.sh
+#!/bin/sh /etc/rc.common
+
+START=99
+STOP=15
+
+start() {
+    current_date_send=\$(date +"%Y.%m.%d %T")
+    message="$hostname_show 已启动❗️"'
+    '"服务器时间: \$current_date_send"
+
+    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+        -d chat_id="$ChatID_1" -d text="\$message" &
+}
+EOF
+        chmod +x /etc/init.d/tg_boot.sh
+        /etc/init.d/tg_boot.sh enable
+    else
+        tips="$Err 系统未检测到 \"systemd\" 程序, 无法设置开机通知."
+        return 1
+    fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 开机 时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"💡当 开机 时将收到通知." &
     fi
     tips="$Tip 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
     
@@ -835,19 +881,19 @@ SetupLogin_TG() {
 #!/bin/bash
 
 current_date_send=\$(date +"%Y.%m.%d %T")
-message="\$(hostname) \$(id -nu) 用户登陆成功❗️"'
+message="$hostname_show \$(id -nu) 用户登陆成功❗️"'
 '"服务器时间: \$current_date_send"
 
 curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-            -d chat_id="$ChatID_1" -d text="\$message"
+            -d chat_id="$ChatID_1" -d text="\$message" &
 EOF
     chmod +x $FolderPath/tg_login.sh
-    if [ -f /etc/bash.bashrc ]; then
+    if [ -f /etc/bash.bashrc ] && [ "$release" != "openwrt" ]; then
         if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
             echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
         fi
         if [ "$mute" == "false" ]; then
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知." &
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"💡当 登陆 时将收到通知." &
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
     elif [ -f /etc/profile ]; then
@@ -855,7 +901,7 @@ EOF
             echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/profile
         fi
         if [ "$mute" == "false" ]; then
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 登陆 时将收到通知." &
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"💡当 登陆 时将收到通知." &
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
     else
@@ -865,10 +911,6 @@ EOF
 
 # 设置关机通知
 SetupShutdown_TG() {
-    if ! command -v systemd &>/dev/null; then
-        tips="$Err 系统未检测到 \"systemd\" 程序, 无法设置关机通知."
-        return 1
-    fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
         return 1
@@ -877,14 +919,15 @@ SetupShutdown_TG() {
 #!/bin/bash
 
 current_date_send=\$(date +"%Y.%m.%d %T")
-message="\$(hostname) \$(id -nu) 正在执行关机...❗️"'
+message="$hostname_show \$(id -nu) 正在执行关机...❗️"'
 '"服务器时间: \$current_date_send"
 
 curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message"
 EOF
     chmod +x $FolderPath/tg_shutdown.sh
-    cat <<EOF > /etc/systemd/system/tg_shutdown.service
+    if command -v systemd &>/dev/null; then
+        cat <<EOF > /etc/systemd/system/tg_shutdown.service
 [Unit]
 Description=tg_shutdown
 DefaultDependencies=no
@@ -898,9 +941,30 @@ TimeoutStartSec=0
 [Install]
 WantedBy=shutdown.target
 EOF
-    systemctl enable tg_shutdown.service > /dev/null
+        systemctl enable tg_shutdown.service > /dev/null
+    elif cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+        cat <<EOF > /etc/init.d/tg_shutdown.sh
+#!/bin/sh /etc/rc.common
+
+STOP=99
+
+stop() {
+    current_date_send=\$(date +"%Y.%m.%d %T")
+    message="$hostname_show \$(id -nu) 正在执行关机...❗️"'
+    '"服务器时间: \$current_date_send"
+
+    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+        -d chat_id="$ChatID_1" -d text="\$message"
+}
+EOF
+        chmod +x /etc/init.d/tg_shutdown.sh
+        /etc/init.d/tg_shutdown.sh enable
+    else
+        tips="$Err 系统未检测到 \"systemd\" 程序, 无法设置关机通知."
+        return 1
+    fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 关机 时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"💡当 关机 时将收到通知." &
     fi
     tips="$Tip 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
 }
@@ -936,27 +1000,33 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_docker.sh
-    pkill tg_docker.sh
-    pkill tg_docker.sh
+    pkill tg_docker.sh > /dev/null 2>&1 &
+    pkill tg_docker.sh > /dev/null 2>&1 &
+    kill $(ps | grep '[t]g_docker.sh' | awk '{print $1}')
     nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &") | crontab -
     fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"💡当 Docker 列表变更时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"💡当 Docker 列表变更时将收到通知." &
     fi
     tips="$Tip Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
 }
 
 CheckCPU_top() {
     echo "正在检测 CPU 使用率..."
-    cpu_usage_ratio=$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", $0); idle+=$5; count++ } END { printf "%.0f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    if top -n 1 | grep '^%Cpu(s)'; then
+        cpu_usage_ratio=$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", $0); idle+=$5; count++ } END { printf "%.2f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
+    fi
+    if top -n 1 | grep -q '^CPU'; then
+        cpu_usage_ratio=$(top -bn5 -d 3 | grep '^CPU' | awk '{ idle+=$8; count++ } END { printf "%.2f", 100 - (idle / count) }')
+    fi
     echo "top检测结果: $cpu_usage_ratio | 日期: $(date)"
 }
 
 CheckCPU_sar() {
     echo "正在检测 CPU 使用率..."
-    cpu_usage_ratio=$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f", 100 - $NF }')
+    cpu_usage_ratio=$(sar -u 3 5 | awk '/^Average:/ { printf "%.2f", 100 - $NF }')
     echo "sar检测结果: $cpu_usage_ratio | 日期: $(date)"
 }
 
@@ -964,7 +1034,7 @@ CheckCPU_top_sar() {
     echo "正在检测 CPU 使用率..."
     cpu_usage_sar=$(sar -u 3 5 | awk '/^Average:/ { printf "%.0f", 100 - $NF }')
     cpu_usage_top=$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", $0); idle+=$5; count++ } END { printf "%.0f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
-    cpu_usage_ratio=$(awk -v sar="$cpu_usage_sar" -v top="$cpu_usage_top" 'BEGIN { printf "%.0f", (sar + top) / 2 }')
+    cpu_usage_ratio=$(awk -v sar="$cpu_usage_sar" -v top="$cpu_usage_top" 'BEGIN { printf "%.2f", (sar + top) / 2 }')
     echo "sar检测结果: $cpu_usage_sar | top检测结果: $cpu_usage_top | 平均值: $cpu_usage_ratio | 日期: $(date)"
 }
 
@@ -975,36 +1045,48 @@ GetInfo_now() {
     top_output=$(top -n 1 -b | head -n 10)
     echo "top: $top_output"
     if echo "$top_output" | grep -q "^%Cpu"; then
-        top -V
+        # top -V
         top_output_h=$(echo "$top_output" | awk 'NR > 7')
         cpu_h1=$(echo "$top_output_h" | awk 'NR == 1 || $9 > max { max = $9; process = $NF } END { print process }')
         cpu_h2=$(echo "$top_output_h" | awk 'NR == 2 || $9 > max { max = $9; process = $NF } END { print process }')
-        mem_total=$(echo "$top_output" | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
-        if [ -z "$mem_total" ]; then
-            mem_total=$(echo "$top_output" | awk '/^KiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2/1024) }')
-        fi
-        mem_used=$(echo "$top_output" | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($4) }')
-        if [ -z "$mem_used" ]; then
-            mem_used=$(echo "$top_output" | awk '/^KiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($4/1024) }')
-        fi
-        mem_use_ratio=$(awk -v used="$mem_used" -v total="$mem_total" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
-        swap_total=$(echo "$top_output" | awk '/^MiB Swap/ { gsub(/Swap|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
-        swap_used=$(echo "$top_output" | awk '/^MiB Swap/ { gsub(/Swap|total,|free,|used,|buff\/cache|:/, " ", $0); print int($4) }')
-        swap_use_ratio=$(awk -v used="$swap_used" -v total="$swap_total" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
+        # mem_total=$(echo "$top_output" | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
+        # if [ -z "$mem_total" ]; then
+        #     mem_total=$(echo "$top_output" | awk '/^KiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2/1024) }')
+        # fi
+        # mem_used=$(echo "$top_output" | awk '/^MiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($4) }')
+        # if [ -z "$mem_used" ]; then
+        #     mem_used=$(echo "$top_output" | awk '/^KiB Mem/ { gsub(/Mem|total,|free,|used,|buff\/cache|:/, " ", $0); print int($4/1024) }')
+        # fi
+        # mem_use_ratio=$(awk -v used="$mem_used" -v total="$mem_total" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
+        # swap_total=$(echo "$top_output" | awk '/^MiB Swap/ { gsub(/Swap|total,|free,|used,|buff\/cache|:/, " ", $0); print int($2) }')
+        # swap_used=$(echo "$top_output" | awk '/^MiB Swap/ { gsub(/Swap|total,|free,|used,|buff\/cache|:/, " ", $0); print int($4) }')
+        # swap_use_ratio=$(awk -v used="$swap_used" -v total="$swap_total" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
     elif echo "$top_output" | grep -q "^CPU"; then
-        top -V
+        # top -V
         top_output_h=$(echo "$top_output" | awk 'NR > 4')
-        cpu_h1=$(echo "$top_output_h" | awk 'NR == 1 || $7 > max { max = $7; process = $NF } END { print process }' | awk '{print $1}')
-        cpu_h2=$(echo "$top_output_h" | awk 'NR == 2 || $7 > max { max = $7; process = $NF } END { print process }' | awk '{print $1}')
-        mem_used=$(echo "$top_output" | awk '/^Mem/ { gsub(/K|used,|free,|shrd,|buff,|cached|:/, " ", $0); printf "%.0f", $2 / 1024 }')
-        mem_free=$(echo "$top_output" | awk '/^Mem/ { gsub(/K|used,|free,|shrd,|buff,|cached|:/, " ", $0); printf "%.0f", $3 / 1024 }')
-        # mem_total=$(awk "BEGIN { print $mem_used + $mem_free }") # 支持浮点计算,上面已经采用printf "%.0f"取整,所以使用下行即可
-        mem_total=$((mem_used + mem_free))
-        swap_total=""
-        swap_used=""
-        swap_use_ratio=""
+        # cpu_h1=$(echo "$top_output_h" | awk 'NR == 1 || $7 > max { max = $7; process = $NF } END { print process }' | awk '{print $1}')
+        # cpu_h2=$(echo "$top_output_h" | awk 'NR == 2 || $7 > max { max = $7; process = $NF } END { print process }' | awk '{print $1}')
+        cpu_h1=$(echo "$top_output_h" | awk 'NR == 1 || $7 > max { max = $7; process = $8 } END { print process }' | awk '{print $1}')
+        cpu_h2=$(echo "$top_output_h" | awk 'NR == 2 || $7 > max { max = $7; process = $8 } END { print process }' | awk '{print $1}')
+        # mem_used=$(echo "$top_output" | awk '/^Mem/ { gsub(/K|used,|free,|shrd,|buff,|cached|:/, " ", $0); printf "%.0f", $2 / 1024 }')
+        # mem_free=$(echo "$top_output" | awk '/^Mem/ { gsub(/K|used,|free,|shrd,|buff,|cached|:/, " ", $0); printf "%.0f", $3 / 1024 }')
+        # # mem_total=$(awk "BEGIN { print $mem_used + $mem_free }") # 支持浮点计算,上面已经采用printf "%.0f"取整,所以使用下行即可
+        # mem_total=$((mem_used + mem_free))
+        # swap_total=""
+        # swap_used=""
+        # swap_use_ratio=""
     else
         echo "top 指令获取信息失败."
+    fi
+    mem_total_bytes=$(free | grep 'Mem:' | awk '{print int($2)}')
+    mem_used_bytes=$(free | grep 'Mem:' | awk '{print int($3)}')
+    mem_use_ratio=$(awk -v used="$mem_used_bytes" -v total="$mem_total_bytes" 'BEGIN { printf "%.2f", ( used / total ) * 100 }')
+    swap_total_bytes=$(free | grep 'Swap:' | awk '{print int($2)}')
+    swap_used_bytes=$(free | grep 'Swap:' | awk '{print int($3)}')
+    if [ $swap_total_bytes -eq 0 ]; then
+        swap_use_ratio=0
+    else
+        swap_use_ratio=$(awk -v used="$swap_used_bytes" -v total="$swap_total_bytes" 'BEGIN { printf "%.2f", ( used / total ) * 100 }')
     fi
     disk_total=$(df -h / | awk 'NR==2 {print $2}')
     disk_used=$(df -h / | awk 'NR==2 {print $3}')
@@ -1043,19 +1125,22 @@ ratioandprogress() {
     if [ ! -z "$3" ]; then
         ratio=$3
     elif $(awk -v used="$1" -v total="$2" 'BEGIN { printf "%d", ( used >= 0 && total >= 0 ) }'); then
-        ratio=$(awk -v used="$1" -v total="$2" 'BEGIN { printf "%.2f", ( used / total ) * 100 }')
+        ratio=$(awk -v used="$1" -v total="$2" 'BEGIN { printf "%.3f", ( used / total ) * 100 }')
     else
-        echo "错误: $1 或 $2 小于等于 0 ."
+        echo "错误: $1 或 $2 小于 0 ."
         progress="Err 参数有误."
         return 1
     fi
-    if $(awk -v v1="$ratio" 'BEGIN { exit !(v1 < 1) }'); then
+    if $(awk -v v1="$ratio" 'BEGIN { exit !(v1 > 0 && v1 < 1) }'); then
+    # if $(awk -v v1="$ratio" 'BEGIN { exit !(v1 < 1) }'); then
         ratio=1
         lto=true
     elif $(awk -v v1="$ratio" 'BEGIN { exit !(v1 > 100) }'); then
         ratio=100
         gtoh=true
     fi
+    ratio=$(awk -v v1="$ratio" 'BEGIN { printf "%.0f", v1 }')
+    # ratio=$(awk -v v1="$ratio" 'BEGIN { if (v1 > 0 && v1 < 1) { printf "1" } else { printf "%.0f", v1 } }')
     progress=$(create_progress_bar "$ratio")
     return_code=$?
     if [ $return_code -eq 1 ]; then
@@ -1125,7 +1210,8 @@ count=0
 while true; do
     SleepTime=900
     CheckCPU_$CPUTools
-    if (( cpu_usage_ratio > $CPUThreshold )); then
+    # if (( cpu_usage_ratio > $CPUThreshold )); then
+    if (( \$(awk 'BEGIN {print ("'"\$cpu_usage_ratio"'" > "'"$CPUThreshold"'")}') )); then
         (( count++ ))
     else
         count=0
@@ -1157,7 +1243,7 @@ while true; do
 
         current_date_send=\$(date +"%Y.%m.%d %T")
         message="CPU 使用率超过阈值 > $CPUThreshold%❗️"'
-'"主机名: \$(hostname)"'
+'"主机名: $hostname_show"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
 '"内存: \$mem_use_progress \$mem_use_ratio"'
 '"交换: \$swap_use_progress \$swap_use_ratio"'
@@ -1177,20 +1263,21 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_cpu.sh
-    pkill tg_cpu.sh
-    pkill tg_cpu.sh
+    pkill tg_cpu.sh > /dev/null 2>&1 &
+    pkill tg_cpu.sh > /dev/null 2>&1 &
+    kill $(ps | grep '[t]g_cpu.sh' | awk '{print $1}')
     nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &") | crontab -
     fi
     if [ "$mute" == "false" ]; then
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: CPU 报警通知⚙️"'
-'"主机名: $(hostname)"'
+'"主机名: $hostname_show"'
 '"CPU: $cpuusedOfcpus"'
 '"检测工具: $CPUTools"'
 '"💡当 CPU 使用达 $CPUThreshold % 时将收到通知." &
 #         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: CPU 报警通知⚙️"'
-# '"主机名: $(hostname)"'
+# '"主机名: $hostname_show"'
 # '"CPU: $cpuusedOfcpus"'
 # '"内存: ${mem_total}MB"'
 # '"交换: ${swap_total}MB"'
@@ -1252,7 +1339,8 @@ count=0
 while true; do
     SleepTime=900
     GetInfo_now
-    if (( mem_use_ratio > $MEMThreshold )); then
+    # if (( mem_use_ratio > $MEMThreshold )); then
+    if (( \$(awk 'BEGIN {print ("'"\$mem_use_ratio"'" > "'"$CPUThreshold"'")}') )); then
         (( count++ ))
     else
         count=0
@@ -1280,7 +1368,7 @@ while true; do
 
         current_date_send=\$(date +"%Y.%m.%d %T")
         message="内存 使用率超过阈值 > $MEMThreshold%❗️"'
-'"主机名: \$(hostname)"'
+'"主机名: $hostname_show"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
 '"内存: \$mem_use_progress \$mem_use_ratio"'
 '"交换: \$swap_use_progress \$swap_use_ratio"'
@@ -1300,15 +1388,16 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_mem.sh
-    pkill tg_mem.sh
-    pkill tg_mem.sh
+    pkill tg_mem.sh > /dev/null 2>&1 &
+    pkill tg_mem.sh > /dev/null 2>&1 &
+    kill $(ps | grep '[t]g_mem.sh' | awk '{print $1}')
     nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &") | crontab -
     fi
     if [ "$mute" == "false" ]; then
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 内存 报警通知⚙️"'
-'"主机名: $(hostname)"'
+'"主机名: $hostname_show"'
 '"内存: ${mem_total}MB"'
 '"交换: ${swap_total}MB"'
 '"💡当 内存 使用达 $MEMThreshold % 时将收到通知." &
@@ -1368,7 +1457,8 @@ count=0
 while true; do
     SleepTime=900
     GetInfo_now
-    if (( mem_use_ratio > $DISKThreshold )); then
+    # if (( disk_use_ratio > $DISKThreshold )); then
+    if (( \$(awk 'BEGIN {print ("'"\$disk_use_ratio"'" > "'"$DISKThreshold"'")}') )); then
         (( count++ ))
     else
         count=0
@@ -1378,6 +1468,7 @@ while true; do
         # 获取并计算其它参数
         CheckCPU_$CPUTools
 
+        echo "前: cpu: \$cpu_usage_ratio mem: \$mem_use_ratio swap: \$swap_use_ratio disk: \$disk_use_ratio"
         ratioandprogress "0" "0" "\$cpu_usage_ratio"
         cpu_usage_progress=\$progress
         cpu_usage_ratio=\$ratio
@@ -1393,10 +1484,11 @@ while true; do
         ratioandprogress "0" "0" "\$disk_use_ratio"
         disk_use_progress=\$progress
         disk_use_ratio=\$ratio
+        echo "后: cpu: \$cpu_usage_ratio mem: \$mem_use_ratio swap: \$swap_use_ratio disk: \$disk_use_ratio"
 
         current_date_send=\$(date +"%Y.%m.%d %T")
         message="磁盘 使用率超过阈值 > $DISKThreshold%❗️"'
-'"主机名: \$(hostname)"'
+'"主机名: $hostname_show"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
 '"内存: \$mem_use_progress \$mem_use_ratio"'
 '"交换: \$swap_use_progress \$swap_use_ratio"'
@@ -1416,15 +1508,16 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_disk.sh
-    pkill tg_disk.sh
-    pkill tg_disk.sh
+    pkill tg_disk.sh > /dev/null 2>&1 &
+    pkill tg_disk.sh > /dev/null 2>&1 &
+    kill $(ps | grep '[t]g_disk.sh' | awk '{print $1}')
     nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &") | crontab -
     fi
     if [ "$mute" == "false" ]; then
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 磁盘 报警通知⚙️"'
-'"主机名: $(hostname)"'
+'"主机名: $hostname_show"'
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 '"💡当 磁盘 使用达 $DISKThreshold % 时将收到通知." &
     fi
@@ -1903,7 +1996,7 @@ while true; do
         # 总流量百分比计算
         all_rx_bytes=\$ov_current_rx_bytes
         all_rx_bytes=\$((all_rx_bytes + INTERFACE_RT_RX_b[\$interface]))
-        all_rx_ratio=\$(awk -v used="\$all_rx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
+        all_rx_ratio=\$(awk -v used="\$all_rx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.3f", ( used / total ) * 100 }')
 
         ratioandprogress "0" "0" "\$all_rx_ratio"
         all_rx_progress=\$progress
@@ -1914,7 +2007,7 @@ while true; do
 
         all_tx_bytes=\$ov_current_tx_bytes
         all_tx_bytes=\$((all_tx_bytes + INTERFACE_RT_TX_b[\$interface]))
-        all_tx_ratio=\$(awk -v used="\$all_tx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
+        all_tx_ratio=\$(awk -v used="\$all_tx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.3f", ( used / total ) * 100 }')
 
         ratioandprogress "0" "0" "\$all_tx_ratio"
         all_tx_progress=\$progress
@@ -1926,7 +2019,7 @@ while true; do
         # 调试使用(tt秒的流量增量)
         echo "RX_diff(BYTES): \$rx_diff TX_diff(BYTES): \$tx_diff"
         # 调试使用(叠加流量增量)
-        echo "OV_RX_diff(BYTES): \$ov_rx_diff OV_TX_diff(BYTES): \$ov_tx_diff "
+        echo "OV_RX_diff(BYTES): \$ov_rx_diff_bytes OV_TX_diff(BYTES): \$ov_tx_diff_bytes "
         # 调试使用(TT前记录的流量)
         echo "Prev_rx_bytes_T(BYTES): \${prev_rx_bytes_T[\$interface]} Prev_tx_bytes_T(BYTES): \${prev_tx_bytes_T[\$interface]}"
         # # 调试使用(持续的流量增加)
@@ -1952,7 +2045,7 @@ while true; do
                 current_date_send=\$(date +"%Y.%m.%d %T")
 
                 message="流量已达到阈值🧭 > ${FlowThreshold_U}❗️"'
-'"主机名: \$(hostname) 接口: \$interface"'
+'"主机名: $hostname_show 接口: \$interface"'
 '"已接收: \${rx_diff}  已发送: \${tx_diff}"'
 '"───────────────"'
 '"总接收: \${all_rx}  总发送: \${all_tx}"'
@@ -1983,7 +2076,7 @@ while true; do
             current_date_send=\$(date +"%Y.%m.%d %T")
 
             message="流量已达到阈值🧭 > ${FlowThreshold_U}❗️"'
-'"主机名: \$(hostname) 接口: \$show_interfaces"'
+'"主机名: $hostname_show 接口: \$show_interfaces"'
 '"已接收: \${ov_rx_diff}  已发送: \${ov_tx_diff}"'
 '"───────────────"'
 '"总接收: \${all_rx}  总发送: \${all_tx}"'
@@ -2006,8 +2099,9 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_flow.sh
-    pkill tg_flow.sh
-    pkill tg_flow.sh
+    pkill tg_flow.sh > /dev/null 2>&1 &
+    pkill tg_flow.sh > /dev/null 2>&1 &
+    kill $(ps | grep '[t]g_flow.sh' | awk '{print $1}')
     nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
@@ -2114,8 +2208,9 @@ done
 EOF
     # # 此为单独计算网速的子脚本（暂未启用）
     # chmod +x $FolderPath/tg_interface_re.sh
-    # pkill -f tg_interface_re.sh
-    # pkill -f tg_interface_re.sh
+    # pkill -f tg_interface_re.sh > /dev/null 2>&1 &
+    # pkill -f tg_interface_re.sh > /dev/null 2>&1 &
+    # kill $(ps | grep '[t]g_interface_re.sh' | awk '{print $1}')
     # nohup $FolderPath/tg_interface_re.sh > $FolderPath/tg_interface_re.log 2>&1 &
     ##############################################################################
 #     cat <<EOF > /etc/systemd/system/tg_interface_re.service
@@ -2134,7 +2229,7 @@ EOF
 # EOF
 #     systemctl enable tg_interface_re.service > /dev/null
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $(hostname)"$'\n'"检测接口: $interfaces_ST"$'\n'"💡当流量达阈值 $FlowThreshold_UB 时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"检测接口: $interfaces_ST"$'\n'"💡当流量达阈值 $FlowThreshold_UB 时将收到通知." &
     fi
     tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_UB 时将收到通知."
 }
@@ -2261,6 +2356,12 @@ SetFlowReport_TG() {
         fi
         echo "interfaces_RP: $interfaces_RP"
     fi
+    for ((i = 0; i < ${#interfaces[@]}; i++)); do
+        show_interfaces_RP+="${interfaces_RP[$i]}"
+        if ((i < ${#interfaces_RP[@]} - 1)); then
+            show_interfaces_RP+=","
+        fi
+    done
     if [ "$autorun" == "false" ]; then
         read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为单独发送): " mode
         if [ "$mode" == "1" ]; then
@@ -2484,14 +2585,14 @@ while true; do
     current_day=\$(date +"%d")
     current_hour=\$(date +"%H")
     current_minute=\$(date +"%M")
-    tail_day=\$(date -d "\$(date +'%Y-%m-01 next month') -1 day" +%d)
+    # tail_day=\$(date -d "\$(date +'%Y-%m-01 next month') -1 day" +%d)
 
     for interface in "\${interfaces[@]}"; do
         echo "NO.\$nline --------------------------------------rp--- interface: \$interface"
 
         all_rx_bytes=\$ov_current_rx_bytes
         all_rx_bytes=\$((all_rx_bytes + INTERFACE_RT_RX_b[\$interface]))
-        all_rx_ratio=\$(awk -v used="\$all_rx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
+        all_rx_ratio=\$(awk -v used="\$all_rx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.3f", ( used / total ) * 100 }')
 
         ratioandprogress "0" "0" "\$all_rx_ratio"
         all_rx_progress=\$progress
@@ -2502,7 +2603,7 @@ while true; do
 
         all_tx_bytes=\$ov_current_tx_bytes
         all_tx_bytes=\$((all_tx_bytes + INTERFACE_RT_TX_b[\$interface]))
-        all_tx_ratio=\$(awk -v used="\$all_tx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.0f", ( used / total ) * 100 }')
+        all_tx_ratio=\$(awk -v used="\$all_tx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.3f", ( used / total ) * 100 }')
 
         ratioandprogress "0" "0" "\$all_tx_ratio"
         all_tx_progress=\$progress
@@ -2564,13 +2665,36 @@ while true; do
                 current_date_send=\$(date +"%Y.%m.%d %T")
 
                 if \$day_rp; then
-                    yesterday=\$(date -d "1 day ago" +%m月%d日)
+
+                    # if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+                        current_timestamp=\$(date +%s)
+                        one_day_seconds=\$((24 * 60 * 60))
+                        yesterday_timestamp=\$((current_timestamp - one_day_seconds))
+                        yesterday_date=\$(date -d "@\$yesterday_timestamp" +'%m月%d日')
+                        yesterday="\$yesterday_date"
+
+                        # current_month=\$(date +'%m')
+                        # current_day=\$(date +'%d')
+                        # yesterday_day=\$((current_day - 1))
+                        # yesterday_month=\$current_month
+                        # if [ \$yesterday_day -eq 0 ]; then
+                        #     yesterday_month=\$((current_month - 1))
+                        #     if [ \$yesterday_month -eq 0 ]; then
+                        #         yesterday_month=12
+                        #     fi
+                        #     yesterday_day=\$(date -d "1-\${yesterday_month}-01 -1 day" +'%d')
+                        # fi
+                        # yesterday="\${yesterday_month}-\${yesterday_day}"
+
+                    # else
+                    #     yesterday=\$(date -d "1 day ago" +%m月%d日)
+                    # fi
 
                     diff_rx_day=\$(Remove_B "\$diff_rx_day")
                     diff_tx_day=\$(Remove_B "\$diff_tx_day")
 
                     message="\${yesterday}🌞流量报告 📈"'
-'"主机名: \$(hostname) 接口: \$interface"'
+'"主机名: $hostname_show 接口: \$interface"'
 '"🌞接收: \${diff_rx_day}  🌞发送: \${diff_tx_day}"'
 '"───────────────"'
 '"总接收: \${all_rx}  总发送: \${all_tx}"'
@@ -2588,13 +2712,25 @@ while true; do
                 fi
 
                 if \$month_rp; then
-                    last_month=\$(date -d "1 month ago" +%Y年%m月份)
+
+                    # if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+                        current_year=\$(date +'%Y')
+                        current_month=\$(date +'%m')
+                        previous_month=\$((current_month - 1))
+                        if [ "\$previous_month" -eq 0 ]; then
+                            previous_month=12
+                            current_year=\$((current_year - 1))
+                        fi
+                        last_month="\${current_year}年\${previous_month}月份"
+                    # else
+                    #     last_month=\$(date -d "1 month ago" +%Y年%m月份)
+                    # fi
 
                     diff_rx_month=\$(Remove_B "\$diff_rx_month")
                     diff_tx_month=\$(Remove_B "\$diff_tx_month")
 
                     message="\${last_month}🌙总流量报告 📈"'
-'"主机名: \$(hostname) 接口: \$interface"'
+'"主机名: $hostname_show 接口: \$interface"'
 '"🌙接收: \${diff_rx_month}  🌙发送: \${diff_tx_month}"'
 '"───────────────"'
 '"总接收: \${all_rx}  总发送: \${all_tx}"'
@@ -2612,13 +2748,20 @@ while true; do
                 fi
 
                 if \$year_rp; then
-                    last_year=\$(date -d "1 year ago" +%Y)
+
+                    # if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+                        current_year=\$(date +'%Y')
+                        previous_year=\$((current_year - 1))
+                        last_year="\$previous_year"
+                    # else
+                    #     last_year=\$(date -d "1 year ago" +%Y)
+                    # fi
 
                     diff_rx_year=\$(Remove_B "\$diff_rx_year")
                     diff_tx_year=\$(Remove_B "\$diff_tx_year")
 
                     message="\${last_year}年🧧总流量报告 📈"'
-'"主机名: \$(hostname) 接口: \$interface"'
+'"主机名: $hostname_show 接口: \$interface"'
 '"🧧接收: \${diff_rx_year}  🧧发送: \${diff_tx_year}"'
 '"───────────────"'
 '"总接收: \${all_rx}  总发送: \${all_tx}"'
@@ -2647,13 +2790,36 @@ while true; do
             current_date_send=\$(date +"%Y.%m.%d %T")
 
             if \$day_rp; then
-                yesterday=\$(date -d "1 day ago" +%m月%d日)
+
+                # if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+                    current_timestamp=\$(date +%s)
+                    one_day_seconds=\$((24 * 60 * 60))
+                    yesterday_timestamp=\$((current_timestamp - one_day_seconds))
+                    yesterday_date=\$(date -d "@\$yesterday_timestamp" +'%m月%d日')
+                    yesterday="\$yesterday_date"
+
+                    # current_month=\$(date +'%m')
+                    # current_day=\$(date +'%d')
+                    # yesterday_day=\$((current_day - 1))
+                    # yesterday_month=\$current_month
+                    # if [ \$yesterday_day -eq 0 ]; then
+                    #     yesterday_month=\$((current_month - 1))
+                    #     if [ \$yesterday_month -eq 0 ]; then
+                    #         yesterday_month=12
+                    #     fi
+                    #     yesterday_day=\$(date -d "1-\${yesterday_month}-01 -1 day" +'%d')
+                    # fi
+                    # yesterday="\${yesterday_month}-\${yesterday_day}"
+
+                # else
+                #     yesterday=\$(date -d "1 day ago" +%m月%d日)
+                # fi
 
                 ov_diff_rx_day=\$(Remove_B "\$ov_diff_rx_day")
                 ov_diff_tx_day=\$(Remove_B "\$ov_diff_tx_day")
 
                 message="\${yesterday}🌞流量报告 📈"'
-'"主机名: \$(hostname) 接口: \$show_interfaces"'
+'"主机名: $hostname_show 接口: \$show_interfaces"'
 '"🌞接收: \${ov_diff_rx_day}  🌞发送: \${ov_diff_tx_day}"'
 '"───────────────"'
 '"总接收: \${all_rx}  总发送: \${all_tx}"'
@@ -2671,13 +2837,25 @@ while true; do
             fi
 
             if \$month_rp; then
-                last_month=\$(date -d "1 month ago" +%Y年%m月份)
+                
+                # if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+                    current_year=\$(date +'%Y')
+                    current_month=\$(date +'%m')
+                    previous_month=\$((current_month - 1))
+                    if [ "\$previous_month" -eq 0 ]; then
+                        previous_month=12
+                        current_year=\$((current_year - 1))
+                    fi
+                    last_month="\${current_year}年\${previous_month}月份"
+                # else
+                #     last_month=\$(date -d "1 month ago" +%Y年%m月份)
+                # fi
 
                 ov_diff_rx_month=\$(Remove_B "\$ov_diff_rx_month")
                 ov_diff_tx_month=\$(Remove_B "\$ov_diff_tx_month")
 
                 message="\${last_month}🌙总流量报告 📈"'
-'"主机名: \$(hostname) 接口: \$show_interfaces"'
+'"主机名: $hostname_show 接口: \$show_interfaces"'
 '"🌙接收: \${ov_diff_rx_month}  🌙发送: \${ov_diff_tx_month}"'
 '"───────────────"'
 '"总接收: \${all_rx}  总发送: \${all_tx}"'
@@ -2695,13 +2873,20 @@ while true; do
             fi
 
             if \$year_rp; then
-                last_year=\$(date -d "1 year ago" +%Y)
+                
+                # if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+                    current_year=\$(date +'%Y')
+                    previous_year=\$((current_year - 1))
+                    last_year="\$previous_year"
+                # else
+                #     last_year=\$(date -d "1 year ago" +%Y)
+                # fi
 
                 ov_diff_rx_year=\$(Remove_B "\$ov_diff_rx_year")
                 ov_diff_tx_year=\$(Remove_B "\$ov_diff_tx_year")
 
                 message="\${last_year}年🧧总流量报告 📈"'
-'"主机名: \$(hostname) 接口: \$show_interfaces"'
+'"主机名: $hostname_show 接口: \$show_interfaces"'
 '"🧧接收: \${ov_diff_rx_year}  🧧发送: \${ov_diff_tx_year}"'
 '"───────────────"'
 '"总接收: \${all_rx}  总发送: \${all_tx}"'
@@ -2733,15 +2918,17 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_flowrp.sh
-    pkill tg_flowrp.sh
-    pkill tg_flowrp.sh
+    pkill tg_flowrp.sh > /dev/null 2>&1 &
+    pkill tg_flowrp.sh > /dev/null 2>&1 &
+    kill $(ps | grep '[t]g_flowrp.sh' | awk '{print $1}')
     nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &
     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &" | crontab -
     fi
     (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &") | crontab -
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "流量定时报告设置成功 ⚙️"$'\n'"主机名: $(hostname)"$'\n'"报告接口: ${interfaces_RP[@]}  报告模式: $StatisticsMode"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分" &
+        message="流量定时报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"报告接口: $show_interfaces_RP  报告模式: $StatisticsMode"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分"
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" &
     fi
     tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
 }
@@ -2753,6 +2940,10 @@ UN_SetupBoot_TG() {
         systemctl disable tg_boot.service > /dev/null 2>&1
         sleep 1
         rm -f /etc/systemd/system/tg_boot.service
+        if [ -f /etc/init.d/tg_boot.sh ]; then
+            /etc/init.d/tg_boot.sh disable
+            rm -f /etc/init.d/tg_boot.sh
+        fi
         tips="$Tip 机开通知 已经取消 / 删除."
     fi
 }
@@ -2773,45 +2964,54 @@ UN_SetupShutdown_TG() {
         systemctl disable tg_shutdown.service > /dev/null 2>&1
         sleep 1
         rm -f /etc/systemd/system/tg_shutdown.service
+        if [ -f /etc/init.d/tg_shutdown.sh ]; then
+            /etc/init.d/tg_shutdown.sh disable
+            rm -f /etc/init.d/tg_shutdown.sh
+        fi
         tips="$Tip 关机通知 已经取消 / 删除."
     fi
 }
 UN_SetupCPU_TG() {
     if [ "$cpu_menu_tag" == "$SETTAG" ]; then
-        pkill tg_cpu.sh
-        pkill tg_cpu.sh
+        pkill tg_cpu.sh > /dev/null 2>&1 &
+        pkill tg_cpu.sh > /dev/null 2>&1 &
+        kill $(ps | grep '[t]g_cpu.sh' | awk '{print $1}')
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
         tips="$Tip CPU报警 已经取消 / 删除."
     fi
 }
 UN_SetupMEM_TG() {
     if [ "$mem_menu_tag" == "$SETTAG" ]; then
-        pkill tg_mem.sh
-        pkill tg_mem.sh
+        pkill tg_mem.sh > /dev/null 2>&1 &
+        pkill tg_mem.sh > /dev/null 2>&1 &
+        kill $(ps | grep '[t]g_mem.sh' | awk '{print $1}')
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &" | crontab -
         tips="$Tip 内存报警 已经取消 / 删除."
     fi
 }
 UN_SetupDISK_TG() {
     if [ "$disk_menu_tag" == "$SETTAG" ]; then
-        pkill tg_disk.sh
-        pkill tg_disk.sh
+        pkill tg_disk.sh > /dev/null 2>&1 &
+        pkill tg_disk.sh > /dev/null 2>&1 &
+        kill $(ps | grep '[t]g_disk.sh' | awk '{print $1}')
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &" | crontab -
         tips="$Tip 磁盘报警 已经取消 / 删除."
     fi
 }
 UN_SetupFlow_TG() {
     if [ "$flow_menu_tag" == "$SETTAG" ]; then
-        pkill tg_flow.sh
-        pkill tg_flow.sh
+        pkill tg_flow.sh > /dev/null 2>&1 &
+        pkill tg_flow.sh > /dev/null 2>&1 &
+        kill $(ps | grep '[t]g_flow.sh' | awk '{print $1}')
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
         tips="$Tip 流量报警 已经取消 / 删除."
     fi
 }
 UN_SetFlowReport_TG() {
     if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
-        pkill tg_flowrp.sh
-        pkill tg_flowrp.sh
+        pkill tg_flowrp.sh > /dev/null 2>&1 &
+        pkill tg_flowrp.sh > /dev/null 2>&1 &
+        kill $(ps | grep '[t]g_flowrp.sh' | awk '{print $1}')
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &" | crontab -
         tips="$Tip 流量定时报告 已经取消 / 删除."
     fi
@@ -2819,16 +3019,18 @@ UN_SetFlowReport_TG() {
 }
 UN_SetupDocker_TG() {
     if [ "$docker_menu_tag" == "$SETTAG" ]; then
-        pkill tg_docker.sh
-        pkill tg_docker.sh
+        pkill tg_docker.sh > /dev/null 2>&1 &
+        pkill tg_docker.sh > /dev/null 2>&1 &
+        kill $(ps | grep '[t]g_docker.sh' | awk '{print $1}')
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
         tips="$Tip Docker变更通知 已经取消 / 删除."
     fi
 }
 UN_SetAutoUpdate() {
     if [ "$autoud_menu_tag" == "$SETTAG" ]; then
-        pkill tg_autoud.sh
-        pkill tg_autoud.sh
+        pkill tg_autoud.sh > /dev/null 2>&1 &
+        pkill tg_autoud.sh > /dev/null 2>&1 &
+        kill $(ps | grep '[t]g_autoud.sh' | awk '{print $1}')
         crontab -l | grep -v "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &" | crontab -
         crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
         tips="$Tip 自动更新已经取消."
@@ -2846,10 +3048,14 @@ UN_ALL() {
     UN_SetFlowReport_TG
     UN_SetupDocker_TG
     UN_SetAutoUpdate
-    pkill -f 'tg_.+.sh'
+    pkill -f 'tg_.+.sh' > /dev/null 2>&1 &
+    # ps | grep '[t]g_' | awk '{print $1}' | xargs kill
+    kill $(ps | grep '[t]g_' | awk '{print $1}')
     sleep 1
     if pgrep -f 'tg_.+.sh' > /dev/null; then
-    pkill -9 -f 'tg_.+.sh'
+    pkill -9 -f 'tg_.+.sh' > /dev/null 2>&1 &
+    # ps | grep '[t]g_' | awk '{print $1}' | xargs kill -9
+    kill -9 $(ps | grep '[t]g_' | awk '{print $1}')
     fi
     crontab -l | grep -v "$FolderPath/tg_" | crontab -
     tips="$Tip 已取消 / 删除所有通知."
@@ -2897,7 +3103,7 @@ OneKeydefault () {
     if [ "$mutebakup" == "false" ]; then
         current_date_send=$(date +"%Y.%m.%d %T")
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已成功启动以下通知 ☎️"'
-'"主机名: $(hostname)"'
+'"主机名: $hostname_show"'
 '"───────────────"'
 '"开机通知"'
 '"登陆通知"'
@@ -2918,8 +3124,8 @@ OneKeydefault () {
 }
 
 # 主程序
-CheckSys
 CheckAndCreateFolder
+CheckSys
 if [[ "$1" =~ ^[0-9]{5,}$ ]]; then
     ChatID_1="$1"
     writeini "ChatID_1" "$1"
@@ -3051,7 +3257,7 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
  ———————————————————————————————————————————————————————
  ${GR}t.${NC} 测试 - 发送一条信息用以检验参数设置
  ——————————————————————————————————————
- ${GR}h.${NC} 修改 - Hostname 以此作为主机标记
+ ${GR}h.${NC} 修改 - 主机名 以此作为主机标记
  ——————————————————————————————————————
  ${GR}o.${NC} ${GRB}一键${NC} ${GR}开启${NC} 所有通知
  ${GR}c.${NC} ${GRB}一键${NC} ${RE}取消 / 删除${NC} 所有通知
