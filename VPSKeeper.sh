@@ -946,7 +946,7 @@ EOF
         cat <<EOF > /etc/init.d/tg_shutdown.sh
 #!/bin/sh /etc/rc.common
 
-STOP=99
+STOP=15
 
 stop() {
     current_date_send=\$(date +"%Y.%m.%d %T")
