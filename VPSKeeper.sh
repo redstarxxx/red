@@ -62,7 +62,7 @@ CheckAndCreateFolder() {
         writeini "CPUTools" "$CPUTools_de"
         writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
         writeini "SHUTDOWN_RT" "false"
-        hostname_show=$(hostname 2>/dev/null)
+        hostname_show=$(hostname)
         writeini "hostname_show" "$hostname_show"
     fi
 }
@@ -113,10 +113,13 @@ CheckSys() {
         echo -e "$Err 系统不支持." >&2
         exit 1
     fi
-    if [ -z $hostname_show ] && cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
-        current_date=$(date +%m%d)
-        if [ -z "$hostname_show" ]; then
+    if [ -z $hostname_show ]; then
+        if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+            current_date=$(date +%m%d)
             hostname_show="openwrt_$current_date"
+            writeini "hostname_show" "$hostname_show"
+        else
+            hostname_show=$(hostname)
             writeini "hostname_show" "$hostname_show"
         fi
     fi
@@ -240,31 +243,35 @@ CheckSetup() {
 CheckRely() {
     # 检查并安装依赖
     echo "检查并安装依赖..."
-    declare -a dependencies=("sed" "grep" "awk" "hostnamectl" "systemd" "curl")
-    missing_dependencies=()
-    for dep in "${dependencies[@]}"; do
-        if ! command -v "$dep" &>/dev/null; then
-            missing_dependencies+=("$dep")
-        fi
-    done
-    if [ ${#missing_dependencies[@]} -gt 0 ]; then
-        echo -e "$Tip 以下依赖未安装: ${missing_dependencies[*]}"
-        read -e -p "是否要安装依赖 Y/其它 : " yorn
-        if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
-            echo "正在安装缺失的依赖..."
-            if [ -x "$(command -v apt)" ]; then
-                apt install -y "${missing_dependencies[@]}"
-            elif [ -x "$(command -v yum)" ]; then
-                yum install -y "${missing_dependencies[@]}"
+    if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+        echo "OpenWRT 系统跳过依赖检测..."
+    else
+        declare -a dependencies=("sed" "grep" "awk" "hostnamectl" "systemd" "curl")
+        missing_dependencies=()
+        for dep in "${dependencies[@]}"; do
+            if ! command -v "$dep" &>/dev/null; then
+                missing_dependencies+=("$dep")
+            fi
+        done
+        if [ ${#missing_dependencies[@]} -gt 0 ]; then
+            echo -e "$Tip 以下依赖未安装: ${missing_dependencies[*]}"
+            read -e -p "是否要安装依赖 Y/其它 : " yorn
+            if [ "$yorn" == "Y" ] || [ "$yorn" == "y" ]; then
+                echo "正在安装缺失的依赖..."
+                if [ -x "$(command -v apt)" ]; then
+                    apt install -y "${missing_dependencies[@]}"
+                elif [ -x "$(command -v yum)" ]; then
+                    yum install -y "${missing_dependencies[@]}"
+                else
+                    echo -e "$Err 无法安装依赖, 未知的包管理器或系统版本不支持, 请手动安装所需依赖."
+                    exit 1
+                fi
             else
-                echo -e "$Err 无法安装依赖, 未知的包管理器或系统版本不支持, 请手动安装所需依赖."
-                exit 1
+                echo -e "$Tip 已跳过安装."
             fi
         else
-            echo -e "$Tip 已跳过安装."
+            echo -e "$Tip 所有依赖已安装."
         fi
-    else
-        echo -e "$Tip 所有依赖已安装."
     fi
 }
 
@@ -535,30 +542,35 @@ SetupIniFile() {
                 ;;
             3)
                 # 设置CPU检测工具
-                echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业) 3.top+sar"
-                divline
-                if [ "$CPUTools" != "" ]; then
-                    echo -e "当前${GR}[CPU 检测工具]${NC}: $CPUTools"
-                else
-                    echo -e "当前${GR}[CPU 检测工具]${NC}: 空"
-                fi
-                divline
-                read -e -p "请输入序号 (默认采用 1.top / 回车跳过修改): " choice
-                if [ ! -z "$choice" ]; then
-                    if [ "$choice" == "1" ]; then
-                        CPUTools="top"
-                        writeini "CPUTools" "$CPUTools"
-                    elif [ "$choice" == "2" ]; then
-                        CPUTools="sar"
-                        writeini "CPUTools" "$CPUTools"
-                    elif [ "$choice" == "3" ]; then
-                        CPUTools="top_sar"
-                        writeini "CPUTools" "$CPUTools"
-                    fi
+                if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+                    tips="$Tip OpenWRT 系统只能使用默认的 top 工具."
                     break
                 else
-                    echo -e "$Tip 输入为空, 跳过操作."
-                    tips=""
+                    echo -e "$Tip 请选择 ${REB}CPU 检测工具${NC}: 1.top(系统自带) 2.sar(更专业) 3.top+sar"
+                    divline
+                    if [ "$CPUTools" != "" ]; then
+                        echo -e "当前${GR}[CPU 检测工具]${NC}: $CPUTools"
+                    else
+                        echo -e "当前${GR}[CPU 检测工具]${NC}: 空"
+                    fi
+                    divline
+                    read -e -p "请输入序号 (默认采用 1.top / 回车跳过修改): " choice
+                    if [ ! -z "$choice" ]; then
+                        if [ "$choice" == "1" ]; then
+                            CPUTools="top"
+                            writeini "CPUTools" "$CPUTools"
+                        elif [ "$choice" == "2" ]; then
+                            CPUTools="sar"
+                            writeini "CPUTools" "$CPUTools"
+                        elif [ "$choice" == "3" ]; then
+                            CPUTools="top_sar"
+                            writeini "CPUTools" "$CPUTools"
+                        fi
+                        break
+                    else
+                        echo -e "$Tip 输入为空, 跳过操作."
+                        tips=""
+                    fi
                 fi
                 ;;
             4)
@@ -604,7 +616,10 @@ SetupIniFile() {
             ;;
             5)
                 # 设置关机记录流量
-                read -e -p "请选择是否开启 设置关机记录流量  N.关闭(删除记录)  回车.开启(默认): " choice
+                if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+                    tips="$Err OpenWRT 系统暂不支持."
+                    break
+                fi
                 if ! command -v systemd &>/dev/null; then
                     tips="$Err 系统未检测到 \"systemd\" 程序, 无法设置关机通知."
                     break
@@ -613,6 +628,7 @@ SetupIniFile() {
                     tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
                     break
                 fi
+                read -e -p "请选择是否开启 设置关机记录流量  N.关闭(删除记录)  回车.开启(默认): " choice
                 if [ "$choice" == "n" ] || [ "$choice" == "N" ]; then
                     systemctl stop tg_shutdown_rt.service > /dev/null 2>&1
                     systemctl disable tg_shutdown_rt.service > /dev/null 2>&1
@@ -1200,6 +1216,9 @@ SetupCPU_TG() {
     cat <<EOF > "$FolderPath/tg_cpu.sh"
 #!/bin/bash
 
+CPUTools="$CPUTools"
+CPUThreshold="$CPUThreshold"
+
 $(declare -f CheckCPU_$CPUTools)
 $(declare -f GetInfo_now)
 $(declare -f create_progress_bar)
@@ -1207,15 +1226,19 @@ $(declare -f ratioandprogress)
 progress=""
 ratio=""
 count=0
+SleepTime=900
 while true; do
-    SleepTime=900
-    CheckCPU_$CPUTools
-    # if (( cpu_usage_ratio > $CPUThreshold )); then
-    if (( \$(awk 'BEGIN {print ("'"\$cpu_usage_ratio"'" > "'"$CPUThreshold"'")}') )); then
+    CheckCPU_\$CPUTools
+
+    CPUThreshold_com=\$(awk 'BEGIN {printf "%.0f\n", '\$CPUThreshold' * 100}')
+    cpu_usage_ratio_com=\$(awk 'BEGIN {printf "%.0f\n", '\$cpu_usage_ratio' * 100}')
+    echo "Threshold: \$CPUThreshold_com   usage: \$cpu_usage_ratio_com  # 这里数值是乘100的结果"
+    if (( cpu_usage_ratio_com >= \$CPUThreshold_com )); then
         (( count++ ))
     else
         count=0
     fi
+    echo "count: \$count   # 当 count 为 3 时将触发警报."
     if (( count >= 3 )); then
 
         # 获取并计算其它参数
@@ -1242,7 +1265,7 @@ while true; do
         disk_use_ratio=\$ratio
 
         current_date_send=\$(date +"%Y.%m.%d %T")
-        message="CPU 使用率超过阈值 > $CPUThreshold%❗️"'
+        message="CPU 使用率超过阈值 > \$CPUThreshold%❗️"'
 '"主机名: $hostname_show"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
 '"内存: \$mem_use_progress \$mem_use_ratio"'
@@ -1251,7 +1274,7 @@ while true; do
 '"使用率排行:"'
 '"🟠  \$cpu_h1"'
 '"🟠  \$cpu_h2"'
-'"检测工具: $CPUTools 休眠: \$((SleepTime / 60))分钟"'
+'"检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"'
 '"服务器时间: \$current_date_send"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
@@ -1329,6 +1352,9 @@ SetupMEM_TG() {
     cat <<EOF > "$FolderPath/tg_mem.sh"
 #!/bin/bash
 
+CPUTools="$CPUTools"
+MEMThreshold="$MEMThreshold"
+
 $(declare -f CheckCPU_$CPUTools)
 $(declare -f GetInfo_now)
 $(declare -f create_progress_bar)
@@ -1336,19 +1362,23 @@ $(declare -f ratioandprogress)
 progress=""
 ratio=""
 count=0
+SleepTime=900
 while true; do
-    SleepTime=900
     GetInfo_now
-    # if (( mem_use_ratio > $MEMThreshold )); then
-    if (( \$(awk 'BEGIN {print ("'"\$mem_use_ratio"'" > "'"$CPUThreshold"'")}') )); then
+
+    MEMThreshold_com=\$(awk 'BEGIN {printf "%.0f\n", '\$MEMThreshold' * 100}')
+    mem_use_ratio_com=\$(awk 'BEGIN {printf "%.0f\n", '\$mem_use_ratio' * 100}')
+    echo "Threshold: \$MEMThreshold_com   usage: \$mem_use_ratio_com  # 这里数值是乘100的结果"
+    if (( mem_use_ratio_com >= \$MEMThreshold_com )); then
         (( count++ ))
     else
         count=0
     fi
+    echo "count: \$count   # 当 count 为 3 时将触发警报."
     if (( count >= 3 )); then
 
         # 获取并计算其它参数
-        CheckCPU_$CPUTools
+        CheckCPU_\$CPUTools
 
         ratioandprogress "0" "0" "\$cpu_usage_ratio"
         cpu_usage_progress=\$progress
@@ -1367,7 +1397,7 @@ while true; do
         disk_use_ratio=\$ratio
 
         current_date_send=\$(date +"%Y.%m.%d %T")
-        message="内存 使用率超过阈值 > $MEMThreshold%❗️"'
+        message="内存 使用率超过阈值 > \$MEMThreshold%❗️"'
 '"主机名: $hostname_show"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
 '"内存: \$mem_use_progress \$mem_use_ratio"'
@@ -1376,7 +1406,7 @@ while true; do
 '"使用率排行:"'
 '"🟠  \$cpu_h1"'
 '"🟠  \$cpu_h2"'
-'"检测工具: $CPUTools 休眠: \$((SleepTime / 60))分钟"'
+'"检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"'
 '"服务器时间: \$current_date_send"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
@@ -1447,6 +1477,9 @@ SetupDISK_TG() {
     cat <<EOF > "$FolderPath/tg_disk.sh"
 #!/bin/bash
 
+CPUTools="$CPUTools"
+DISKThreshold="$DISKThreshold"
+
 $(declare -f CheckCPU_$CPUTools)
 $(declare -f GetInfo_now)
 $(declare -f create_progress_bar)
@@ -1454,19 +1487,23 @@ $(declare -f ratioandprogress)
 progress=""
 ratio=""
 count=0
+SleepTime=900
 while true; do
-    SleepTime=900
     GetInfo_now
-    # if (( disk_use_ratio > $DISKThreshold )); then
-    if (( \$(awk 'BEGIN {print ("'"\$disk_use_ratio"'" > "'"$DISKThreshold"'")}') )); then
+
+    DISKThreshold_com=\$(awk 'BEGIN {printf "%.0f\n", '\$DISKThreshold' * 100}')
+    disk_use_ratio_com=\$(awk 'BEGIN {printf "%.0f\n", '\$disk_use_ratio' * 100}')
+    echo "Threshold: \$DISKThreshold_com   usage: \$disk_use_ratio_com  # 这里数值是乘100的结果"
+    if (( disk_use_ratio_com >= \$DISKThreshold_com )); then
         (( count++ ))
     else
         count=0
     fi
+    echo "count: \$count   # 当 count 为 3 时将触发警报."
     if (( count >= 3 )); then
 
         # 获取并计算其它参数
-        CheckCPU_$CPUTools
+        CheckCPU_\$CPUTools
 
         echo "前: cpu: \$cpu_usage_ratio mem: \$mem_use_ratio swap: \$swap_use_ratio disk: \$disk_use_ratio"
         ratioandprogress "0" "0" "\$cpu_usage_ratio"
@@ -1487,7 +1524,7 @@ while true; do
         echo "后: cpu: \$cpu_usage_ratio mem: \$mem_use_ratio swap: \$swap_use_ratio disk: \$disk_use_ratio"
 
         current_date_send=\$(date +"%Y.%m.%d %T")
-        message="磁盘 使用率超过阈值 > $DISKThreshold%❗️"'
+        message="磁盘 使用率超过阈值 > \$DISKThreshold%❗️"'
 '"主机名: $hostname_show"'
 '"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
 '"内存: \$mem_use_progress \$mem_use_ratio"'
@@ -1496,7 +1533,7 @@ while true; do
 '"使用率排行:"'
 '"🟠  \$cpu_h1"'
 '"🟠  \$cpu_h2"'
-'"检测工具: $CPUTools 休眠: \$((SleepTime / 60))分钟"'
+'"检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"'
 '"服务器时间: \$current_date_send"
         curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
             -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
