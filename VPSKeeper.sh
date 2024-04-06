@@ -3214,6 +3214,11 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
     GetVPSInfo
     UN_ALL
     sleep 1
+
+    Setuped=false
+    if [ "$boot_menu_tag" == "$SETTAG" ] || [ "$login_menu_tag" == "$SETTAG" ] || [ "$shutdown_menu_tag" == "$SETTAG" ] || [ "$cpu_menu_tag" == "$SETTAG" ] || [ "$mem_menu_tag" == "$SETTAG" ] || [ "$disk_menu_tag" == "$SETTAG" ] || [ "$flow_menu_tag" == "$SETTAG" ] || [ "$flowrp_menu_tag" == "$SETTAG" ] || [ "$docker_menu_tag" == "$SETTAG" ] || [ "$autoud_menu_tag" == "$SETTAG" ]; then
+        Setuped=true
+    fi
     if [ "$boot_menu_tag" == "$SETTAG" ]; then
         SetupBoot_TG
     fi
@@ -3244,6 +3249,11 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
     if [ "$autoud_menu_tag" == "$SETTAG" ]; then
         SetAutoUpdate
     fi
+    if [[ "$boot_menu_tag" == "$SETTAG" || "$login_menu_tag" == "$SETTAG" || "$shutdown_menu_tag" == "$SETTAG" || "$cpu_menu_tag" == "$SETTAG" || "$mem_menu_tag" == "$SETTAG" || "$disk_menu_tag" == "$SETTAG" || "$flow_menu_tag" == "$SETTAG" || "$flowrp_menu_tag" == "$SETTAG" || "$docker_menu_tag" == "$SETTAG" || "$autoud_menu_tag" == "$SETTAG" ]] && [[ "$Setuped" ]]; then
+        message="脚本已更新."
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" &
+    fi
+
     echo "自动模式执行完成."
     exit 0
 else
