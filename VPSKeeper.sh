@@ -2444,6 +2444,7 @@ StatisticsMode="$StatisticsMode"
 
 THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
 
+interfaces=()
 # interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces=\$(ip -br link | awk '{print \$1}')
 IFS=',' read -ra interfaces <<< "$interfaces_RP"
@@ -2457,7 +2458,6 @@ for ((i = 0; i < \${#interfaces[@]}; i++)); do
         show_interfaces+=","
     fi
 done
-
 
 # 如果接口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
 for ((i=0; i<\${#interfaces[@]}; i++)); do
@@ -2519,8 +2519,8 @@ while true; do
 
     if ! \$tt_prev; then
         if \$day_sendtag; then
-            echo "发送前 \$interface 前只执行一次."
             for interface in "\${interfaces[@]}"; do
+                echo "\$interface 发送前只执行一次 tt_prev_day_sendtag."
                 prev_day_rx_bytes[\$interface]=\${prev_rx_bytes[\$interface]}
                 prev_day_tx_bytes[\$interface]=\${prev_tx_bytes[\$interface]}
             done
@@ -2528,8 +2528,8 @@ while true; do
             ov_prev_day_tx_bytes=\$ov_prev_tx_bytes
         fi
         if \$month_sendtag; then
-            echo "发送前 \$interface 前只执行一次."
             for interface in "\${interfaces[@]}"; do
+                echo "\$interface 发送前只执行一次 tt_prev_month_sendtag."
                 prev_month_rx_bytes[\$interface]=\${prev_rx_bytes[\$interface]}
                 prev_month_tx_bytes[\$interface]=\${prev_tx_bytes[\$interface]}
             done
@@ -2537,8 +2537,8 @@ while true; do
             ov_prev_month_tx_bytes=\$ov_prev_tx_bytes
         fi
         if \$year_sendtag; then
-            echo "发送前 \$interface 前只执行一次."
             for interface in "\${interfaces[@]}"; do
+                echo "\$interface 发送前只执行一次 tt_prev_year_sendtag."
                 prev_year_rx_bytes[\$interface]=\${prev_rx_bytes[\$interface]}
                 prev_year_tx_bytes[\$interface]=\${prev_tx_bytes[\$interface]}
             done
@@ -2547,8 +2547,8 @@ while true; do
         fi
     else
         if \$day_sendtag; then
-            echo "发送前 \$interface 前只执行一次."
             for interface in "\${interfaces[@]}"; do
+                echo "\$interface 发送前只执行一次 day_sendtag."
                 prev_day_rx_bytes[\$interface]=\${tt_prev_rx_bytes_T[\$interface]}
                 prev_day_tx_bytes[\$interface]=\${tt_prev_tx_bytes_T[\$interface]}
             done
@@ -2556,8 +2556,8 @@ while true; do
             ov_prev_day_tx_bytes=\$tt_ov_prev_tx_bytes_T
         fi
         if \$month_sendtag; then
-            echo "发送前 \$interface 前只执行一次."
             for interface in "\${interfaces[@]}"; do
+                echo "\$interface 发送前只执行一次 month_sendtag."
                 prev_month_rx_bytes[\$interface]=\${tt_prev_rx_bytes_T[\$interface]}
                 prev_month_tx_bytes[\$interface]=\${tt_prev_tx_bytes_T[\$interface]}
             done
@@ -2565,8 +2565,8 @@ while true; do
             ov_prev_month_tx_bytes=\$tt_ov_prev_tx_bytes_T
         fi
         if \$year_sendtag; then
-            echo "发送前 \$interface 前只执行一次."
             for interface in "\${interfaces[@]}"; do
+                echo "\$interface 发送前只执行一次 year_sendtag."
                 prev_year_rx_bytes[\$interface]=\${tt_prev_rx_bytes_T[\$interface]}
                 prev_year_tx_bytes[\$interface]=\${tt_prev_tx_bytes_T[\$interface]}
             done
@@ -2946,10 +2946,10 @@ while true; do
         echo "prev_day_rx_bytes[\$interface]: \${prev_day_rx_bytes[\$interface]}"
         echo "prev_day_tx_bytes[\$interface]: \${prev_day_tx_bytes[\$interface]}"
     done
-    echo "活动接口: \$interface  接收总流量: \$all_rx_mb 发送总流量: \$all_tx_mb"
-    echo "活动接口: \$interface  接收日流量: \$diff_rx_day  发送日流量: \$diff_tx_day 报告时间: $hour_rp 时 $minute_rp 分"
-    echo "活动接口: \$interface  接收月流量: \$diff_rx_month  发送月流量: \$diff_tx_month 报告时间: $hour_rp 时 $minute_rp 分"
-    echo "活动接口: \$interface  接收年流量: \$diff_rx_year  发送年流量: \$diff_tx_year 报告时间: $hour_rp 时 $minute_rp 分"
+    echo "活动接口: \$show_interfaces  接收总流量: \$all_rx_mb 发送总流量: \$all_tx_mb"
+    echo "活动接口: \$show_interfaces  接收日流量: \$diff_rx_day  发送日流量: \$diff_tx_day 报告时间: $hour_rp 时 $minute_rp 分"
+    echo "活动接口: \$show_interfaces  接收月流量: \$diff_rx_month  发送月流量: \$diff_tx_month 报告时间: $hour_rp 时 $minute_rp 分"
+    echo "活动接口: \$show_interfaces  接收年流量: \$diff_rx_year  发送年流量: \$diff_tx_year 报告时间: $hour_rp 时 $minute_rp 分"
     echo "当前时间: \$(date)"
     echo "------------------------------------------------------"
 done
