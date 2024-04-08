@@ -3265,7 +3265,7 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
     if [ "$autoud_menu_tag" == "$SETTAG" ]; then
         SetAutoUpdate
     fi
-    mute=false
+    # mute=false
 
     if [ "$1" != "mute" ] && [ "$2" != "mute" ] && [ "$3" != "mute" ]; then
         if [[ "$boot_menu_tag" == "$SETTAG" || "$login_menu_tag" == "$SETTAG" || "$shutdown_menu_tag" == "$SETTAG" || "$cpu_menu_tag" == "$SETTAG" || "$mem_menu_tag" == "$SETTAG" || "$disk_menu_tag" == "$SETTAG" || "$flow_menu_tag" == "$SETTAG" || "$flowrp_menu_tag" == "$SETTAG" || "$docker_menu_tag" == "$SETTAG" || "$autoud_menu_tag" == "$SETTAG" ]] && [[ "$Setuped" ]]; then
