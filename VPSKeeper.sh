@@ -1762,6 +1762,8 @@ SetupFlow_TG() {
             writeini "interfaces_ST" "$w_interfaces_ST"
         else
             # IFS=',' read -ra interfaces_ST_de <<< "$interfaces_ST_de"
+            # IFS=',' read -ra interfaces <<< "$(echo "$interfaces_ST_de" | tr ',' '\n' | sort -u | tr '\n' ',')"
+            # IFS=',' read -ra interfaces <<< "$(echo "$interfaces_ST_de" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
             # interfaces_ST=("${interfaces_ST_de[@]}")
             interfaces_all=$(ip -br link | awk '{print $1}')
             active_interfaces=()
@@ -1862,7 +1864,13 @@ THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
 # interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces_get=\$(ip -br link | awk '{print \$1}')
 # declare -a interfaces=(\$interfaces_get)
-IFS=',' read -ra interfaces <<< "$interfaces_ST"
+# IFS=',' read -ra interfaces <<< "$interfaces_ST"
+# 去重并且分割字符串为数组
+# IFS=',' read -ra interfaces <<< "$(echo "$interfaces_ST" | tr ',' '\n' | sort -u | tr '\n' ',')"
+# 去重并且保持原有顺序，分割字符串为数组
+IFS=',' read -ra interfaces <<< "$(echo "$interfaces_ST" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
+
+
 echo "统计接口: \${interfaces[@]}"
 for ((i = 0; i < \${#interfaces[@]}; i++)); do
     echo "\$((i+1)): \${interfaces[i]}"
@@ -2357,6 +2365,8 @@ SetFlowReport_TG() {
             writeini "interfaces_RP" "$w_interfaces_RP"
         else
             # IFS=',' read -ra interfaces_RP_de <<< "$interfaces_RP_de"
+            # IFS=',' read -ra interfaces <<< "$(echo "$interfaces_RP_de" | tr ',' '\n' | sort -u | tr '\n' ',')"
+            # IFS=',' read -ra interfaces <<< "$(echo "$interfaces_RP_de" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
             # interfaces_RP=("${interfaces_RP_de[@]}")
             interfaces_all=$(ip -br link | awk '{print $1}')
             active_interfaces=()
@@ -2447,7 +2457,12 @@ THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
 interfaces=()
 # interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces=\$(ip -br link | awk '{print \$1}')
-IFS=',' read -ra interfaces <<< "$interfaces_RP"
+# IFS=',' read -ra interfaces <<< "$interfaces_RP"
+# 去重并且分割字符串为数组
+# IFS=',' read -ra interfaces <<< "$(echo "$interfaces_RP" | tr ',' '\n' | sort -u | tr '\n' ',')"
+# 去重并且保持原有顺序，分割字符串为数组
+IFS=',' read -ra interfaces <<< "$(echo "$interfaces_RP" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
+
 echo "统计接口: \${interfaces[@]}"
 for ((i = 0; i < \${#interfaces[@]}; i++)); do
     echo "\$((i+1)): \${interfaces[i]}"
@@ -3215,6 +3230,7 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
     UN_ALL
     sleep 1
 
+    mute=true
     Setuped=false
     if [ "$boot_menu_tag" == "$SETTAG" ] || [ "$login_menu_tag" == "$SETTAG" ] || [ "$shutdown_menu_tag" == "$SETTAG" ] || [ "$cpu_menu_tag" == "$SETTAG" ] || [ "$mem_menu_tag" == "$SETTAG" ] || [ "$disk_menu_tag" == "$SETTAG" ] || [ "$flow_menu_tag" == "$SETTAG" ] || [ "$flowrp_menu_tag" == "$SETTAG" ] || [ "$docker_menu_tag" == "$SETTAG" ] || [ "$autoud_menu_tag" == "$SETTAG" ]; then
         Setuped=true
@@ -3249,9 +3265,13 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
     if [ "$autoud_menu_tag" == "$SETTAG" ]; then
         SetAutoUpdate
     fi
-    if [[ "$boot_menu_tag" == "$SETTAG" || "$login_menu_tag" == "$SETTAG" || "$shutdown_menu_tag" == "$SETTAG" || "$cpu_menu_tag" == "$SETTAG" || "$mem_menu_tag" == "$SETTAG" || "$disk_menu_tag" == "$SETTAG" || "$flow_menu_tag" == "$SETTAG" || "$flowrp_menu_tag" == "$SETTAG" || "$docker_menu_tag" == "$SETTAG" || "$autoud_menu_tag" == "$SETTAG" ]] && [[ "$Setuped" ]]; then
-        message="$hostname_show 脚本已更新."
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" &
+    mute=false
+
+    if [ "$1" != "mute" ] && [ "$2" != "mute" ] && [ "$3" != "mute" ]; then
+        if [[ "$boot_menu_tag" == "$SETTAG" || "$login_menu_tag" == "$SETTAG" || "$shutdown_menu_tag" == "$SETTAG" || "$cpu_menu_tag" == "$SETTAG" || "$mem_menu_tag" == "$SETTAG" || "$disk_menu_tag" == "$SETTAG" || "$flow_menu_tag" == "$SETTAG" || "$flowrp_menu_tag" == "$SETTAG" || "$docker_menu_tag" == "$SETTAG" || "$autoud_menu_tag" == "$SETTAG" ]] && [[ "$Setuped" ]]; then
+            message="脚本已更新.（ 主机名: $hostname_show ）"
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" &
+        fi
     fi
 
     echo "自动模式执行完成."
