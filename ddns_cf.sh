@@ -2,8 +2,8 @@
 
 # 方法一(建议采用): 采用crontab计划任务:
 # 在crontab -l 中添加:
-# */5 * * * * /root/cfddns_tse.sh >> /root/.cfddns_tse.log 2>&1 &
-# 5 5 * * 1 rm /root/.cfddns_tse.log
+# */5 * * * * /root/ddns_cf.sh >> /root/.ddns_cf.log 2>&1 &
+# 5 5 * * 1 rm /root/.ddns_cf.log
 # 让其每5分钟(可自定义)执行一次，可以避免获取DNS记录ID失败时脚本卡死的情况
 
 #################################################################### Cloudflare账户信息
