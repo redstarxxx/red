@@ -7,11 +7,11 @@
 # 让其定时执行并在一段时间后删除执行日志，不采用nohup的方式是为了避免获取记录失败时导致脚本卡死的情况
 
 #################################################################### Cloudflare账户信息
-email="" # 帐号邮箱
-api_key="" # 主页获取
-zone_id="" # 主页获取
-domain="" # 域名
-record_name="" # 自定义前缀
+email="xxx@gmail.com" # 帐号邮箱
+api_key="xxxxxxxxx" # 主页获取
+zone_id="xxxxxxxxx" # 主页获取
+domain="xx.xxx.com" # 域名
+record_name="xx" # 自定义前缀
 ipv4=$(curl -4 ip.sb) # 获取IPV4地址
 # ipv6=$(curl -6 ip.sb) # 获取IPV6地址
 # ipv4=$(curl -4 ipinfo.io/ip)
@@ -23,7 +23,7 @@ proxysw="false" # 是否开启小云朵(CF代理)( true 或 false )
 # 尝试获取DNS记录的ID，最多尝试5次
 attempts=1 # 尝试次数标记
 max_attempts=5 # 最多获取次数(可自定义)
-record_id=""
+record_id="" # 无需更改
 
 while [ $attempts -le $max_attempts ]; do
   # 获取DNS记录的ID
