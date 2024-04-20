@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# 方法一(建议采用): 采用crontab计划任务:
-# 在crontab -l 中添加:
-# */5 * * * * /root/ddns_cf.sh >> /root/.ddns_cf.log 2>&1 &
-# 5 5 * * 1 rm /root/.ddns_cf.log
-# 让其每5分钟(可自定义)执行一次，可以避免获取DNS记录ID失败时脚本卡死的情况
+# 采用crontab计划定时任务:
+# 在 crontab -l 中添加:
+# */5 * * * * /root/ddns_cf.sh >> /root/.ddns_cf.log 2>&1 & # 每5分钟(可自定义)执行一次
+# 3 3 * * 1 rm /root/.ddns_cf.log # 定时删除执行日志
+# 让其定时执行并在一段时间后删除执行日志，不采用nohup的方式是为了避免获取记录失败时导致脚本卡死的情况
 
 #################################################################### Cloudflare账户信息
-email="xxiegui@gmail.com" # 帐号邮箱
-api_key="18d6f90f2006e0ce9ad46c7c9f31d5a8d3680" # 主页获取
-zone_id="588e3e945c0edfcbe5519254a6b4bd79" # 主页获取
-domain="255.cloudns.biz" # 域名
-record_name="jp" # 自定义前缀
+email="" # 帐号邮箱
+api_key="" # 主页获取
+zone_id="" # 主页获取
+domain="" # 域名
+record_name="" # 自定义前缀
 ipv4=$(curl -4 ip.sb) # 获取IPV4地址
 # ipv6=$(curl -6 ip.sb) # 获取IPV6地址
 # ipv4=$(curl -4 ipinfo.io/ip)
