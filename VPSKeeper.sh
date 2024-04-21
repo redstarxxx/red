@@ -64,6 +64,12 @@ CheckAndCreateFolder() {
         writeini "SHUTDOWN_RT" "false"
         hostname_show=$(hostname)
         writeini "hostname_show" "$hostname_show"
+        writeini "SendUptime" "false"
+        writeini "SendIP" "false"
+        writeini "GetIPURL" "ip.sb"
+        writeini "GetIP46" "4"
+        writeini "SendPrice" "false"
+        writeini "GetPriceType" "bitcoin"
     fi
 }
 
@@ -440,7 +446,7 @@ EOF
 
 # 发送Telegram消息的函数
 send_telegram_message() {
-    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+    curl -s -X POST "${ProxyURL}https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
         -d chat_id="$ChatID_1" -d text="$1" > /dev/null
 }
 
@@ -484,7 +490,9 @@ SetupIniFile() {
         else
             srtag=""
         fi
-        echo -e "${GR}4${NC}.设置流量上限（仅参考） ${GR}5${NC}.设置关机记录流量$srtag ${GR}回车${NC}.退出设置"
+        echo -e "${GR}4${NC}.设置流量上限 ${GR}5${NC}.设置关机记录流量$srtag ${GR}6${NC}.设置 Teletram 代理(国内)"
+        echo -e "${GR}7${NC}.设置发送在线时长 ${GR}8${NC}.设置发送IP地址 ${GR}9${NC}.设置发送货币报价"
+        echo -e "${GR}回车${NC}.退出设置"
         divline
         read -e -p "请输入你的选择: " choice
         case $choice in
@@ -613,7 +621,7 @@ SetupIniFile() {
                     writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
                     echo -e "$Tip 输入为空, 默认最大流量上限为: $FlowThresholdMAX_de"
                 fi
-            ;;
+                ;;
             5)
                 # 设置关机记录流量
                 if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
@@ -745,7 +753,161 @@ EOF
                     writeini "SHUTDOWN_RT" "true"
                     echo -e "$Tip 关机记录流量 已经成功设置."
                 fi
-            ;;
+                ;;
+            6)
+                # 设置Telegram代理(国内使用)
+                prev_ProxyURL=$ProxyURL
+                if [ -z $ProxyURL ]; then
+                    echo -e "$Inf 目前代理: ${GRB}无${NC}"
+                else
+                    echo -e "$Inf 目前代理: ${GRB}$ProxyURL${NC}"
+                fi
+                divline
+                echo "以下代理可用:"
+                echo -e "${GR}1${NC}. https://cp.255.cloudns.biz/proxy/"
+                echo -e "${GR}2${NC}. https://cp.iexx.eu.org/proxy/"
+                echo -e "${GR}3${NC}. https://mirror.ghproxy.com/"
+                echo -e "${GR}4${NC}. https://endpoint.fastgit.org/"
+                read -e -p "请输入以上序号或代理地址 (回车取消代理): " inputurl
+                if [ -z "$inputurl" ]; then
+                    inputurl=""
+                    writeini "ProxyURL" "$inputurl"
+                elif [ "$inputurl" == "1" ]; then
+                    inputurl="https://cp.255.cloudns.biz/proxy/"
+                    writeini "ProxyURL" "$inputurl"
+                elif [ "$inputurl" == "2" ]; then
+                    inputurl="https://cp.iexx.eu.org/proxy/"
+                    writeini "ProxyURL" "$inputurl"
+                elif [ "$inputurl" == "3" ]; then
+                    inputurl="https://mirror.ghproxy.com/"
+                    writeini "ProxyURL" "$inputurl"
+                elif [ "$inputurl" == "4" ]; then
+                    inputurl="https://endpoint.fastgit.org/"
+                    writeini "ProxyURL" "$inputurl"
+                elif [[ $inputurl =~ ^https?:// ]]; then
+                    # 如果网址后面没有"/"则在网址后面加上"/"
+                    if [ "${inputurl: -1}" != "/" ]; then
+                        inputurl="${inputurl}/"
+                    fi
+                    writeini "ProxyURL" "$inputurl"
+                    echo -e "$Tip 代理地址: ${GRB}$inputurl${NC}"
+                else
+                    echo -e "$Err ${REB}输入无效${NC}, 代理地址 必须是以上序号或以 http(s):// 开头的网址."
+                    inputurl=$prev_ProxyURL
+                fi
+                if [ -z $inputurl ]; then
+                    inputurl_show="无"
+                else
+                    inputurl_show=$inputurl
+                fi
+                if [ "$prev_ProxyURL" != "$inputurl" ]; then
+                    cat <<EOF > $FolderPath/send_tg.sh
+#!/bin/bash
+curl -s -X POST "${inputurl}https://api.telegram.org/bot\${1}/sendMessage" \
+    -d chat_id="\${2}" -d text="\${3}" > /dev/null 2>&1 &
+EOF
+                    echo -e "$Tip 代理地址: ${GRB}$inputurl_show${NC}"
+                else
+                    echo -e "$Tip 代理地址: ${GRB}$inputurl_show${NC} ${GR}未变更${NC}."
+                fi
+                ;;
+            7)
+                # 设置是否发送机器在线时长
+                if [ -z $SendUptime ] || [ "$SendUptime" == "false" ]; then
+                    echo -e "$Inf 目前是否发送机器在线时长: ${GRB}否${NC}"
+                else
+                    echo -e "$Inf 目前是否发送机器在线时长: ${GRB}是${NC}"
+                fi
+                divline
+                read -e -p "请选择是否发送机器在线时长  Y.是  其它/回车.否: " choice
+                if [ "$choice" == "y" ] || [ "$choice" == "Y" ]; then
+                    writeini "SendUptime" "true"
+                    echo -e "$Tip 已开启发送机器在线时长."
+                else
+                    writeini "SendUptime" "false"
+                    echo -e "$Tip 已关闭发送机器在线时长."
+                fi
+                ;;
+            8)
+                # 设置是否发送IP地址
+                if [ -z $SendIP ] || [ "$SendIP" == "false" ]; then
+                    echo -e "$Inf 目前是否发送IP地址: ${GRB}否${NC}"
+                else
+                    echo -e "$Inf 目前是否发送IP地址: ${GRB}是${NC}"
+                fi
+                divline
+                read -e -p "请选择是否发送IP地址  Y.是  其它/回车.否: " choice
+                if [ "$choice" == "y" ] || [ "$choice" == "Y" ]; then
+                    echo "采用以下地址获取IP:"
+                    echo -e "${GR}1${NC}. ip.sb"
+                    echo -e "${GR}2${NC}. ip.gs"
+                    echo -e "${GR}3${NC}. ifconfig.me"
+                    echo -e "${GR}4${NC}. ipinfo.io/ip"
+                    read -e -p "请输入以上序号或网址 (回车默认: ip.sb ): " inputurl
+                    if [ -z "$inputurl" ]; then
+                        GetIPURL="ip.sb"
+                    elif [ "$inputurl" == "1" ]; then
+                        GetIPURL="ip.sb"
+                    elif [ "$inputurl" == "2" ]; then
+                        GetIPURL="ip.gs"
+                    elif [ "$inputurl" == "3" ]; then
+                        GetIPURL="ifconfig.me"
+                    elif [ "$inputurl" == "4" ]; then
+                        GetIPURL="ipinfo.io/ip"
+                    else
+                        GetIPURL=$inputurl
+                    fi
+                    read -e -p "请选择 IP 类型:  4: IPv4  6: IPv6 (4/6/回车默认: IPv4 ): " input46
+                    if [ -z "$input46" ]; then
+                        GetIP46="4"
+                    elif [ "$input46" == "4" ]; then
+                        GetIP46="4"
+                    elif [ "$input46" == "6" ]; then
+                        GetIP46="6"
+                    fi
+                    writeini "SendIP" "true"
+                    writeini "GetIPURL" "$GetIPURL"
+                    writeini "GetIP46" "$GetIP46"
+                    echo -e "$Tip 已开启发送IP地址, 从 ${GRB}$GetIPURL (IPv$GetIP46)${NC} 处获取."
+                else
+                    writeini "SendIP" "false"
+                    echo -e "$Tip 已关闭发送IP地址."
+                fi
+                ;;
+            9)
+                # 设置是否发送加密货币报价
+                if [ -z $SendPrice ] || [ "$SendPrice" == "false" ]; then
+                    echo -e "$Inf 目前是否发送加密货币报价: ${GRB}否${NC}"
+                else
+                    echo -e "$Inf 目前是否发送加密货币报价: ${GRB}是${NC}"
+                fi
+                divline
+                read -e -p "请选择是否发送加密货币报价  Y.是  其它/回车.否: " choice
+                if [ "$choice" == "y" ] || [ "$choice" == "Y" ]; then
+                    echo "获取加密货币类型:"
+                    echo -e "${GR}1${NC}. bitcoin"
+                    echo -e "${GR}2${NC}. ethereum"
+                    echo -e "${GR}3${NC}. chia"
+                    read -e -p "请输入以上序号或自定义 (回车默认: bitcoin ): " inputb
+                    if [ -z "$inputb" ]; then
+                        GetPriceType="bitcoin"
+                    elif [ "$inputb" == "1" ]; then
+                        GetPriceType="bitcoin"
+                    elif [ "$inputb" == "2" ]; then
+                        GetPriceType="ethereum"
+                    elif [ "$inputb" == "3" ]; then
+                        GetPriceType="chia"
+                    else
+                        GetPriceType=$inputb
+                    fi
+                    writeini "SendPrice" "true"
+                    writeini "GetPriceType" "$GetPriceType"
+                    echo -e "$Tip 已开启发送加密货币报价, 获取 ${GRB}$GetPriceType${NC} 报价."
+                else
+                    writeini "SendPrice" "false"
+                    echo -e "$Tip 已关闭发送加密货币报价."
+                fi
+                ;;
             *)
                 echo "退出设置."
                 tips=""
@@ -797,8 +959,9 @@ test() {
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
         return 1
     fi
-    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-        -d chat_id="$ChatID_1" -d text="来自 $hostname_show 的测试信息" > /dev/null
+    # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+    #     -d chat_id="$ChatID_1" -d text="来自 $hostname_show 的测试信息" > /dev/null
+    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "来自 $hostname_show 的测试信息"
     tips="$Inf 测试信息已发出, 电报将收到一条\"来自 $hostname_show 的测试信息\"的信息."
 }
 
@@ -839,8 +1002,9 @@ current_date_send=\$(date +"%Y.%m.%d %T")
 message="$hostname_show 已启动❗️"'
 '"服务器时间: \$current_date_send"
 
-curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-    -d chat_id="$ChatID_1" -d text="\$message"
+# curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+#     -d chat_id="$ChatID_1" -d text="\$message"
+$FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
 EOF
     chmod +x $FolderPath/tg_boot.sh
     if command -v systemd &>/dev/null; then
@@ -870,8 +1034,9 @@ start() {
     message="$hostname_show 已启动❗️"'
     '"服务器时间: \$current_date_send"
 
-    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-        -d chat_id="$ChatID_1" -d text="\$message" &
+    # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+    #     -d chat_id="$ChatID_1" -d text="\$message"
+    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
 }
 EOF
         chmod +x /etc/init.d/tg_boot.sh
@@ -900,8 +1065,9 @@ current_date_send=\$(date +"%Y.%m.%d %T")
 message="$hostname_show \$(id -nu) 用户登陆成功❗️"'
 '"服务器时间: \$current_date_send"
 
-curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-            -d chat_id="$ChatID_1" -d text="\$message" &
+# curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+#             -d chat_id="$ChatID_1" -d text="\$message"
+$FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
 EOF
     chmod +x $FolderPath/tg_login.sh
     if [ -f /etc/bash.bashrc ] && [ "$release" != "openwrt" ]; then
@@ -938,8 +1104,9 @@ current_date_send=\$(date +"%Y.%m.%d %T")
 message="$hostname_show \$(id -nu) 正在执行关机...❗️"'
 '"服务器时间: \$current_date_send"
 
-curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-            -d chat_id="$ChatID_1" -d text="\$message"
+# curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+#             -d chat_id="$ChatID_1" -d text="\$message"
+$FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
 EOF
     chmod +x $FolderPath/tg_shutdown.sh
     if command -v systemd &>/dev/null; then
@@ -969,8 +1136,9 @@ stop() {
     message="$hostname_show \$(id -nu) 正在执行关机...❗️"'
     '"服务器时间: \$current_date_send"
 
-    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-        -d chat_id="$ChatID_1" -d text="\$message"
+    # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+    #     -d chat_id="$ChatID_1" -d text="\$message"
+    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
 }
 EOF
         chmod +x /etc/init.d/tg_shutdown.sh
@@ -1009,8 +1177,9 @@ while true; do
 '"───────────────"'
 '"\$new_message"'
 '"服务器时间: \$current_date_send"
-        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-            -d chat_id="$ChatID_1" -d text="\$message"
+        # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+        #     -d chat_id="$ChatID_1" -d text="\$message"
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
     fi
     sleep 10
 done
@@ -1276,8 +1445,9 @@ while true; do
 '"🟠  \$cpu_h2"'
 '"检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"'
 '"服务器时间: \$current_date_send"
-        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-            -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
+        # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+        #     -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
         echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
         sleep \$SleepTime   # 发送后等待SleepTime分钟后再检测
@@ -1408,8 +1578,9 @@ while true; do
 '"🟠  \$cpu_h2"'
 '"检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"'
 '"服务器时间: \$current_date_send"
-        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-            -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
+        # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+        #     -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
         echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
         sleep \$SleepTime   # 发送后等待SleepTime分钟后再检测
@@ -1535,8 +1706,9 @@ while true; do
 '"🟠  \$cpu_h2"'
 '"检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"'
 '"服务器时间: \$current_date_send"
-        curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-            -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
+        # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
+        #     -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
         echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
         sleep \$SleepTime   # 发送后等待SleepTime分钟后再检测
@@ -1854,9 +2026,31 @@ ratio=""
 $(declare -f Bytes_BtoKBMBGB)
 $(declare -f Remove_B)
 
+get_price() {
+    local url="${ProxyURL}https://api.coingecko.com/api/v3/simple/price?ids=\${1}&vs_currencies=usd"
+    local price=\$(curl -s "\$url" | sed 's/[^0-9.]*//g')
+    echo "\$price"
+}
+
 tt=10
 duration=0
 StatisticsMode="$StatisticsMode"
+
+if $SendUptime; then
+    SendUptime="true"
+else
+    SendUptime="false"
+fi
+if $SendIP; then
+    SendIP="true"
+else
+    SendIP="false"
+fi
+if $SendPrice; then
+    SendPrice="true"
+else
+    SendPrice="false"
+fi
 
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
 THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
@@ -2073,6 +2267,8 @@ while true; do
         echo "OV_Current_RX(BYTES): \$ov_current_rx_bytes OV_Current_TX(BYTES): \$ov_current_tx_bytes"
         # 调试使用(网速)
         echo "rx_speed: \$rx_speed  tx_speed: \$tx_speed"
+        # 是否发送在线时长
+        echo "SendUptime: \$SendUptime"
 
         # 检查是否超过阈值
         if [ "\$StatisticsMode" == "SE" ]; then
@@ -2089,18 +2285,58 @@ while true; do
 
                 current_date_send=\$(date +"%Y.%m.%d %T")
 
-                message="流量已达到阈值🧭 > ${FlowThreshold_U}❗️"'
-'"主机名: $hostname_show 接口: \$interface"'
-'"已接收: \${rx_diff}  已发送: \${tx_diff}"'
-'"───────────────"'
-'"总接收: \${all_rx}  总发送: \${all_tx}"'
-'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
-'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
-'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
-'"网络⬇️: \${rx_speed}/s  网络⬆️: \${tx_speed}/s"'
-'"服务器时间: \$current_date_send"
-                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                    -d chat_id="$ChatID_1" -d text="\$message"
+                # 获取uptime输出
+                if \$SendUptime; then
+                    read uptime idle_time < /proc/uptime
+                    uptime=\${uptime%.*}
+                    days=\$((uptime/86400))
+                    hours=\$(( (uptime%86400)/3600 ))
+                    minutes=\$(( (uptime%3600)/60 ))
+                    seconds=\$((uptime%60))
+                    uptimeshow="系统已运行: \$days 日 \$hours 时 \$minutes 分 \$seconds 秒"
+                else
+                    uptimeshow=""
+                fi
+                echo "uptimeshow: \$uptimeshow"
+                # 获取IP输出
+                if \$SendIP; then
+                    # lanIP=\$(ip a | grep -E "inet.*brd" | awk '{print \$2}' | awk -F '/' '{print \$1}' | tr '\n' ' ')
+                    wanIP=\$(curl -s -"$GetIP46" "$GetIPURL")
+                    wanIPshow="网络IP地址: \$wanIP"
+                else
+                    wanIPshow=""
+                fi
+                echo "wanIPshow: \$wanIPshow"
+                # 获取货币报价
+                if \$SendPrice; then
+                    priceshow=\$(get_price "$GetPriceType")
+                    if [[ -z \$priceshow || \$priceshow == *"429"* ]]; then
+                        # 如果priceshow为空或包含"429"，则表示获取失败
+                        priceshow=""
+                    fi
+                else
+                    priceshow=""
+                fi
+                echo "priceshow: \$priceshow"
+
+                message="流量到达阈值🧭 > ${FlowThreshold_U}❗️  \$priceshow"$'\n'
+                message+="主机名: $hostname_show 接口: \$interface"$'\n'
+                message+="已接收: \${rx_diff}  已发送: \${tx_diff}"$'\n'
+                message+="───────────────"$'\n'
+                message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
+                message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
+                message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
+                message+="网络⬇️: \${rx_speed}/s  网络⬆️: \${tx_speed}/s"$'\n'
+                if [[ -n "\$uptimeshow" ]]; then
+                    message+="\$uptimeshow"$'\n'
+                fi
+                if [[ -n "\$wanIPshow" ]]; then
+                    message+="\$wanIPshow"$'\n'
+                fi
+                message+="服务器时间: \$current_date_send"
+
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
                 echo "报警信息已发出..."
 
                 # 更新前一个状态的流量数据
@@ -2120,18 +2356,58 @@ while true; do
 
             current_date_send=\$(date +"%Y.%m.%d %T")
 
-            message="流量已达到阈值🧭 > ${FlowThreshold_U}❗️"'
-'"主机名: $hostname_show 接口: \$show_interfaces"'
-'"已接收: \${ov_rx_diff}  已发送: \${ov_tx_diff}"'
-'"───────────────"'
-'"总接收: \${all_rx}  总发送: \${all_tx}"'
-'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
-'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
-'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
-'"网络⬇️: \${rx_speed}/s  网络⬆️: \${tx_speed}/s"'
-'"服务器时间: \$current_date_send"
-            curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                -d chat_id="$ChatID_1" -d text="\$message"
+            # 获取uptime输出
+            if \$SendUptime; then
+                read uptime idle_time < /proc/uptime
+                uptime=\${uptime%.*}
+                days=\$((uptime/86400))
+                hours=\$(( (uptime%86400)/3600 ))
+                minutes=\$(( (uptime%3600)/60 ))
+                seconds=\$((uptime%60))
+                uptimeshow="系统已运行: \$days 日 \$hours 时 \$minutes 分 \$seconds 秒"
+            else
+                uptimeshow=""
+            fi
+            echo "uptimeshow: \$uptimeshow"
+            # 获取IP输出
+            if \$SendIP; then
+                # lanIP=\$(ip a | grep -E "inet.*brd" | awk '{print \$2}' | awk -F '/' '{print \$1}' | tr '\n' ' ')
+                wanIP=\$(curl -s -"$GetIP46" "$GetIPURL")
+                wanIPshow="网络IP地址: \$wanIP"
+            else
+                wanIPshow=""
+            fi
+            echo "wanIPshow: \$wanIPshow"
+            # 获取货币报价
+            if \$SendPrice; then
+                priceshow=\$(get_price "$GetPriceType")
+                if [[ -z \$priceshow || \$priceshow == *"429"* ]]; then
+                    # 如果priceshow为空或包含"429"，则表示获取失败
+                    priceshow=""
+                fi
+            else
+                priceshow=""
+            fi
+            echo "priceshow: \$priceshow"
+
+            message="流量到达阈值🧭 > ${FlowThreshold_U}❗️  \$priceshow"$'\n'
+            message+="主机名: $hostname_show 接口: \$show_interfaces"$'\n'
+            message+="已接收: \${ov_rx_diff}  已发送: \${ov_tx_diff}"$'\n'
+            message+="───────────────"$'\n'
+            message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
+            message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+            message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
+            message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
+            message+="网络⬇️: \${rx_speed}/s  网络⬆️: \${tx_speed}/s"$'\n'
+            if [[ -n "\$uptimeshow" ]]; then
+                message+="\$uptimeshow"$'\n'
+            fi
+            if [[ -n "\$wanIPshow" ]]; then
+                message+="\$wanIPshow"$'\n'
+            fi
+            message+="服务器时间: \$current_date_send"
+
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
             echo "报警信息已发出..."
 
             # 更新前一个状态的流量数据
@@ -2452,6 +2728,17 @@ $(declare -f Bytes_BtoKBMBGB)
 $(declare -f Remove_B)
 StatisticsMode="$StatisticsMode"
 
+if $SendUptime; then
+    SendUptime="true"
+else
+    SendUptime="false"
+fi
+if $SendIP; then
+    SendIP="true"
+else
+    SendIP="false"
+fi
+
 THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
 
 interfaces=()
@@ -2716,6 +3003,28 @@ while true; do
 
                 current_date_send=\$(date +"%Y.%m.%d %T")
 
+                # 获取uptime输出
+                if \$SendUptime; then
+                    read uptime idle_time < /proc/uptime
+                    uptime=\${uptime%.*}
+                    days=\$((uptime/86400))
+                    hours=\$(( (uptime%86400)/3600 ))
+                    minutes=\$(( (uptime%3600)/60 ))
+                    seconds=\$((uptime%60))
+                    uptimeshow="系统已运行: \$days 日 \$hours 时 \$minutes 分 \$seconds 秒"
+                else
+                    uptimeshow=""
+                fi
+                echo "uptimeshow: \$uptimeshow"
+                # 获取IP输出
+                if \$SendIP; then
+                    # lanIP=\$(ip a | grep -E "inet.*brd" | awk '{print \$2}' | awk -F '/' '{print \$1}' | tr '\n' ' ')
+                    wanIP=\$(curl -s -"$GetIP46" "$GetIPURL")
+                    wanIPshow="网络IP地址: \$wanIP"
+                else
+                    wanIPshow=""
+                fi
+
                 if \$day_rp; then
 
                     # if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
@@ -2745,17 +3054,23 @@ while true; do
                     diff_rx_day=\$(Remove_B "\$diff_rx_day")
                     diff_tx_day=\$(Remove_B "\$diff_tx_day")
 
-                    message="\${yesterday}🌞流量报告 📈"'
-'"主机名: $hostname_show 接口: \$interface"'
-'"🌞接收: \${diff_rx_day}  🌞发送: \${diff_tx_day}"'
-'"───────────────"'
-'"总接收: \${all_rx}  总发送: \${all_tx}"'
-'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
-'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
-'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
-'"服务器时间: \$current_date_send"
-                    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                        -d chat_id="$ChatID_1" -d text="\$message"
+                    message="\${yesterday}🌞流量报告 📈"$'\n'
+                    message+="主机名: $hostname_show 接口: \$interface"$'\n'
+                    message+="🌞接收: \${diff_rx_day}  🌞发送: \${diff_tx_day}"$'\n'
+                    message+="───────────────"$'\n'
+                    message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
+                    message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                    message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
+                    message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
+                    if [[ -n "\$uptimeshow" ]]; then
+                        message+="\$uptimeshow"$'\n'
+                    fi
+                    if [[ -n "\$wanIPshow" ]]; then
+                        message+="\$wanIPshow"$'\n'
+                    fi
+                    message+="服务器时间: \$current_date_send"
+
+                    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
                     echo "报告信息已发出..."
                     echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
                     echo "----------------------------------------------------------------"
@@ -2781,17 +3096,23 @@ while true; do
                     diff_rx_month=\$(Remove_B "\$diff_rx_month")
                     diff_tx_month=\$(Remove_B "\$diff_tx_month")
 
-                    message="\${last_month}🌙总流量报告 📈"'
-'"主机名: $hostname_show 接口: \$interface"'
-'"🌙接收: \${diff_rx_month}  🌙发送: \${diff_tx_month}"'
-'"───────────────"'
-'"总接收: \${all_rx}  总发送: \${all_tx}"'
-'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
-'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
-'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
-'"服务器时间: \$current_date_send"
-                    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                        -d chat_id="$ChatID_1" -d text="\$message"
+                    message="\${last_month}🌙总流量报告 📈"$'\n'
+                    message+="主机名: $hostname_show 接口: \$interface"$'\n'
+                    message+="🌙接收: \${diff_rx_month}  🌙发送: \${diff_tx_month}"$'\n'
+                    message+="───────────────"$'\n'
+                    message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
+                    message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                    message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
+                    message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
+                    if [[ -n "\$uptimeshow" ]]; then
+                        message+="\$uptimeshow"$'\n'
+                    fi
+                    if [[ -n "\$wanIPshow" ]]; then
+                        message+="\$wanIPshow"$'\n'
+                    fi
+                    message+="服务器时间: \$current_date_send"
+
+                    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
                     echo "报告信息已发出..."
                     echo "时间: \$current_date, 活动接口: \$interface, 月接收: \$diff_rx_day, 月发送: \$diff_tx_day"
                     echo "----------------------------------------------------------------"
@@ -2812,17 +3133,23 @@ while true; do
                     diff_rx_year=\$(Remove_B "\$diff_rx_year")
                     diff_tx_year=\$(Remove_B "\$diff_tx_year")
 
-                    message="\${last_year}年🧧总流量报告 📈"'
-'"主机名: $hostname_show 接口: \$interface"'
-'"🧧接收: \${diff_rx_year}  🧧发送: \${diff_tx_year}"'
-'"───────────────"'
-'"总接收: \${all_rx}  总发送: \${all_tx}"'
-'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
-'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
-'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
-'"服务器时间: \$current_date_send"
-                    curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                        -d chat_id="$ChatID_1" -d text="\$message"
+                    message="\${last_year}年🧧总流量报告 📈"$'\n'
+                    message+="主机名: $hostname_show 接口: \$interface"$'\n'
+                    message+="🧧接收: \${diff_rx_year}  🧧发送: \${diff_tx_year}"$'\n'
+                    message+="───────────────"$'\n'
+                    message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
+                    message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                    message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
+                    message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
+                    if [[ -n "\$uptimeshow" ]]; then
+                        message+="\$uptimeshow"$'\n'
+                    fi
+                    if [[ -n "\$wanIPshow" ]]; then
+                        message+="\$wanIPshow"$'\n'
+                    fi
+                    message+="服务器时间: \$current_date_send"
+
+                    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
                     echo "报告信息已发出..."
                     echo "年报告信息:"
                     echo "时间: \$current_date, 活动接口: \$interface, 年接收: \$diff_rx_year, 年发送: \$diff_tx_year"
@@ -2840,6 +3167,28 @@ while true; do
         if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
 
             current_date_send=\$(date +"%Y.%m.%d %T")
+
+            # 获取uptime输出
+            if \$SendUptime; then
+                read uptime idle_time < /proc/uptime
+                uptime=\${uptime%.*}
+                days=\$((uptime/86400))
+                hours=\$(( (uptime%86400)/3600 ))
+                minutes=\$(( (uptime%3600)/60 ))
+                seconds=\$((uptime%60))
+                uptimeshow="系统已运行: \$days 日 \$hours 时 \$minutes 分 \$seconds 秒"
+            else
+                uptimeshow=""
+            fi
+            echo "uptimeshow: \$uptimeshow"
+            # 获取IP输出
+            if \$SendIP; then
+                # lanIP=\$(ip a | grep -E "inet.*brd" | awk '{print \$2}' | awk -F '/' '{print \$1}' | tr '\n' ' ')
+                wanIP=\$(curl -s -"$GetIP46" "$GetIPURL")
+                wanIPshow="网络IP地址: \$wanIP"
+            else
+                wanIPshow=""
+            fi
 
             if \$day_rp; then
 
@@ -2870,17 +3219,23 @@ while true; do
                 ov_diff_rx_day=\$(Remove_B "\$ov_diff_rx_day")
                 ov_diff_tx_day=\$(Remove_B "\$ov_diff_tx_day")
 
-                message="\${yesterday}🌞流量报告 📈"'
-'"主机名: $hostname_show 接口: \$show_interfaces"'
-'"🌞接收: \${ov_diff_rx_day}  🌞发送: \${ov_diff_tx_day}"'
-'"───────────────"'
-'"总接收: \${all_rx}  总发送: \${all_tx}"'
-'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
-'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
-'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
-'"服务器时间: \$current_date_send"
-                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                    -d chat_id="$ChatID_1" -d text="\$message"
+                message="\${yesterday}🌞流量报告 📈"$'\n'
+                message+="主机名: $hostname_show 接口: \$show_interfaces"$'\n'
+                message+="🌞接收: \${ov_diff_rx_day}  🌞发送: \${ov_diff_tx_day}"$'\n'
+                message+="───────────────"$'\n'
+                message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
+                message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
+                message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
+                if [[ -n "\$uptimeshow" ]]; then
+                    message+="\$uptimeshow"$'\n'
+                fi
+                if [[ -n "\$wanIPshow" ]]; then
+                    message+="\$wanIPshow"$'\n'
+                fi
+                message+="服务器时间: \$current_date_send"
+
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
                 echo "报告信息已发出..."
                 echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
                 echo "----------------------------------------------------------------"
@@ -2906,17 +3261,23 @@ while true; do
                 ov_diff_rx_month=\$(Remove_B "\$ov_diff_rx_month")
                 ov_diff_tx_month=\$(Remove_B "\$ov_diff_tx_month")
 
-                message="\${last_month}🌙总流量报告 📈"'
-'"主机名: $hostname_show 接口: \$show_interfaces"'
-'"🌙接收: \${ov_diff_rx_month}  🌙发送: \${ov_diff_tx_month}"'
-'"───────────────"'
-'"总接收: \${all_rx}  总发送: \${all_tx}"'
-'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
-'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
-'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
-'"服务器时间: \$current_date_send"
-                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                    -d chat_id="$ChatID_1" -d text="\$message"
+                message="\${last_month}🌙总流量报告 📈"$'\n'
+                message+="主机名: $hostname_show 接口: \$show_interfaces"$'\n'
+                message+="🌙接收: \${ov_diff_rx_month}  🌙发送: \${ov_diff_tx_month}"$'\n'
+                message+="───────────────"$'\n'
+                message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
+                message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
+                message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
+                if [[ -n "\$uptimeshow" ]]; then
+                    message+="\$uptimeshow"$'\n'
+                fi
+                if [[ -n "\$wanIPshow" ]]; then
+                    message+="\$wanIPshow"$'\n'
+                fi
+                message+="服务器时间: \$current_date_send"
+
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
                 echo "报告信息已发出..."
                 echo "时间: \$current_date, 活动接口: \$interface, 月接收: \$diff_rx_day, 月发送: \$diff_tx_day"
                 echo "----------------------------------------------------------------"
@@ -2937,17 +3298,23 @@ while true; do
                 ov_diff_rx_year=\$(Remove_B "\$ov_diff_rx_year")
                 ov_diff_tx_year=\$(Remove_B "\$ov_diff_tx_year")
 
-                message="\${last_year}年🧧总流量报告 📈"'
-'"主机名: $hostname_show 接口: \$show_interfaces"'
-'"🧧接收: \${ov_diff_rx_year}  🧧发送: \${ov_diff_tx_year}"'
-'"───────────────"'
-'"总接收: \${all_rx}  总发送: \${all_tx}"'
-'"设置流量上限: ${FlowThresholdMAX_U}🔒"'
-'"使用⬇️: \$all_rx_progress \$all_rx_ratio"'
-'"使用⬆️: \$all_tx_progress \$all_tx_ratio"'
-'"服务器时间: \$current_date_send"
-                curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-                    -d chat_id="$ChatID_1" -d text="\$message"
+                message="\${last_year}年🧧总流量报告 📈"$'\n'
+                message+="主机名: $hostname_show 接口: \$show_interfaces"$'\n'
+                message+="🧧接收: \${ov_diff_rx_year}  🧧发送: \${ov_diff_tx_year}"$'\n'
+                message+="───────────────"$'\n'
+                message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
+                message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
+                message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
+                if [[ -n "\$uptimeshow" ]]; then
+                    message+="\$uptimeshow"$'\n'
+                fi
+                if [[ -n "\$wanIPshow" ]]; then
+                    message+="\$wanIPshow"$'\n'
+                fi
+                message+="服务器时间: \$current_date_send"
+
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
                 echo "报告信息已发出..."
                 echo "年报告信息:"
                 echo "时间: \$current_date, 活动接口: \$interface, 年接收: \$diff_rx_year, 年发送: \$diff_tx_year"
@@ -3188,7 +3555,12 @@ elif [[ "$3" =~ ^[0-9]{5,}$ ]]; then
     ChatID_1="$3"
     writeini "ChatID_1" "$3"
 fi
-declare -f send_telegram_message | sed -n '/^{/,/^}/p' | sed '1d;$d' | sed 's/$1/$3/g; s/$TelgramBotToken/$1/g; s/$ChatID_1/$2/g' > $FolderPath/send_tg.sh
+# declare -f send_telegram_message | sed -n '/^{/,/^}/p' | sed '1d;$d' | sed 's/$1/$3/g; s/$TelgramBotToken/$1/g; s/$ChatID_1/$2/g' > $FolderPath/send_tg.sh
+cat <<EOF > $FolderPath/send_tg.sh
+#!/bin/bash
+curl -s -X POST "${ProxyURL}https://api.telegram.org/bot\${1}/sendMessage" \
+    -d chat_id="\${2}" -d text="\${3}" > /dev/null 2>&1 &
+EOF
 chmod +x $FolderPath/send_tg.sh
 if [ -z "$ChatID_1" ]; then
     CLS
