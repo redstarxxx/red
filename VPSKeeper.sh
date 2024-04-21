@@ -64,6 +64,7 @@ CheckAndCreateFolder() {
         writeini "SHUTDOWN_RT" "false"
         hostname_show=$(hostname)
         writeini "hostname_show" "$hostname_show"
+        writeini "ProxyURL" ""
         writeini "SendUptime" "false"
         writeini "SendIP" "false"
         writeini "GetIPURL" "ip.sb"
@@ -3679,10 +3680,40 @@ if [ -z "$FlowThreshold" ]; then
 else
     FlowThreshold_tag="${GR}$FlowThreshold${NC}"
 fi
+if [ -z "$FlowThresholdMAX" ]; then
+    flowthm_menu_tag=""
+else
+    flowthm_menu_tag="${GRB}$FlowThresholdMAX${NC}"
+fi
+if [ -z $SHUTDOWN_RT ] || [ "$SHUTDOWN_RT" == "false" ]; then
+    sd_rt_menu_tag=""
+else
+    sd_rt_menu_tag="${GRB}SR${NC}"
+fi
+if [ -z "$ProxyURL" ]; then
+    proxy_menu_tag=""
+else
+    proxy_menu_tag="${GRB}Px${NC}"
+fi
+if [ -z $SendUptime ] || [ "$SendUptime" == "false" ]; then
+    senduptime_menu_tag=""
+else
+    senduptime_menu_tag="${GRB}UT${NC}"
+fi
+if [ -z $SendIP ] || [ "$SendIP" == "false" ]; then
+    sendip_menu_tag=""
+else
+    sendip_menu_tag="${GRB}IP${NC}"
+fi
+if [ -z $SendPrice ] || [ "$SendPrice" == "false" ]; then
+    sendprice_menu_tag=""
+else
+    sendprice_menu_tag="${GRB}Pi${NC}"
+fi
 CLS
 echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
 -- tse | vtse.eu.org | $release -- 
-  
+                                ${flowthm_menu_tag} ${sd_rt_menu_tag} ${proxy_menu_tag} ${senduptime_menu_tag} ${sendip_menu_tag} ${sendprice_menu_tag}
  ${GR}0.${NC} 检查依赖 / 设置参数 \t$reset_menu_tag
 ———————————————————————
  ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知 \t\t\t$boot_menu_tag
