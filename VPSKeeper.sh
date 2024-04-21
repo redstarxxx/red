@@ -30,12 +30,6 @@ StatisticsMode_ST_de="SE"
 # StatisticsMode_ST_de="OV" # 整体统计
 # StatisticsMode_ST_de="SE" # 单独统计
 
-# 检测是否root用户
-if [ "$UID" -ne 0 ]; then
-    echo "非 \"root\" 用户, 无法执行."
-    exit 1
-fi
-
 # 导入参数
 # if [ -f $ConfigFile ]; then
 #     source $ConfigFile
@@ -48,6 +42,16 @@ Err="${RE}[错误]${NC}:"
 Tip="${GR}[提示]${NC}:"
 SETTAG="${GR}-> 已设置${NC}"
 UNSETTAG="${RE}-> 未设置${NC}"
+
+# 检测是否root用户
+(EUID=$(id -u)) 2>/dev/null
+if [ "$EUID" -ne 0 ]; then
+    echo "非 \"root\" 用户, 无法执行."
+    usreid="${REB}非ROOT${NC}"
+    # exit 1
+else
+    usreid="${GRB}ROOT${NC}"
+fi
 
 # 创建.shfile目录
 CheckAndCreateFolder() {
@@ -3711,7 +3715,7 @@ else
     sendprice_menu_tag="${GRB}Pi${NC}"
 fi
 CLS
-echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
+echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}    用户: $usreid
 -- tse | vtse.eu.org | $release -- 
                                 ${flowthm_menu_tag} ${sd_rt_menu_tag} ${proxy_menu_tag} ${senduptime_menu_tag} ${sendip_menu_tag} ${sendprice_menu_tag}
  ${GR}0.${NC} 检查依赖 / 设置参数 \t$reset_menu_tag
