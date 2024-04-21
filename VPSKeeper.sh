@@ -888,6 +888,7 @@ EOF
                     echo -e "${GR}1${NC}. bitcoin"
                     echo -e "${GR}2${NC}. ethereum"
                     echo -e "${GR}3${NC}. chia"
+                    echo -e "自定义网址查询: https://api.coingecko.com/api/v3/coins/list"
                     read -e -p "请输入以上序号或自定义 (回车默认: bitcoin ): " inputb
                     if [ -z "$inputb" ]; then
                         GetPriceType="bitcoin"
