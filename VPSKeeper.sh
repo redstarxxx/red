@@ -46,11 +46,11 @@ UNSETTAG="${RE}-> 未设置${NC}"
 # 检测是否root用户
 (EUID=$(id -u)) 2>/dev/null
 if [ "$EUID" -ne 0 ]; then
-    echo "非 \"root\" 用户, 无法执行."
-    usreid="${REB}非ROOT${NC}"
-    # exit 1
+    echo "非 \"root权限\" 用户, 请使用 \"root\" 用户或 \"sudo\" 指令执行."
+    usreid="${REB}非ROOT权限${NC}"
+    exit 1
 else
-    usreid="${GRB}ROOT${NC}"
+    usreid="${GRB}ROOT权限${NC}"
 fi
 
 # 创建.shfile目录
@@ -484,22 +484,32 @@ GetVPSInfo() {
 # 设置ini参数文件
 SetupIniFile() {
     # 设置电报机器人参数
+    autochoice=5
     divline
     echo -e "$Tip 默认机器人: @iekeeperbot 使用前必须添加并点击 start"
     while true; do
         source $ConfigFile
-        divline
-        echo -e "${GR}1${NC}.BOT Token ${GR}2${NC}.CHAT ID ${GR}3${NC}.CPU检测工具 (默认使用 top)"
-        if $SHUTDOWN_RT; then
-            srtag="(${RE}已启动${NC})"
+        if [ "$autorun" == "true" ]; then
+            if [ "$autochoice" = "10" ]; then
+                choice="*"
+            else
+                choice="$autochoice"
+                ((autochoice++))
+            fi
         else
-            srtag=""
+            divline
+            echo -e "${GR}1${NC}.BOT Token ${GR}2${NC}.CHAT ID ${GR}3${NC}.CPU检测工具 (默认使用 top)"
+            if $SHUTDOWN_RT; then
+                srtag="(${RE}已启动${NC})"
+            else
+                srtag=""
+            fi
+            echo -e "${GR}4${NC}.设置流量上限 ${GR}5${NC}.设置关机记录流量$srtag ${GR}6${NC}.设置 Teletram 代理(国内)"
+            echo -e "${GR}7${NC}.设置发送在线时长 ${GR}8${NC}.设置发送IP地址 ${GR}9${NC}.设置发送货币报价"
+            echo -e "${GR}回车${NC}.退出设置"
+            divline
+            read -e -p "请输入你的选择: " choice
         fi
-        echo -e "${GR}4${NC}.设置流量上限 ${GR}5${NC}.设置关机记录流量$srtag ${GR}6${NC}.设置 Teletram 代理(国内)"
-        echo -e "${GR}7${NC}.设置发送在线时长 ${GR}8${NC}.设置发送IP地址 ${GR}9${NC}.设置发送货币报价"
-        echo -e "${GR}回车${NC}.退出设置"
-        divline
-        read -e -p "请输入你的选择: " choice
         case $choice in
             1)
                 # 设置BOT Token
@@ -629,19 +639,23 @@ SetupIniFile() {
                 ;;
             5)
                 # 设置关机记录流量
-                if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
-                    tips="$Err OpenWRT 系统暂不支持."
-                    break
+                if [ "$autorun" == "true" ]; then
+                    choice=""
+                else
+                    if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
+                        tips="$Err OpenWRT 系统暂不支持."
+                        break
+                    fi
+                    if ! command -v systemd &>/dev/null; then
+                        tips="$Err 系统未检测到 \"systemd\" 程序, 无法设置关机通知."
+                        break
+                    fi
+                    if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
+                        tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+                        break
+                    fi
+                    read -e -p "请选择是否开启 设置关机记录流量  N.关闭(删除记录)  回车.开启(默认): " choice
                 fi
-                if ! command -v systemd &>/dev/null; then
-                    tips="$Err 系统未检测到 \"systemd\" 程序, 无法设置关机通知."
-                    break
-                fi
-                if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
-                    tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
-                    break
-                fi
-                read -e -p "请选择是否开启 设置关机记录流量  N.关闭(删除记录)  回车.开启(默认): " choice
                 if [ "$choice" == "n" ] || [ "$choice" == "N" ]; then
                     systemctl stop tg_shutdown_rt.service > /dev/null 2>&1
                     systemctl disable tg_shutdown_rt.service > /dev/null 2>&1
@@ -762,18 +776,22 @@ EOF
             6)
                 # 设置Telegram代理(国内使用)
                 prev_ProxyURL=$ProxyURL
-                if [ -z $ProxyURL ]; then
-                    echo -e "$Inf 目前代理: ${GRB}无${NC}"
+                if [ "$autorun" == "true" ]; then
+                    inputurl="1"
                 else
-                    echo -e "$Inf 目前代理: ${GRB}$ProxyURL${NC}"
+                    if [ -z "$ProxyURL" ]; then
+                        echo -e "$Inf 目前代理: ${GRB}无${NC}"
+                    else
+                        echo -e "$Inf 目前代理: ${GRB}$ProxyURL${NC}"
+                    fi
+                    divline
+                    echo "以下代理可用:"
+                    echo -e "${GR}1${NC}. https://cp.255.cloudns.biz/proxy/"
+                    echo -e "${GR}2${NC}. https://cp.iexx.eu.org/proxy/"
+                    echo -e "${GR}3${NC}. https://mirror.ghproxy.com/"
+                    echo -e "${GR}4${NC}. https://endpoint.fastgit.org/"
+                    read -e -p "请输入以上序号或代理地址 (回车取消代理): " inputurl
                 fi
-                divline
-                echo "以下代理可用:"
-                echo -e "${GR}1${NC}. https://cp.255.cloudns.biz/proxy/"
-                echo -e "${GR}2${NC}. https://cp.iexx.eu.org/proxy/"
-                echo -e "${GR}3${NC}. https://mirror.ghproxy.com/"
-                echo -e "${GR}4${NC}. https://endpoint.fastgit.org/"
-                read -e -p "请输入以上序号或代理地址 (回车取消代理): " inputurl
                 if [ -z "$inputurl" ]; then
                     inputurl=""
                     writeini "ProxyURL" "$inputurl"
@@ -818,13 +836,17 @@ EOF
                 ;;
             7)
                 # 设置是否发送机器在线时长
-                if [ -z $SendUptime ] || [ "$SendUptime" == "false" ]; then
-                    echo -e "$Inf 目前是否发送机器在线时长: ${GRB}否${NC}"
+                if [ "$autorun" == "true" ]; then
+                    choice="Y"
                 else
-                    echo -e "$Inf 目前是否发送机器在线时长: ${GRB}是${NC}"
+                    if [ -z $SendUptime ] || [ "$SendUptime" == "false" ]; then
+                        echo -e "$Inf 目前是否发送机器在线时长: ${GRB}否${NC}"
+                    else
+                        echo -e "$Inf 目前是否发送机器在线时长: ${GRB}是${NC}"
+                    fi
+                    divline
+                    read -e -p "请选择是否发送机器在线时长  Y.是  其它/回车.否: " choice
                 fi
-                divline
-                read -e -p "请选择是否发送机器在线时长  Y.是  其它/回车.否: " choice
                 if [ "$choice" == "y" ] || [ "$choice" == "Y" ]; then
                     writeini "SendUptime" "true"
                     echo -e "$Tip 已开启发送机器在线时长."
@@ -835,20 +857,28 @@ EOF
                 ;;
             8)
                 # 设置是否发送IP地址
-                if [ -z $SendIP ] || [ "$SendIP" == "false" ]; then
-                    echo -e "$Inf 目前是否发送IP地址: ${GRB}否${NC}"
+                if [ "$autorun" == "true" ]; then
+                    choice="Y"
+                    inputurl="1"
+                    input46="4"
                 else
-                    echo -e "$Inf 目前是否发送IP地址: ${GRB}是${NC}"
+                    if [ -z $SendIP ] || [ "$SendIP" == "false" ]; then
+                        echo -e "$Inf 目前是否发送IP地址: ${GRB}否${NC}"
+                    else
+                        echo -e "$Inf 目前是否发送IP地址: ${GRB}是${NC}"
+                    fi
+                    divline
+                    read -e -p "请选择是否发送IP地址  Y.是  其它/回车.否: " choice
                 fi
-                divline
-                read -e -p "请选择是否发送IP地址  Y.是  其它/回车.否: " choice
                 if [ "$choice" == "y" ] || [ "$choice" == "Y" ]; then
-                    echo "采用以下地址获取IP:"
-                    echo -e "${GR}1${NC}. ip.sb"
-                    echo -e "${GR}2${NC}. ip.gs"
-                    echo -e "${GR}3${NC}. ifconfig.me"
-                    echo -e "${GR}4${NC}. ipinfo.io/ip"
-                    read -e -p "请输入以上序号或网址 (回车默认: ip.sb ): " inputurl
+                    if [ "$autorun" == "false" ]; then
+                        echo "采用以下地址获取IP:"
+                        echo -e "${GR}1${NC}. ip.sb"
+                        echo -e "${GR}2${NC}. ip.gs"
+                        echo -e "${GR}3${NC}. ifconfig.me"
+                        echo -e "${GR}4${NC}. ipinfo.io/ip"
+                        read -e -p "请输入以上序号或网址 (回车默认: ip.sb ): " inputurl
+                    fi
                     if [ -z "$inputurl" ]; then
                         GetIPURL="ip.sb"
                     elif [ "$inputurl" == "1" ]; then
@@ -862,7 +892,9 @@ EOF
                     else
                         GetIPURL=$inputurl
                     fi
-                    read -e -p "请选择 IP 类型:  4: IPv4  6: IPv6 (4/6/回车默认: IPv4 ): " input46
+                    if [ "$autorun" == "false" ]; then
+                        read -e -p "请选择 IP 类型:  4: IPv4  6: IPv6 (4/6/回车默认: IPv4 ): " input46
+                    fi
                     if [ -z "$input46" ]; then
                         GetIP46="4"
                     elif [ "$input46" == "4" ]; then
@@ -881,22 +913,29 @@ EOF
                 ;;
             9)
                 # 设置是否发送加密货币报价
-                if [ -z $SendPrice ] || [ "$SendPrice" == "false" ]; then
-                    echo -e "$Inf 目前是否发送加密货币报价: ${GRB}否${NC}"
+                if [ "$autorun" == "true" ]; then
+                    choice="Y"
+                    inputb="3"
                 else
-                    echo -e "$Inf 目前是否发送加密货币报价: ${GRB}是${NC}"
+                    if [ -z $SendPrice ] || [ "$SendPrice" == "false" ]; then
+                        echo -e "$Inf 目前是否发送加密货币报价: ${GRB}否${NC}"
+                    else
+                        echo -e "$Inf 目前是否发送加密货币报价: ${GRB}是${NC} - ${GR}$GetPriceType${NC} "
+                    fi
+                    divline
+                    read -e -p "请选择是否发送加密货币报价  Y.是  其它/回车.否: " choice
                 fi
-                divline
-                read -e -p "请选择是否发送加密货币报价  Y.是  其它/回车.否: " choice
                 if [ "$choice" == "y" ] || [ "$choice" == "Y" ]; then
-                    echo "获取加密货币类型:"
-                    echo -e "${GR}1${NC}. bitcoin"
-                    echo -e "${GR}2${NC}. ethereum"
-                    echo -e "${GR}3${NC}. chia"
-                    echo -e "自定义网址查询: https://api.coingecko.com/api/v3/coins/list"
-                    read -e -p "请输入以上序号或自定义 (回车默认: bitcoin ): " inputb
+                    if [ "$autorun" == "false" ]; then
+                        echo "获取加密货币类型:"
+                        echo -e "${GR}1${NC}. bitcoin"
+                        echo -e "${GR}2${NC}. ethereum"
+                        echo -e "${GR}3${NC}. chia"
+                        echo -e "自定义网址查询: https://api.coingecko.com/api/v3/coins/list"
+                        read -e -p "请输入以上序号或自定义 (回车默认: chia ): " inputb
+                    fi
                     if [ -z "$inputb" ]; then
-                        GetPriceType="bitcoin"
+                        GetPriceType="chia"
                     elif [ "$inputb" == "1" ]; then
                         GetPriceType="bitcoin"
                     elif [ "$inputb" == "2" ]; then
@@ -1180,6 +1219,7 @@ while true; do
         current_date_send=\$(date +"%Y.%m.%d %T")
         old_message=\$new_message
         message="DOCKER 列表变更❗️"'
+'"主机名: $hostname_show"'
 '"───────────────"'
 '"\$new_message"'
 '"服务器时间: \$current_date_send"
@@ -1206,10 +1246,10 @@ EOF
 
 CheckCPU_top() {
     echo "正在检测 CPU 使用率..."
-    if top -n 1 | grep '^%Cpu(s)'; then
+    if top -bn 1 | grep '^%Cpu(s)'; then
         cpu_usage_ratio=$(awk '{ gsub(/us,|sy,|ni,|id,|:/, " ", $0); idle+=$5; count++ } END { printf "%.2f", 100 - (idle / count) }' <(grep "Cpu(s)" <(top -bn5 -d 3)))
     fi
-    if top -n 1 | grep -q '^CPU'; then
+    if top -bn 1 | grep -q '^CPU'; then
         cpu_usage_ratio=$(top -bn5 -d 3 | grep '^CPU' | awk '{ idle+=$8; count++ } END { printf "%.2f", 100 - (idle / count) }')
     fi
     echo "top检测结果: $cpu_usage_ratio | 日期: $(date)"
@@ -1233,7 +1273,7 @@ CheckCPU_top_sar() {
 GetInfo_now() {
     echo "正在获取系统信息..."
     # top_output=$(top -bn1)
-    top_output=$(top -n 1 -b | head -n 10)
+    top_output=$(top -bn 1 | head -n 10)
     echo "top: $top_output"
     if echo "$top_output" | grep -q "^%Cpu"; then
         # top -V
@@ -1393,6 +1433,8 @@ SetupCPU_TG() {
 
 CPUTools="$CPUTools"
 CPUThreshold="$CPUThreshold"
+
+export TERM=xterm
 
 $(declare -f CheckCPU_$CPUTools)
 $(declare -f GetInfo_now)
@@ -3463,6 +3505,11 @@ UN_SetAutoUpdate() {
 }
 
 UN_ALL() {
+    writeini "SHUTDOWN_RT" "false"
+    writeini "ProxyURL" ""
+    writeini "SendUptime" "false"
+    writeini "SendIP" "false"
+    writeini "SendPrice" "false"
     UN_SetupBoot_TG
     UN_SetupLogin_TG
     UN_SetupShutdown_TG
@@ -3483,6 +3530,10 @@ UN_ALL() {
     kill -9 $(ps | grep '[t]g_' | awk '{print $1}')
     fi
     crontab -l | grep -v "$FolderPath/tg_" | crontab -
+    current_date_send=$(date +"%Y.%m.%d %T")
+    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已执行一键删除所有通知 ☎️"'
+'"主机名: $hostname_show"'
+'"服务器时间: $current_date_send" &
     tips="$Tip 已取消 / 删除所有通知."
 }
 
@@ -3494,6 +3545,7 @@ DELFOLDER() {
                 rm -rf $FolderPath
                 folder_menu_tag=""
                 tips="$Tip $FolderPath 文件夹已经${RE}删除${NC}."
+                exit 0
             else
                 tips="$Tip $FolderPath 文件夹已经${GR}保留${NC}."
             fi
@@ -3508,6 +3560,7 @@ OneKeydefault () {
     mutebakup=$mute
     autorun=true
     mute=true
+    SetupIniFile
     SetupBoot_TG
     SetupLogin_TG
     SetupShutdown_TG
@@ -3539,6 +3592,11 @@ OneKeydefault () {
 '"流量使用率超 ${FlowThreshold_UB} 报警"'
 '"流量报告时间 ${ReportTime}"'
 '"自动更新时间 ${AutoUpdateTime}"'
+'"开启重启时记录流量"'
+'"开启TG代理"'
+'"开启发送在线时长"'
+'"开启发送IP地址"'
+'"开启发送货币报价"'
 '"───────────────"'
 '"服务器时间: $current_date_send" &
     fi
@@ -3715,7 +3773,7 @@ else
     sendprice_menu_tag="${GRB}Pi${NC}"
 fi
 CLS
-echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}    用户: $usreid
+echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
 -- tse | vtse.eu.org | $release -- 
                                 ${flowthm_menu_tag} ${sd_rt_menu_tag} ${proxy_menu_tag} ${senduptime_menu_tag} ${sendip_menu_tag} ${sendprice_menu_tag}
  ${GR}0.${NC} 检查依赖 / 设置参数 \t$reset_menu_tag
@@ -3740,6 +3798,7 @@ echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}    用户: 
  ———————————————————————————————————————————————
  ${GR}u.${NC} 设置自动更新脚本 \t$autoud_menu_tag
  ——————————————————————————————————————
+ ${GR}v.${NC} 查看配置文件
  ${GR}x.${NC} 退出脚本
 ————————————"
 if [ "$tips" = "" ]; then
@@ -3856,8 +3915,63 @@ case "$num" in
         SetAutoUpdate
     fi
     ;;
+    v|V)
+        # 查看配置文件
+        divline
+        cat $ConfigFile
+        divline
+        Pause
+    ;;
+    L)
+        # 清空所有*.log文件
+        # rm -f ${FolderPath}/*.log
+        LogFiles=( $(find ${FolderPath} -name "*.log") )
+        # printf '%s\n' "${LogFiles[@]}"
+        # rm -f "${LogFiles[@]}"
+        logn=1
+        divline
+        for file in "${LogFiles[@]}"; do
+            echo -e "${REB}$logn${NC}  $file"
+            ((logn++))
+        done
+        echo -e "${REB}A${NC}  清空所有 *log 文件!"
+        divline
+        read -e -p "请输入要 [清空] 的文件序号 : " lognum
+        if [ "$lognum" == "A" ] || [ "$lognum" == "a" ]; then
+            for file in "${LogFiles[@]}"; do > "$file"; done
+            tips="$Tip 已经清空所有 *log 文件!"
+        else
+            if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ]; then
+                tips="$Tip 输入有误 或 未找到对应的文件!"
+            else
+                > "${LogFiles[$((lognum-1))]}"
+                tips="$Tip 已经清空文件: ${LogFiles[$((lognum-1))]}"
+            fi
+        fi
+    ;;
+    l)
+        # 查看所有*.log文件
+        LogFiles=( $(find ${FolderPath} -name "*.log") )
+        logn=1
+        divline
+        for file in "${LogFiles[@]}"; do
+            echo -e "${GR}$logn${NC}  $file"
+            ((logn++))
+        done
+        divline
+        read -e -p "请输入要 [查看] 的文件序号 : " lognum
+        if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ]; then
+            tips="$Tip 输入有误 或 未找到对应的文件!"
+        else
+            divline
+            echo -e "${GRB}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
+            cat ${LogFiles[$((lognum-1))]}
+            divline
+            Pause
+        fi
+    ;;
     x|X)
-    exit 0
+        exit 0
     ;;
     *)
     tips="$Err 请输入正确数字或字母."
