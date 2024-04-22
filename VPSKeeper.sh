@@ -2576,7 +2576,7 @@ while true; do
 done
 EOF
     # # 此为单独计算网速的子脚本（暂未启用）
-    # chmod +x $FolderPath/tg_interface_re.sh
+    chmod +x $FolderPath/tg_interface_re.sh
     # pkill -f tg_interface_re.sh > /dev/null 2>&1 &
     # pkill -f tg_interface_re.sh > /dev/null 2>&1 &
     # kill $(ps | grep '[t]g_interface_re.sh' | awk '{print $1}')
@@ -3920,6 +3920,11 @@ case "$num" in
         divline
         cat $ConfigFile
         divline
+        echo -e "${GRB}调试指令:${NC}"
+        echo -e "l     - 查看log日志文件"
+        echo -e "ll    - 追踪查看log日志文件   需要 ${REB}CTRL+C${NC} 中止"
+        echo -e "L     - 删除log日志文件"
+        echo -e "ss    - 追踪查看当前网速      需要 ${REB}CTRL+C${NC} 中止"
         Pause
     ;;
     L)
@@ -3964,11 +3969,40 @@ case "$num" in
             tips="$Tip 输入有误 或 未找到对应的文件!"
         else
             divline
-            echo -e "${GRB}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
+            echo -e "${GR}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
             cat ${LogFiles[$((lognum-1))]}
             divline
             Pause
         fi
+    ;;
+    ll)
+        # 查看所有*.log文件
+        LogFiles=( $(find ${FolderPath} -name "*.log") )
+        logn=1
+        divline
+        for file in "${LogFiles[@]}"; do
+            echo -e "${GR}$logn${NC}  $file"
+            ((logn++))
+        done
+        divline
+        echo -e "${REB}注意${NC}  ${RE}此操作需要手动中止${NC}: ${REB}CTRL+C${NC}"
+        read -e -p "请输入要 [查看] 的文件序号 : " lognum
+        if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ]; then
+            tips="$Tip 输入有误 或 未找到对应的文件!"
+        else
+            divline
+            echo -e "${GR}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
+            tail -f ${LogFiles[$((lognum-1))]}
+            divline
+            Pause
+        fi
+    ;;
+    ss)
+        CLS
+        echo -e "${REB}注意${NC}  ${RE}此操作需要手动中止${NC}: ${REB}CTRL+C${NC}"
+        divline
+        $FolderPath/tg_interface_re.sh
+        Pause
     ;;
     x|X)
         exit 0
