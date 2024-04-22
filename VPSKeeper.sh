@@ -9,7 +9,7 @@ export PATH
 #	Author: tse
 #	Blog: https://vtse.eu.org
 #=================================================
-sh_ver="1.0.3"
+sh_ver="1.0.5"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
@@ -2478,108 +2478,11 @@ EOF
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
     fi
-    cat <<EOF > $FolderPath/tg_interface_re.sh
-#!/bin/bash
-
-$(declare -f Remove_B)
-
-if [ ! -d "$FolderPath" ]; then
-    mkdir -p "$FolderPath"
-fi
-FolderPath="$FolderPath"
-
-# 统计接口网速（只统所有接口）
-# interfaces=(\$(ip -br link | awk '{print \$1}'))
-
-# 统计接口网速（只统计 UP 接口）
-interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
-# interfaces=(\$(ip -br link | awk '{print \$1}'))
-for ((i=0; i<\${#interfaces_up[@]}; i++)); do
-    interface=\${interfaces_up[\$i]%@*}
-    interface=\${interface%:*}
-    interfaces_up[\$i]=\$interface
-done
-
-TT=5
-duration=0
-CLEAR_TAG=99
-CLEAR_TAG_OLD=\$CLEAR_TAG
-
-# 定义数组
-declare -A sp_prev_rx_bytes
-declare -A sp_prev_tx_bytes
-declare -A sp_current_rx_bytes
-declare -A sp_current_tx_bytes
-
-clear
-while true; do
-
-    # 获取tt秒前数据
-    sp_ov_prev_rx_bytes=0
-    sp_ov_prev_tx_bytes=0
-    for interface in "\${interfaces_up[@]}"; do
-        sp_prev_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
-        sp_prev_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
-        sp_ov_prev_rx_bytes=\$((sp_ov_prev_rx_bytes + sp_prev_rx_bytes[\$interface]))
-        sp_ov_prev_tx_bytes=\$((sp_ov_prev_tx_bytes + sp_prev_tx_bytes[\$interface]))
-    done
-
-    # 等待TT秒
-    end_time=\$(date +%s%N)
-    if [ ! -z "\$start_time" ]; then
-        time_diff=\$((end_time - start_time))
-        time_diff_ms=\$((time_diff / 1000000))
-
-        # 输出执行FOR所花费时间
-        # echo "上一个 FOR循环 所执行时间 \$time_diff_ms 毫秒."
-
-        duration=\$(awk "BEGIN {print \$time_diff_ms/1000}")
-        sleep_time=\$(awk -v v1=\$TT -v v2=\$duration 'BEGIN { printf "%.3f", v1 - v2 }')
-    else
-        sleep_time=\$TT
-    fi
-    sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
-    echo "休眠时间 (等..): \$sleep_time 秒  时间差: \$duration 秒  清屏: \$CLEAR_TAG"
-    sleep \$sleep_time
-    start_time=\$(date +%s%N)
-
-    # 获取TT秒后数据
-    sp_ov_current_rx_bytes=0
-    sp_ov_current_tx_bytes=0
-    for interface in "\${interfaces_up[@]}"; do
-        sp_current_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
-        sp_current_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
-        sp_ov_current_rx_bytes=\$((sp_ov_current_rx_bytes + sp_current_rx_bytes[\$interface]))
-        sp_ov_current_tx_bytes=\$((sp_ov_current_tx_bytes + sp_current_tx_bytes[\$interface]))
-    done
-
-    # 计算网速
-    sp_ov_rx_diff_speed=\$((sp_ov_current_rx_bytes - sp_ov_prev_rx_bytes))
-    sp_ov_tx_diff_speed=\$((sp_ov_current_tx_bytes - sp_ov_prev_tx_bytes))
-    rx_speed=\$(awk "BEGIN { speed = \$sp_ov_rx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-    tx_speed=\$(awk "BEGIN { speed = \$sp_ov_tx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-    rx_speed=\$(Remove_B "\$rx_speed")
-    tx_speed=\$(Remove_B "\$tx_speed")
-
-    echo "==================================================="
-    echo -e "SPEED_RX: \033[32m\$rx_speed\033[0m   SPEED_TX: \033[32m\$tx_speed\033[0m"
-    echo "-----------------------------------"
-
-    if [ \$CLEAR_TAG -eq 1 ]; then
-        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
-        CLEAR_TAG=\$((CLEAR_TAG_OLD + 1))
-        clear
-    else
-        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
-    fi
-    echo "SPEED_RX: \$rx_speed  SPEED_TX: \$tx_speed" >> \$FolderPath/interface_re.txt
-    echo "===================================================" >> \$FolderPath/interface_re.txt
-
-    CLEAR_TAG=\$((\$CLEAR_TAG - 1))
-done
-EOF
+#     cat <<EOF > $FolderPath/tg_interface_re.sh
+#     # 内容已经移位.
+# EOF
     # # 此为单独计算网速的子脚本（暂未启用）
-    chmod +x $FolderPath/tg_interface_re.sh
+    # chmod +x $FolderPath/tg_interface_re.sh
     # pkill -f tg_interface_re.sh > /dev/null 2>&1 &
     # pkill -f tg_interface_re.sh > /dev/null 2>&1 &
     # kill $(ps | grep '[t]g_interface_re.sh' | awk '{print $1}')
@@ -3776,7 +3679,7 @@ else
     sendprice_menu_tag="${GRB}Pi${NC}"
 fi
 CLS
-echo && echo -e "VPS 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
+echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
 -- tse | vtse.eu.org | $release -- 
                                 ${flowthm_menu_tag} ${sd_rt_menu_tag} ${proxy_menu_tag} ${senduptime_menu_tag} ${sendip_menu_tag} ${sendprice_menu_tag}
  ${GR}0.${NC} 检查依赖 / 设置参数 \t$reset_menu_tag
@@ -4012,6 +3915,115 @@ case "$num" in
         fi
     ;;
     ss)
+        # if [ ! -f $FolderPath/tg_interface_re.sh ]; then
+            cat <<EOF > $FolderPath/tg_interface_re.sh
+#!/bin/bash
+
+GR="\033[32m" && RE="\033[31m" && GRB="\033[42;37m" && REB="\033[41;37m" && NC="\033[0m"
+
+$(declare -f Remove_B)
+
+if [ ! -d "$FolderPath" ]; then
+    mkdir -p "$FolderPath"
+fi
+FolderPath="$FolderPath"
+
+# 统计接口网速（只统所有接口）
+# interfaces=(\$(ip -br link | awk '{print \$1}'))
+
+# 统计接口网速（只统计 UP 接口）
+interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+# interfaces=(\$(ip -br link | awk '{print \$1}'))
+for ((i=0; i<\${#interfaces_up[@]}; i++)); do
+    interface=\${interfaces_up[\$i]%@*}
+    interface=\${interface%:*}
+    interfaces_up[\$i]=\$interface
+done
+
+TT=2
+duration=0
+CLEAR_TAG=1
+CLEAR_TAG_OLD=\$CLEAR_TAG
+
+# 定义数组
+declare -A sp_prev_rx_bytes
+declare -A sp_prev_tx_bytes
+declare -A sp_current_rx_bytes
+declare -A sp_current_tx_bytes
+
+clear
+echo "网速计算:"
+echo "==================================================="
+while true; do
+
+    # 获取tt秒前数据
+    sp_ov_prev_rx_bytes=0
+    sp_ov_prev_tx_bytes=0
+    for interface in "\${interfaces_up[@]}"; do
+        sp_prev_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        sp_prev_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        sp_ov_prev_rx_bytes=\$((sp_ov_prev_rx_bytes + sp_prev_rx_bytes[\$interface]))
+        sp_ov_prev_tx_bytes=\$((sp_ov_prev_tx_bytes + sp_prev_tx_bytes[\$interface]))
+    done
+
+    # 等待TT秒
+    end_time=\$(date +%s%N)
+    if [ ! -z "\$start_time" ]; then
+        time_diff=\$((end_time - start_time))
+        time_diff_ms=\$((time_diff / 1000000))
+
+        # 输出执行FOR所花费时间
+        # echo "上一个 FOR循环 所执行时间 \$time_diff_ms 毫秒."
+
+        duration=\$(awk "BEGIN {print \$time_diff_ms/1000}")
+        sleep_time=\$(awk -v v1=\$TT -v v2=\$duration 'BEGIN { printf "%.3f", v1 - v2 }')
+    else
+        sleep_time=\$TT
+    fi
+    sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
+    echo "==================================================="
+    # echo -e "间隔: \$sleep_time 秒    时差: \$duration 秒  CLS: \$CLEAR_TAG"
+    echo -e "${RE}注意: 按${NC}${REB}任意键${NC}${RE}退出.  不要按 CTRL+C${NC}"
+    sleep \$sleep_time
+    start_time=\$(date +%s%N)
+
+    # 获取TT秒后数据
+    sp_ov_current_rx_bytes=0
+    sp_ov_current_tx_bytes=0
+    for interface in "\${interfaces_up[@]}"; do
+        sp_current_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        sp_current_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        sp_ov_current_rx_bytes=\$((sp_ov_current_rx_bytes + sp_current_rx_bytes[\$interface]))
+        sp_ov_current_tx_bytes=\$((sp_ov_current_tx_bytes + sp_current_tx_bytes[\$interface]))
+    done
+
+    # 计算网速
+    sp_ov_rx_diff_speed=\$((sp_ov_current_rx_bytes - sp_ov_prev_rx_bytes))
+    sp_ov_tx_diff_speed=\$((sp_ov_current_tx_bytes - sp_ov_prev_tx_bytes))
+    rx_speed=\$(awk "BEGIN { speed = \$sp_ov_rx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+    tx_speed=\$(awk "BEGIN { speed = \$sp_ov_tx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+    rx_speed=\$(Remove_B "\$rx_speed")
+    tx_speed=\$(Remove_B "\$tx_speed")
+
+    if [ \$CLEAR_TAG -eq 1 ]; then
+        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
+        CLEAR_TAG=\$((CLEAR_TAG_OLD + 1))
+        clear
+        echo "网速计算 (间隔: \$TT 秒):"
+        echo "======================================= 端口: \${interfaces_up[@]}"
+    else
+        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
+    fi
+
+    echo -e "接收: \${GR}\${rx_speed}\${NC} /s     发送: \${GR}\${tx_speed}\${NC} /s"
+    echo "接收: \$rx_speed  发送: \$tx_speed" >> \$FolderPath/interface_re.txt
+    echo "===================================================" >> \$FolderPath/interface_re.txt
+
+    CLEAR_TAG=\$((\$CLEAR_TAG - 1))
+done
+EOF
+            chmod +x $FolderPath/tg_interface_re.sh
+        # fi
         CLS
         echo -e "${RE}注意${NC}:  ${REB}按任意键中止${NC}"
         divline
