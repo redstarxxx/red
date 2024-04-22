@@ -1938,6 +1938,9 @@ SetupFlow_TG() {
         output=$(ip -br link)
         IFS=$'\n'
         count=1
+        choice_array=()
+        interfaces_ST=()
+        w_interfaces_ST=()
         for line in $output; do
             columns_1=$(echo "$line" | awk '{print $1}')
             columns_1_array+=("$columns_1")
@@ -1956,8 +1959,6 @@ SetupFlow_TG() {
             return 1
         fi
         if [ ! -z "$choice" ]; then
-            choice_array=()
-            interfaces_ST=()
             choice="${choice//[, ]/}"
             for (( i=0; i<${#choice}; i++ )); do
             char="${choice:$i:1}"
@@ -2548,6 +2549,9 @@ SetFlowReport_TG() {
         output=$(ip -br link)
         IFS=$'\n'
         count=1
+        choice_array=()
+        interfaces_RP=()
+        w_interfaces_RP=()
         for line in $output; do
             columns_1=$(echo "$line" | awk '{print $1}')
             columns_1_array+=("$columns_1")
@@ -2566,8 +2570,6 @@ SetFlowReport_TG() {
             return 1
         fi
         if [ ! -z "$choice" ]; then
-            choice_array=()
-            interfaces_RP=()
             choice="${choice//[, ]/}"
             for (( i=0; i<${#choice}; i++ )); do
             char="${choice:$i:1}"
@@ -3915,11 +3917,92 @@ case "$num" in
         fi
     ;;
     ss)
+        interfaces_re_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
+        output=$(ip -br link)
+        IFS=$'\n'
+        count=1
+        choice_array=()
+        interfaces_re=()
+        show_interfaces_re=()
+        for line in $output; do
+            columns_1=$(echo "$line" | awk '{print $1}')
+            columns_1_array+=("$columns_1")
+            columns_2=$(echo "$line" | awk '{print $1"\t"$2}')
+            if [[ $interfaces_re_0 =~ $columns_1 ]]; then
+                printf "${GR}%d. %s${NC}\n" "$count" "$columns_2"
+            else
+                printf "${GR}%d. ${NC}%s\n" "$count" "$columns_1"
+            fi
+            ((count++))
+        done
+        echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活动接口:"
+        read -e -p "请输入统计接口编号: " choice
+        if [[ $choice == *0* ]]; then
+            tips="$Err 接口编号中没有 0 选项"
+            return 1
+        fi
+        if [ ! -z "$choice" ]; then
+            choice="${choice//[, ]/}"
+            for (( i=0; i<${#choice}; i++ )); do
+            char="${choice:$i:1}"
+            if [[ "$char" =~ [0-9] ]]; then
+                choice_array+=("$char")
+            fi
+            done
+            # echo "解析后的接口编号数组: ${choice_array[@]}"
+            for item in "${choice_array[@]}"; do
+                index=$((item - 1))
+                if [ -z "${columns_1_array[index]}" ]; then
+                    tips="$Err 错误: 输入的编号 $item 无效或超出范围."
+                    return 1
+                else
+                    interfaces_re+=("${columns_1_array[index]}")
+                fi
+            done
+            for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
+                show_interfaces_re+="${interfaces_re[$i]}"
+                if ((i < ${#interfaces_re[@]} - 1)); then
+                    show_interfaces_re+=","
+                fi
+            done
+            # echo "确认选择接口: interfaces_re: ${interfaces_re[@]}  show_interfaces_re: $show_interfaces_re"
+            # Pause
+        else
+            interfaces_all=$(ip -br link | awk '{print $1}')
+            active_interfaces=()
+            echo "检查网络接口流量情况..."
+            for interface in $interfaces_all
+            do
+            clean_interface=${interface%%@*}
+            stats=$(ip -s link show $clean_interface)
+            rx_packets=$(echo "$stats" | awk '/RX:/{getline; print $2}')
+            tx_packets=$(echo "$stats" | awk '/TX:/{getline; print $2}')
+            if [ "$rx_packets" -gt 0 ] || [ "$tx_packets" -gt 0 ]; then
+                echo "接口: $clean_interface 活跃, 接收: $rx_packets 包, 发送: $tx_packets 包."
+                active_interfaces+=($clean_interface)
+            else
+                echo "接口: $clean_interface 不活跃."
+            fi
+            done
+            echo -e "$Tip 检测到活动的接口: ${active_interfaces[@]}"
+            interfaces_re=("${active_interfaces[@]}")
+            for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
+                show_interfaces_re+="${interfaces_re[$i]}"
+                if ((i < ${#interfaces_re[@]} - 1)); then
+                    show_interfaces_re+=","
+                fi
+            done
+            # echo "确认选择接口: interfaces_re: $interfaces_re  show_interfaces_re: $show_interfaces_re"
+            # Pause
+        fi
         # if [ ! -f $FolderPath/tg_interface_re.sh ]; then
             cat <<EOF > $FolderPath/tg_interface_re.sh
 #!/bin/bash
 
 GR="\033[32m" && RE="\033[31m" && GRB="\033[42;37m" && REB="\033[41;37m" && NC="\033[0m"
+Inf="\${GR}[信息]\${NC}:"
+Err="\${RE}[错误]\${NC}:"
+Tip="\${GR}[提示]\${NC}:"
 
 $(declare -f Remove_B)
 
@@ -3932,12 +4015,22 @@ FolderPath="$FolderPath"
 # interfaces=(\$(ip -br link | awk '{print \$1}'))
 
 # 统计接口网速（只统计 UP 接口）
-interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+# interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces=(\$(ip -br link | awk '{print \$1}'))
-for ((i=0; i<\${#interfaces_up[@]}; i++)); do
-    interface=\${interfaces_up[\$i]%@*}
+
+# 去重并且保持原有顺序，分割字符串为数组
+IFS=',' read -ra interfaces_r <<< "$(echo "$show_interfaces_re" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
+
+for ((i=0; i<\${#interfaces_r[@]}; i++)); do
+    interface=\${interfaces_r[\$i]%@*}
     interface=\${interface%:*}
-    interfaces_up[\$i]=\$interface
+    interfaces_r[\$i]=\$interface
+done
+for ((i = 0; i < \${#interfaces_r[@]}; i++)); do
+    show_interfaces+="\${interfaces_r[\$i]}"
+    if ((i < \${#interfaces_r[@]} - 1)); then
+        show_interfaces+=","
+    fi
 done
 
 TT=2
@@ -3959,7 +4052,7 @@ while true; do
     # 获取tt秒前数据
     sp_ov_prev_rx_bytes=0
     sp_ov_prev_tx_bytes=0
-    for interface in "\${interfaces_up[@]}"; do
+    for interface in "\${interfaces_r[@]}"; do
         sp_prev_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
         sp_prev_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
         sp_ov_prev_rx_bytes=\$((sp_ov_prev_rx_bytes + sp_prev_rx_bytes[\$interface]))
@@ -3983,14 +4076,16 @@ while true; do
     sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
     echo "==================================================="
     # echo -e "间隔: \$sleep_time 秒    时差: \$duration 秒  CLS: \$CLEAR_TAG"
-    echo -e "${RE}注意: 按${NC}${REB}任意键${NC}${RE}退出.  不要按 CTRL+C${NC}"
+    echo -e "统计接口: \$show_interfaces"
+    echo
+    echo -e "\${RE}注意: 按\${NC}\${REB}任意键\${NC}\${RE}退出.  不要按 CTRL+C\${NC}"
     sleep \$sleep_time
     start_time=\$(date +%s%N)
 
     # 获取TT秒后数据
     sp_ov_current_rx_bytes=0
     sp_ov_current_tx_bytes=0
-    for interface in "\${interfaces_up[@]}"; do
+    for interface in "\${interfaces_r[@]}"; do
         sp_current_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
         sp_current_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
         sp_ov_current_rx_bytes=\$((sp_ov_current_rx_bytes + sp_current_rx_bytes[\$interface]))
@@ -4010,7 +4105,7 @@ while true; do
         CLEAR_TAG=\$((CLEAR_TAG_OLD + 1))
         clear
         echo "网速计算 (间隔: \$TT 秒):"
-        echo "======================================= 端口: \${interfaces_up[@]}"
+        echo "==================================================="
     else
         echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
     fi
