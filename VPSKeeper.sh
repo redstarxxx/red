@@ -906,6 +906,9 @@ EOF
                     writeini "GetIPURL" "$GetIPURL"
                     writeini "GetIP46" "$GetIP46"
                     echo -e "$Tip 已开启发送IP地址, 从 ${GRB}$GetIPURL (IPv$GetIP46)${NC} 处获取."
+                    TestIP=$(curl -s -"$GetIP46" "$GetIPURL")
+                    echo -e "测试结果: ${GR}$TestIP${NC}"
+
                 else
                     writeini "SendIP" "false"
                     echo -e "$Tip 已关闭发送IP地址."
