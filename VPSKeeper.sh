@@ -499,7 +499,7 @@ SetupIniFile() {
         else
             divline
             echo -e "${GR}1${NC}.BOT Token ${GR}2${NC}.CHAT ID ${GR}3${NC}.CPU检测工具 (默认使用 top)"
-            if $SHUTDOWN_RT; then
+            if [ "$SHUTDOWN_RT" == "true" ]; then
                 srtag="(${RE}已启动${NC})"
             else
                 srtag=""
@@ -1378,9 +1378,9 @@ ratioandprogress() {
         progress="🚫"
         ratio=""
     else
-        if $lto; then
+        if [ "$lto" == "true" ]; then
             ratio="🔽"
-        elif $gtoh; then
+        elif [ "$gtoh" == "true" ]; then
             ratio="🔼"
         else
             ratio="${ratio}%"
@@ -2084,17 +2084,17 @@ tt=10
 duration=0
 StatisticsMode="$StatisticsMode"
 
-if $SendUptime; then
+if [ "$SendUptime" == "true" ]; then
     SendUptime="true"
 else
     SendUptime="false"
 fi
-if $SendIP; then
+if [ "$SendIP" == "true" ]; then
     SendIP="true"
 else
     SendIP="false"
 fi
-if $SendPrice; then
+if [ "$SendPrice" == "true" ]; then
     SendPrice="true"
 else
     SendPrice="false"
@@ -2776,12 +2776,12 @@ $(declare -f Bytes_BtoKBMBGB)
 $(declare -f Remove_B)
 StatisticsMode="$StatisticsMode"
 
-if $SendUptime; then
+if [ "$SendUptime" == "true" ]; then
     SendUptime="true"
 else
     SendUptime="false"
 fi
-if $SendIP; then
+if [ "$SendIP" == "true" ]; then
     SendIP="true"
 else
     SendIP="false"
