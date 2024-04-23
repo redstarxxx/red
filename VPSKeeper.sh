@@ -600,9 +600,11 @@ SetupIniFile() {
                 # 设置流量上限（仅参考）
                 read -e -p "请设置 流量上限 数字 + MB/GB/TB (回车默认: $FlowThresholdMAX_de): " threshold_max
                 if [ ! -z "$threshold_max" ]; then
-                    if [[ $threshold_max =~ ^[0-9]+(\.[0-9])?$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(M)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
+                    if [[ $threshold_max =~ ^[0-9]+(\.[0-9])?$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(M)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(m)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(mb)$ ]]; then
                         threshold_max=${threshold_max%M}
                         threshold_max=${threshold_max%MB}
+                        threshold_max=${threshold_max%m}
+                        threshold_max=${threshold_max%mb}
                         if awk -v value="$threshold_max" 'BEGIN { exit !(value >= 1024 * 1024) }'; then
                             threshold_max=$(awk -v value="$threshold_max" 'BEGIN { printf "%.1f", value / (1024 * 1024) }')
                             threshold_max="${threshold_max}TB"
@@ -613,9 +615,11 @@ SetupIniFile() {
                             threshold_max="${threshold_max}MB"
                         fi
                         writeini "FlowThresholdMAX" "$threshold_max"
-                    elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(G)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
+                    elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(G)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(g)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(gb)$ ]]; then
                         threshold_max=${threshold_max%G}
                         threshold_max=${threshold_max%GB}
+                        threshold_max=${threshold_max%g}
+                        threshold_max=${threshold_max%gb}
                         if awk -v value="$threshold_max" 'BEGIN { exit !(value >= 1024) }'; then
                             threshold_max=$(awk -v value="$threshold_max"_max 'BEGIN { printf "%.1f", value / 1024 }')
                             threshold_max="${threshold_max}TB"
@@ -623,9 +627,11 @@ SetupIniFile() {
                             threshold_max="${threshold_max}GB"
                         fi
                         writeini "FlowThresholdMAX" "$threshold_max"
-                    elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(T)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(TB)$ ]]; then
+                    elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(T)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(TB)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(t)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(tb)$ ]]; then
                         threshold_max=${threshold_max%T}
                         threshold_max=${threshold_max%TB}
+                        threshold_max=${threshold_max%t}
+                        threshold_max=${threshold_max%tb}
                         threshold_max="${threshold_max}TB"
                         writeini "FlowThresholdMAX" "$threshold_max"
                     else
@@ -1855,9 +1861,11 @@ SetupFlow_TG() {
         tips="$Tip 输入为空, 跳过操作."
         return 1
     fi
-    if [[ $threshold =~ ^[0-9]+(\.[0-9])?$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(M)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
+    if [[ $threshold =~ ^[0-9]+(\.[0-9])?$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(M)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(m)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(mb)$ ]]; then
         threshold=${threshold%M}
         threshold=${threshold%MB}
+        threshold=${threshold%m}
+        threshold=${threshold%mb}
         if awk -v value="$threshold" 'BEGIN { exit !(value >= 1024 * 1024) }'; then
             threshold=$(awk -v value="$threshold" 'BEGIN { printf "%.1f", value / (1024 * 1024) }')
             threshold="${threshold}TB"
@@ -1868,9 +1876,11 @@ SetupFlow_TG() {
             threshold="${threshold}MB"
         fi
         writeini "FlowThreshold" "$threshold"
-    elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(G)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
+    elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(G)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(g)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(gb)$ ]]; then
         threshold=${threshold%G}
         threshold=${threshold%GB}
+        threshold=${threshold%g}
+        threshold=${threshold%gb}
         if awk -v value="$threshold" 'BEGIN { exit !(value >= 1024) }'; then
             threshold=$(awk -v value="$threshold" 'BEGIN { printf "%.1f", value / 1024 }')
             threshold="${threshold}TB"
@@ -1878,13 +1888,16 @@ SetupFlow_TG() {
             threshold="${threshold}GB"
         fi
         writeini "FlowThreshold" "$threshold"
-    elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(T)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(TB)$ ]]; then
+    elif [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(T)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(TB)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(t)$ ]] || [[ $threshold =~ ^[0-9]+(\.[0-9]+)?(tb)$ ]]; then
         threshold=${threshold%T}
         threshold=${threshold%TB}
+        threshold=${threshold%t}
+        threshold=${threshold%tb}
         threshold="${threshold}TB"
         writeini "FlowThreshold" "$threshold"
     else
-        echo -e "$Err ${REB}输入无效${NC}, 报警阈值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
+        echo -e "$Err ${REB}输入无效${NC}, 报警阈值 必须是: 数字|数字MB/数字GB (%.1f) 的格式."
+        tips="$Err ${REB}输入无效${NC}, 报警阈值 必须是: 数字|数字MB/数字GB (%.1f) 的格式."
         return 1
     fi
     if [ "$autorun" == "false" ]; then
@@ -1897,9 +1910,11 @@ SetupFlow_TG() {
         fi
     fi
     if [ ! -z "$threshold_max" ]; then
-        if [[ $threshold_max =~ ^[0-9]+(\.[0-9])?$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(M)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]]; then
+        if [[ $threshold_max =~ ^[0-9]+(\.[0-9])?$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(M)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(m)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(mb)$ ]]; then
             threshold_max=${threshold_max%M}
             threshold_max=${threshold_max%MB}
+            threshold_max=${threshold_max%m}
+            threshold_max=${threshold_max%mb}
             if awk -v value="$threshold_max" 'BEGIN { exit !(value >= 1024 * 1024) }'; then
                 threshold_max=$(awk -v value="$threshold_max" 'BEGIN { printf "%.1f", value / (1024 * 1024) }')
                 threshold_max="${threshold_max}TB"
@@ -1910,9 +1925,11 @@ SetupFlow_TG() {
                 threshold_max="${threshold_max}MB"
             fi
             writeini "FlowThresholdMAX" "$threshold_max"
-        elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(G)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]]; then
+        elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(G)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(GB)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(g)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(gb)$ ]]; then
             threshold_max=${threshold_max%G}
             threshold_max=${threshold_max%GB}
+            threshold_max=${threshold_max%g}
+            threshold_max=${threshold_max%gb}
             if awk -v value="$threshold_max" 'BEGIN { exit !(value >= 1024) }'; then
                 threshold_max=$(awk -v value="$threshold_max"_max 'BEGIN { printf "%.1f", value / 1024 }')
                 threshold_max="${threshold_max}TB"
@@ -1920,13 +1937,16 @@ SetupFlow_TG() {
                 threshold_max="${threshold_max}GB"
             fi
             writeini "FlowThresholdMAX" "$threshold_max"
-        elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(T)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(TB)$ ]]; then
+        elif [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(T)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(TB)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(t)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(tb)$ ]]; then
             threshold_max=${threshold_max%T}
             threshold_max=${threshold_max%TB}
+            threshold_max=${threshold_max%t}
+            threshold_max=${threshold_max%tb}
             threshold_max="${threshold_max}TB"
             writeini "FlowThresholdMAX" "$threshold_max"
         else
-            echo -e "$Err ${REB}输入无效${NC}, 报警阈值 必须是: 数字|数字MB/数字GB (%.1f) 的格式(支持1位小数), 跳过操作."
+            echo -e "$Err ${REB}输入无效${NC}, 报警阈值 必须是: 数字|数字MB/数字GB (%.1f) 的格式."
+            tips="$Err ${REB}输入无效${NC}, 报警阈值 必须是: 数字|数字MB/数字GB (%.1f) 的格式."
             return 1
         fi
     else
@@ -4029,7 +4049,7 @@ echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 ${RE}[v${sh_ver}]${NC
  ———————————————————————————————————————————————
  ${GR}u.${NC} 设置自动更新脚本 \t$autoud_menu_tag
  ——————————————————————————————————————
- ${GR}v.${NC} 查看配置文件
+ ${GR}v.${NC} 查看配置文件 (及部分隐藏指令)
  ${GR}x.${NC} 退出脚本
 ————————————"
 if [ "$tips" = "" ]; then
