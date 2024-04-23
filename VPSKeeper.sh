@@ -3711,6 +3711,17 @@ T_NETSPEED() {
         # echo "确认选择接口: interfaces_re: $interfaces_re  show_interfaces_re: $show_interfaces_re"
         # Pause
     fi
+    read -e -p "请输入统计间隔时间 (回车默认 2 秒) : " inputtt
+    if [ -z "$inputtt" ]; then
+        nstt=2
+    else
+        if [[ $inputtt =~ ^[0-9]+(\.[0-9])?$ ]]; then
+            nstt=$inputtt
+        else
+            tips="输入有误."
+            return
+        fi
+    fi
     # if [ ! -f $FolderPath/tg_interface_re.sh ]; then
         cat <<EOF > $FolderPath/tg_interface_re.sh
 #!/bin/bash
@@ -3749,7 +3760,7 @@ for ((i = 0; i < \${#interfaces_r[@]}; i++)); do
     fi
 done
 
-TT=2
+TT=$nstt
 duration=0
 CLEAR_TAG=1
 CLEAR_TAG_OLD=\$CLEAR_TAG
