@@ -112,6 +112,8 @@ CheckSys() {
         release="ubuntu"
     elif cat /etc/issue 2>/dev/null | grep -q -E -i "centos|red hat|redhat"; then
         release="centos"
+    elif cat /etc/issue 2>/dev/null | grep -q -E -i "Armbian"; then
+        release="Armbian"
     elif cat /proc/version 2>/dev/null | grep -q -E -i "debian"; then
         release="debian"
     elif cat /proc/version 2>/dev/null | grep -q -E -i "ubuntu"; then
