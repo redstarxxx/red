@@ -2024,6 +2024,12 @@ SetupFlow_TG() {
         fi
         echo "interfaces_ST: $interfaces_ST"
     fi
+    for ((i = 0; i < ${#interfaces[@]}; i++)); do
+        show_interfaces_ST+="${interfaces_ST[$i]}"
+        if ((i < ${#interfaces_ST[@]} - 1)); then
+            show_interfaces_ST+=","
+        fi
+    done
     if [ "$autorun" == "false" ]; then
         read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为单独发送): " mode
         if [ "$mode" == "1" ]; then
@@ -2505,7 +2511,7 @@ EOF
 # EOF
 #     systemctl enable tg_interface_re.service > /dev/null
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"检测接口: $interfaces_ST"$'\n'"💡当流量达阈值 $FlowThreshold_UB 时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"检测接口: $show_interfaces_ST"$'\n'"💡当流量达阈值 $FlowThreshold_UB 时将收到通知." &
     fi
     tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_UB 时将收到通知."
 }
@@ -3413,11 +3419,13 @@ UN_SetAutoUpdate() {
 }
 
 UN_ALL() {
-    writeini "SHUTDOWN_RT" "false"
-    writeini "ProxyURL" ""
-    writeini "SendUptime" "false"
-    writeini "SendIP" "false"
-    writeini "SendPrice" "false"
+    if [ "$autorun" == "false" ]; then
+        writeini "SHUTDOWN_RT" "false"
+        writeini "ProxyURL" ""
+        writeini "SendUptime" "false"
+        writeini "SendIP" "false"
+        writeini "SendPrice" "false"
+    fi
     UN_SetupBoot_TG
     UN_SetupLogin_TG
     UN_SetupShutdown_TG
@@ -3438,11 +3446,13 @@ UN_ALL() {
     kill -9 $(ps | grep '[t]g_' | awk '{print $1}')
     fi
     crontab -l | grep -v "$FolderPath/tg_" | crontab -
-    current_date_send=$(date +"%Y.%m.%d %T")
-    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已执行一键删除所有通知 ☎️"'
+    if [ "$autorun" == "false" ]; then
+        current_date_send=$(date +"%Y.%m.%d %T")
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已执行一键删除所有通知 ☎️"'
 '"主机名: $hostname_show"'
 '"服务器时间: $current_date_send" &
-    tips="$Tip 已取消 / 删除所有通知."
+        tips="$Tip 已取消 / 删除所有通知."
+    fi
 }
 
 DELFOLDER() {
@@ -3464,7 +3474,7 @@ DELFOLDER() {
 }
 
 # 一键默认设置
-OneKeydefault () {
+OneKeydefault() {
     mutebakup=$mute
     autorun=true
     mute=true
@@ -3512,6 +3522,318 @@ OneKeydefault () {
     autorun=false
     mute=false
     mute=$mutebakup
+}
+
+# 清空所有*.log文件
+DELLOGFILE() {
+    # rm -f ${FolderPath}/*.log
+    LogFiles=( $(find ${FolderPath} -name "*.log") )
+    # printf '%s\n' "${LogFiles[@]}"
+    # rm -f "${LogFiles[@]}"
+    logn=1
+    divline
+    for file in "${LogFiles[@]}"; do
+        echo -e "${REB}$logn${NC}  $file"
+        ((logn++))
+    done
+    echo -e "${REB}A${NC}  清空所有 *log 文件!"
+    divline
+    read -e -p "请输入要 [清空] 的文件序号 : " lognum
+    if [ "$lognum" == "A" ] || [ "$lognum" == "a" ]; then
+        for file in "${LogFiles[@]}"; do > "$file"; done
+        tips="$Tip 已经清空所有 *log 文件!"
+    else
+        if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ]; then
+            tips="$Tip 输入有误 或 未找到对应的文件!"
+        else
+            > "${LogFiles[$((lognum-1))]}"
+            tips="$Tip 已经清空文件: ${LogFiles[$((lognum-1))]}"
+        fi
+    fi
+}
+
+# 查看*.log文件
+VIEWLOG() {
+    LogFiles=( $(find ${FolderPath} -name "*.log") )
+    logn=1
+    divline
+    for file in "${LogFiles[@]}"; do
+        echo -e "${GR}$logn${NC}  $file"
+        ((logn++))
+    done
+    divline
+    read -e -p "请输入要 [查看] 的文件序号 : " lognum
+    if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ]; then
+        tips="$Tip 输入有误 或 未找到对应的文件!"
+    else
+        divline
+        echo -e "${GR}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
+        cat ${LogFiles[$((lognum-1))]}
+        divline
+        Pause
+    fi
+}
+
+# 跟踪查看*.log文件
+T_VIEWLOG() {
+    LogFiles=( $(find ${FolderPath} -name "*.log") )
+    logn=1
+    divline
+    for file in "${LogFiles[@]}"; do
+        echo -e "${GR}$logn${NC}  $file"
+        ((logn++))
+    done
+    divline
+    echo -e "${RE}注意${NC}:  ${REB}按任意键中止${NC}"
+    read -e -p "请输入要 [查看] 的文件序号 : " lognum
+    if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ]; then
+        tips="$Tip 输入有误 或 未找到对应的文件!"
+    else
+        stty intr ^- # 禁用 CTRL+C
+        divline
+        echo -e "${GR}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
+        tail -f ${LogFiles[$((lognum-1))]} &
+        tail_pid=$!
+        read -n 1 -s -r -p ""
+        stty intr ^C # 恢复 CTRL+C
+        # stty sane # 重置终端设置为默认值
+        kill -2 $tail_pid 2>/dev/null
+        pkill -f tail
+        kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null
+        pgrep -f tail | xargs kill -9 2>/dev/null
+        if pgrep -x tail > /dev/null; then
+            echo -e "中止失败!! 请执行以下指令中止!"
+            echo -e "中止指令1: ${REB}pkill -f tail${NC}"
+            echo -e "中止指令2: ${REB}kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null${NC}"
+        fi
+        divline
+        Pause
+    fi
+}
+
+# 跟踪查看当前网速
+T_NETSPEED() {
+    interfaces_re_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
+    output=$(ip -br link)
+    IFS=$'\n'
+    count=1
+    choice_array=()
+    interfaces_re=()
+    show_interfaces_re=()
+    for line in $output; do
+        columns_1=$(echo "$line" | awk '{print $1}')
+        columns_1_array+=("$columns_1")
+        columns_2=$(echo "$line" | awk '{print $1"\t"$2}')
+        if [[ $interfaces_re_0 =~ $columns_1 ]]; then
+            printf "${GR}%d. %s${NC}\n" "$count" "$columns_2"
+        else
+            printf "${GR}%d. ${NC}%s\n" "$count" "$columns_1"
+        fi
+        ((count++))
+    done
+    echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活动接口:"
+    read -e -p "请输入统计接口编号: " choice
+    if [[ $choice == *0* ]]; then
+        tips="$Err 接口编号中没有 0 选项"
+        return 1
+    fi
+    if [ ! -z "$choice" ]; then
+        choice="${choice//[, ]/}"
+        for (( i=0; i<${#choice}; i++ )); do
+        char="${choice:$i:1}"
+        if [[ "$char" =~ [0-9] ]]; then
+            choice_array+=("$char")
+        fi
+        done
+        # echo "解析后的接口编号数组: ${choice_array[@]}"
+        for item in "${choice_array[@]}"; do
+            index=$((item - 1))
+            if [ -z "${columns_1_array[index]}" ]; then
+                tips="$Err 错误: 输入的编号 $item 无效或超出范围."
+                return 1
+            else
+                interfaces_re+=("${columns_1_array[index]}")
+            fi
+        done
+        for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
+            show_interfaces_re+="${interfaces_re[$i]}"
+            if ((i < ${#interfaces_re[@]} - 1)); then
+                show_interfaces_re+=","
+            fi
+        done
+        # echo "确认选择接口: interfaces_re: ${interfaces_re[@]}  show_interfaces_re: $show_interfaces_re"
+        # Pause
+    else
+        interfaces_all=$(ip -br link | awk '{print $1}')
+        active_interfaces=()
+        echo "检查网络接口流量情况..."
+        for interface in $interfaces_all
+        do
+        clean_interface=${interface%%@*}
+        stats=$(ip -s link show $clean_interface)
+        rx_packets=$(echo "$stats" | awk '/RX:/{getline; print $2}')
+        tx_packets=$(echo "$stats" | awk '/TX:/{getline; print $2}')
+        if [ "$rx_packets" -gt 0 ] || [ "$tx_packets" -gt 0 ]; then
+            echo "接口: $clean_interface 活跃, 接收: $rx_packets 包, 发送: $tx_packets 包."
+            active_interfaces+=($clean_interface)
+        else
+            echo "接口: $clean_interface 不活跃."
+        fi
+        done
+        echo -e "$Tip 检测到活动的接口: ${active_interfaces[@]}"
+        interfaces_re=("${active_interfaces[@]}")
+        for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
+            show_interfaces_re+="${interfaces_re[$i]}"
+            if ((i < ${#interfaces_re[@]} - 1)); then
+                show_interfaces_re+=","
+            fi
+        done
+        # echo "确认选择接口: interfaces_re: $interfaces_re  show_interfaces_re: $show_interfaces_re"
+        # Pause
+    fi
+    # if [ ! -f $FolderPath/tg_interface_re.sh ]; then
+        cat <<EOF > $FolderPath/tg_interface_re.sh
+#!/bin/bash
+
+GR="\033[32m" && RE="\033[31m" && GRB="\033[42;37m" && REB="\033[41;37m" && NC="\033[0m"
+Inf="\${GR}[信息]\${NC}:"
+Err="\${RE}[错误]\${NC}:"
+Tip="\${GR}[提示]\${NC}:"
+
+$(declare -f Remove_B)
+
+if [ ! -d "$FolderPath" ]; then
+    mkdir -p "$FolderPath"
+fi
+FolderPath="$FolderPath"
+
+# 统计接口网速（只统所有接口）
+# interfaces=(\$(ip -br link | awk '{print \$1}'))
+
+# 统计接口网速（只统计 UP 接口）
+# interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+# interfaces=(\$(ip -br link | awk '{print \$1}'))
+
+# 去重并且保持原有顺序，分割字符串为数组
+IFS=',' read -ra interfaces_r <<< "$(echo "$show_interfaces_re" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
+
+for ((i=0; i<\${#interfaces_r[@]}; i++)); do
+    interface=\${interfaces_r[\$i]%@*}
+    interface=\${interface%:*}
+    interfaces_r[\$i]=\$interface
+done
+for ((i = 0; i < \${#interfaces_r[@]}; i++)); do
+    show_interfaces+="\${interfaces_r[\$i]}"
+    if ((i < \${#interfaces_r[@]} - 1)); then
+        show_interfaces+=","
+    fi
+done
+
+TT=2
+duration=0
+CLEAR_TAG=1
+CLEAR_TAG_OLD=\$CLEAR_TAG
+
+# 定义数组
+declare -A sp_prev_rx_bytes
+declare -A sp_prev_tx_bytes
+declare -A sp_current_rx_bytes
+declare -A sp_current_tx_bytes
+
+clear
+echo "实时网速计算中..."
+echo "==========================================="
+while true; do
+
+    # 获取tt秒前数据
+    sp_ov_prev_rx_bytes=0
+    sp_ov_prev_tx_bytes=0
+    for interface in "\${interfaces_r[@]}"; do
+        sp_prev_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        sp_prev_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        sp_ov_prev_rx_bytes=\$((sp_ov_prev_rx_bytes + sp_prev_rx_bytes[\$interface]))
+        sp_ov_prev_tx_bytes=\$((sp_ov_prev_tx_bytes + sp_prev_tx_bytes[\$interface]))
+    done
+
+    # 等待TT秒
+    end_time=\$(date +%s%N)
+    if [ ! -z "\$start_time" ]; then
+        time_diff=\$((end_time - start_time))
+        time_diff_ms=\$((time_diff / 1000000))
+
+        # 输出执行FOR所花费时间
+        # echo "上一个 FOR循环 所执行时间 \$time_diff_ms 毫秒."
+
+        duration=\$(awk "BEGIN {print \$time_diff_ms/1000}")
+        sleep_time=\$(awk -v v1=\$TT -v v2=\$duration 'BEGIN { printf "%.3f", v1 - v2 }')
+    else
+        sleep_time=\$TT
+    fi
+    sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
+    echo "==========================================="
+    # echo -e "间隔: \$sleep_time 秒    时差: \$duration 秒  CLS: \$CLEAR_TAG"
+    echo -e "统计接口: \$show_interfaces"
+    echo
+    echo -e "\${RE}按任意键退出\${NC}"
+    sleep \$sleep_time
+    start_time=\$(date +%s%N)
+
+    # 获取TT秒后数据
+    sp_ov_current_rx_bytes=0
+    sp_ov_current_tx_bytes=0
+    for interface in "\${interfaces_r[@]}"; do
+        sp_current_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
+        sp_current_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
+        sp_ov_current_rx_bytes=\$((sp_ov_current_rx_bytes + sp_current_rx_bytes[\$interface]))
+        sp_ov_current_tx_bytes=\$((sp_ov_current_tx_bytes + sp_current_tx_bytes[\$interface]))
+    done
+
+    # 计算网速
+    sp_ov_rx_diff_speed=\$((sp_ov_current_rx_bytes - sp_ov_prev_rx_bytes))
+    sp_ov_tx_diff_speed=\$((sp_ov_current_tx_bytes - sp_ov_prev_tx_bytes))
+    rx_speed=\$(awk "BEGIN { speed = \$sp_ov_rx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+    tx_speed=\$(awk "BEGIN { speed = \$sp_ov_tx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+    rx_speed=\$(Remove_B "\$rx_speed")
+    tx_speed=\$(Remove_B "\$tx_speed")
+
+    if [ \$CLEAR_TAG -eq 1 ]; then
+        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
+        CLEAR_TAG=\$((CLEAR_TAG_OLD + 1))
+        clear
+        echo -e "\${GRB}实时网速\${NC}                              (\${TT}s)"
+        echo "==========================================="
+    else
+        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
+    fi
+
+    echo -e "接收: \${GR}\${rx_speed}\${NC} /s      发送: \${GR}\${tx_speed}\${NC} /s"
+    echo "接收: \$rx_speed  发送: \$tx_speed" >> \$FolderPath/interface_re.txt
+    echo "===========================================" >> \$FolderPath/interface_re.txt
+
+    CLEAR_TAG=\$((\$CLEAR_TAG - 1))
+done
+EOF
+        chmod +x $FolderPath/tg_interface_re.sh
+    # fi
+    CLS
+    echo -e "${RE}注意${NC}:  ${REB}按任意键中止${NC}"
+    stty intr ^- # 禁用 CTRL+C
+    divline
+    $FolderPath/tg_interface_re.sh &
+    tg_interface_re_pid=$!
+    read -n 1 -s -r -p ""
+    stty intr ^C # 恢复 CTRL+C
+    # stty sane # 重置终端设置为默认值
+    kill -2 $tg_interface_re_pid 2>/dev/null
+    pkill -f tg_interface_re
+    kill $(ps | grep '[t]g_interface_re' | awk '{print $1}') 2>/dev/null
+    pgrep -f tg_interface_re | xargs kill -9 2>/dev/null
+    if pgrep -x tg_interface_re > /dev/null; then
+        echo -e "中止失败!! 请执行以下指令中止!"
+        echo -e "中止指令1: ${REB}pkill -f tg_interface_re${NC}"
+        echo -e "中止指令2: ${REB}kill $(ps | grep '[t]g_interface_re' | awk '{print $1}') 2>/dev/null${NC}"
+    fi
+    divline
 }
 
 # 主程序
@@ -3613,7 +3935,8 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
 
     if [ "$1" != "mute" ] && [ "$2" != "mute" ] && [ "$3" != "mute" ]; then
         if [[ "$boot_menu_tag" == "$SETTAG" || "$login_menu_tag" == "$SETTAG" || "$shutdown_menu_tag" == "$SETTAG" || "$cpu_menu_tag" == "$SETTAG" || "$mem_menu_tag" == "$SETTAG" || "$disk_menu_tag" == "$SETTAG" || "$flow_menu_tag" == "$SETTAG" || "$flowrp_menu_tag" == "$SETTAG" || "$docker_menu_tag" == "$SETTAG" || "$autoud_menu_tag" == "$SETTAG" ]] && [[ "$Setuped" ]]; then
-            message="脚本已更新.（ 主机名: $hostname_show ）"
+            current_date_send=$(date +"%Y.%m.%d %T")
+            message="VPSKeeper 脚本已更新 ♻️"$'\n'"主机名: $hostname_show"$'\n'"服务器时间: $current_date_send"
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" &
         fi
     fi
@@ -3836,306 +4159,16 @@ case "$num" in
         Pause
     ;;
     L)
-        # 清空所有*.log文件
-        # rm -f ${FolderPath}/*.log
-        LogFiles=( $(find ${FolderPath} -name "*.log") )
-        # printf '%s\n' "${LogFiles[@]}"
-        # rm -f "${LogFiles[@]}"
-        logn=1
-        divline
-        for file in "${LogFiles[@]}"; do
-            echo -e "${REB}$logn${NC}  $file"
-            ((logn++))
-        done
-        echo -e "${REB}A${NC}  清空所有 *log 文件!"
-        divline
-        read -e -p "请输入要 [清空] 的文件序号 : " lognum
-        if [ "$lognum" == "A" ] || [ "$lognum" == "a" ]; then
-            for file in "${LogFiles[@]}"; do > "$file"; done
-            tips="$Tip 已经清空所有 *log 文件!"
-        else
-            if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ]; then
-                tips="$Tip 输入有误 或 未找到对应的文件!"
-            else
-                > "${LogFiles[$((lognum-1))]}"
-                tips="$Tip 已经清空文件: ${LogFiles[$((lognum-1))]}"
-            fi
-        fi
+        DELLOGFILE
     ;;
     l)
-        # 查看所有*.log文件
-        LogFiles=( $(find ${FolderPath} -name "*.log") )
-        logn=1
-        divline
-        for file in "${LogFiles[@]}"; do
-            echo -e "${GR}$logn${NC}  $file"
-            ((logn++))
-        done
-        divline
-        read -e -p "请输入要 [查看] 的文件序号 : " lognum
-        if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ]; then
-            tips="$Tip 输入有误 或 未找到对应的文件!"
-        else
-            divline
-            echo -e "${GR}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
-            cat ${LogFiles[$((lognum-1))]}
-            divline
-            Pause
-        fi
+        VIEWLOG
     ;;
     ll)
-        # 查看所有*.log文件
-        LogFiles=( $(find ${FolderPath} -name "*.log") )
-        logn=1
-        divline
-        for file in "${LogFiles[@]}"; do
-            echo -e "${GR}$logn${NC}  $file"
-            ((logn++))
-        done
-        divline
-        echo -e "${RE}注意${NC}:  ${REB}按任意键中止${NC}"
-        read -e -p "请输入要 [查看] 的文件序号 : " lognum
-        if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ]; then
-            tips="$Tip 输入有误 或 未找到对应的文件!"
-        else
-            divline
-            echo -e "${GR}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
-            tail -f ${LogFiles[$((lognum-1))]} &
-            tail_pid=$!
-            read -n 1 -s -r -p ""
-            kill -2 $tail_pid 2>/dev/null
-            pkill -f tail
-            kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null
-            pgrep -f tail | xargs kill -9 2>/dev/null
-            if pgrep -x tail > /dev/null; then
-                echo -e "中止失败!! 请执行以下指令中止!"
-                echo -e "中止指令1: ${REB}pkill -f tail${NC}"
-                echo -e "中止指令2: ${REB}kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null${NC}"
-            fi
-            divline
-            Pause
-        fi
+        T_VIEWLOG
     ;;
     ss)
-        interfaces_re_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
-        output=$(ip -br link)
-        IFS=$'\n'
-        count=1
-        choice_array=()
-        interfaces_re=()
-        show_interfaces_re=()
-        for line in $output; do
-            columns_1=$(echo "$line" | awk '{print $1}')
-            columns_1_array+=("$columns_1")
-            columns_2=$(echo "$line" | awk '{print $1"\t"$2}')
-            if [[ $interfaces_re_0 =~ $columns_1 ]]; then
-                printf "${GR}%d. %s${NC}\n" "$count" "$columns_2"
-            else
-                printf "${GR}%d. ${NC}%s\n" "$count" "$columns_1"
-            fi
-            ((count++))
-        done
-        echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活动接口:"
-        read -e -p "请输入统计接口编号: " choice
-        if [[ $choice == *0* ]]; then
-            tips="$Err 接口编号中没有 0 选项"
-            return 1
-        fi
-        if [ ! -z "$choice" ]; then
-            choice="${choice//[, ]/}"
-            for (( i=0; i<${#choice}; i++ )); do
-            char="${choice:$i:1}"
-            if [[ "$char" =~ [0-9] ]]; then
-                choice_array+=("$char")
-            fi
-            done
-            # echo "解析后的接口编号数组: ${choice_array[@]}"
-            for item in "${choice_array[@]}"; do
-                index=$((item - 1))
-                if [ -z "${columns_1_array[index]}" ]; then
-                    tips="$Err 错误: 输入的编号 $item 无效或超出范围."
-                    return 1
-                else
-                    interfaces_re+=("${columns_1_array[index]}")
-                fi
-            done
-            for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
-                show_interfaces_re+="${interfaces_re[$i]}"
-                if ((i < ${#interfaces_re[@]} - 1)); then
-                    show_interfaces_re+=","
-                fi
-            done
-            # echo "确认选择接口: interfaces_re: ${interfaces_re[@]}  show_interfaces_re: $show_interfaces_re"
-            # Pause
-        else
-            interfaces_all=$(ip -br link | awk '{print $1}')
-            active_interfaces=()
-            echo "检查网络接口流量情况..."
-            for interface in $interfaces_all
-            do
-            clean_interface=${interface%%@*}
-            stats=$(ip -s link show $clean_interface)
-            rx_packets=$(echo "$stats" | awk '/RX:/{getline; print $2}')
-            tx_packets=$(echo "$stats" | awk '/TX:/{getline; print $2}')
-            if [ "$rx_packets" -gt 0 ] || [ "$tx_packets" -gt 0 ]; then
-                echo "接口: $clean_interface 活跃, 接收: $rx_packets 包, 发送: $tx_packets 包."
-                active_interfaces+=($clean_interface)
-            else
-                echo "接口: $clean_interface 不活跃."
-            fi
-            done
-            echo -e "$Tip 检测到活动的接口: ${active_interfaces[@]}"
-            interfaces_re=("${active_interfaces[@]}")
-            for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
-                show_interfaces_re+="${interfaces_re[$i]}"
-                if ((i < ${#interfaces_re[@]} - 1)); then
-                    show_interfaces_re+=","
-                fi
-            done
-            # echo "确认选择接口: interfaces_re: $interfaces_re  show_interfaces_re: $show_interfaces_re"
-            # Pause
-        fi
-        # if [ ! -f $FolderPath/tg_interface_re.sh ]; then
-            cat <<EOF > $FolderPath/tg_interface_re.sh
-#!/bin/bash
-
-GR="\033[32m" && RE="\033[31m" && GRB="\033[42;37m" && REB="\033[41;37m" && NC="\033[0m"
-Inf="\${GR}[信息]\${NC}:"
-Err="\${RE}[错误]\${NC}:"
-Tip="\${GR}[提示]\${NC}:"
-
-$(declare -f Remove_B)
-
-if [ ! -d "$FolderPath" ]; then
-    mkdir -p "$FolderPath"
-fi
-FolderPath="$FolderPath"
-
-# 统计接口网速（只统所有接口）
-# interfaces=(\$(ip -br link | awk '{print \$1}'))
-
-# 统计接口网速（只统计 UP 接口）
-# interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
-# interfaces=(\$(ip -br link | awk '{print \$1}'))
-
-# 去重并且保持原有顺序，分割字符串为数组
-IFS=',' read -ra interfaces_r <<< "$(echo "$show_interfaces_re" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
-
-for ((i=0; i<\${#interfaces_r[@]}; i++)); do
-    interface=\${interfaces_r[\$i]%@*}
-    interface=\${interface%:*}
-    interfaces_r[\$i]=\$interface
-done
-for ((i = 0; i < \${#interfaces_r[@]}; i++)); do
-    show_interfaces+="\${interfaces_r[\$i]}"
-    if ((i < \${#interfaces_r[@]} - 1)); then
-        show_interfaces+=","
-    fi
-done
-
-TT=2
-duration=0
-CLEAR_TAG=1
-CLEAR_TAG_OLD=\$CLEAR_TAG
-
-# 定义数组
-declare -A sp_prev_rx_bytes
-declare -A sp_prev_tx_bytes
-declare -A sp_current_rx_bytes
-declare -A sp_current_tx_bytes
-
-clear
-echo "网速计算:"
-echo "==================================================="
-while true; do
-
-    # 获取tt秒前数据
-    sp_ov_prev_rx_bytes=0
-    sp_ov_prev_tx_bytes=0
-    for interface in "\${interfaces_r[@]}"; do
-        sp_prev_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
-        sp_prev_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
-        sp_ov_prev_rx_bytes=\$((sp_ov_prev_rx_bytes + sp_prev_rx_bytes[\$interface]))
-        sp_ov_prev_tx_bytes=\$((sp_ov_prev_tx_bytes + sp_prev_tx_bytes[\$interface]))
-    done
-
-    # 等待TT秒
-    end_time=\$(date +%s%N)
-    if [ ! -z "\$start_time" ]; then
-        time_diff=\$((end_time - start_time))
-        time_diff_ms=\$((time_diff / 1000000))
-
-        # 输出执行FOR所花费时间
-        # echo "上一个 FOR循环 所执行时间 \$time_diff_ms 毫秒."
-
-        duration=\$(awk "BEGIN {print \$time_diff_ms/1000}")
-        sleep_time=\$(awk -v v1=\$TT -v v2=\$duration 'BEGIN { printf "%.3f", v1 - v2 }')
-    else
-        sleep_time=\$TT
-    fi
-    sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
-    echo "==================================================="
-    # echo -e "间隔: \$sleep_time 秒    时差: \$duration 秒  CLS: \$CLEAR_TAG"
-    echo -e "统计接口: \$show_interfaces"
-    echo
-    echo -e "\${RE}注意: 按\${NC}\${REB}任意键\${NC}\${RE}退出.  不要按 CTRL+C\${NC}"
-    sleep \$sleep_time
-    start_time=\$(date +%s%N)
-
-    # 获取TT秒后数据
-    sp_ov_current_rx_bytes=0
-    sp_ov_current_tx_bytes=0
-    for interface in "\${interfaces_r[@]}"; do
-        sp_current_rx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
-        sp_current_tx_bytes[\$interface]=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
-        sp_ov_current_rx_bytes=\$((sp_ov_current_rx_bytes + sp_current_rx_bytes[\$interface]))
-        sp_ov_current_tx_bytes=\$((sp_ov_current_tx_bytes + sp_current_tx_bytes[\$interface]))
-    done
-
-    # 计算网速
-    sp_ov_rx_diff_speed=\$((sp_ov_current_rx_bytes - sp_ov_prev_rx_bytes))
-    sp_ov_tx_diff_speed=\$((sp_ov_current_tx_bytes - sp_ov_prev_tx_bytes))
-    rx_speed=\$(awk "BEGIN { speed = \$sp_ov_rx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-    tx_speed=\$(awk "BEGIN { speed = \$sp_ov_tx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-    rx_speed=\$(Remove_B "\$rx_speed")
-    tx_speed=\$(Remove_B "\$tx_speed")
-
-    if [ \$CLEAR_TAG -eq 1 ]; then
-        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
-        CLEAR_TAG=\$((CLEAR_TAG_OLD + 1))
-        clear
-        echo "网速计算 (间隔: \$TT 秒):"
-        echo "==================================================="
-    else
-        echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
-    fi
-
-    echo -e "接收: \${GR}\${rx_speed}\${NC} /s     发送: \${GR}\${tx_speed}\${NC} /s"
-    echo "接收: \$rx_speed  发送: \$tx_speed" >> \$FolderPath/interface_re.txt
-    echo "===================================================" >> \$FolderPath/interface_re.txt
-
-    CLEAR_TAG=\$((\$CLEAR_TAG - 1))
-done
-EOF
-            chmod +x $FolderPath/tg_interface_re.sh
-        # fi
-        CLS
-        echo -e "${RE}注意${NC}:  ${REB}按任意键中止${NC}"
-        divline
-        $FolderPath/tg_interface_re.sh &
-        tg_interface_re_pid=$!
-        read -n 1 -s -r -p ""
-        kill -2 $tg_interface_re_pid 2>/dev/null
-        pkill -f tg_interface_re
-        kill $(ps | grep '[t]g_interface_re' | awk '{print $1}') 2>/dev/null
-        pgrep -f tg_interface_re | xargs kill -9 2>/dev/null
-        if pgrep -x tg_interface_re > /dev/null; then
-            echo -e "中止失败!! 请执行以下指令中止!"
-            echo -e "中止指令1: ${REB}pkill -f tg_interface_re${NC}"
-            echo -e "中止指令2: ${REB}kill $(ps | grep '[t]g_interface_re' | awk '{print $1}') 2>/dev/null${NC}"
-        fi
-        divline
-        Pause
+        T_NETSPEED
     ;;
     x|X)
         exit 0
