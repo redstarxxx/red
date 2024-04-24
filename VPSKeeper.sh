@@ -1844,6 +1844,28 @@ Bytes_BtoKBMBGB ()
     echo "$bitvalue"
 }
 
+# 数组去重处理
+unique_array() {
+    local array_in=("$@")
+    local array_out=()
+    array_out=($(printf "%s\n" "${array_in[@]}" | awk '!a[$0]++'))
+    echo "${array_out[*]}"
+}
+
+# 数组加入分隔符
+sep_array() {
+    local -n array_in=$1 # 引用传入的数组名称
+    local separator=$2   # 分隔符
+    local array_out=""
+    for ((i = 0; i < ${#array_in[@]}; i++)); do
+        array_out+="${array_in[$i]}"
+        if ((i < ${#array_in[@]} - 1)); then
+            array_out+="$separator"
+        fi
+    done
+    echo "$array_out"
+}
+
 # 设置流量报警
 SetupFlow_TG() {
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
@@ -2046,12 +2068,14 @@ SetupFlow_TG() {
         fi
         echo "interfaces_ST: $interfaces_ST"
     fi
-    for ((i = 0; i < ${#interfaces[@]}; i++)); do
-        show_interfaces_ST+="${interfaces_ST[$i]}"
-        if ((i < ${#interfaces_ST[@]} - 1)); then
-            show_interfaces_ST+=","
-        fi
-    done
+    interfaces_ST=($(unique_array "${interfaces_ST[@]}")) # 去重处理
+    show_interfaces_ST=$(sep_array interfaces_ST ",") # 加入分隔符
+    # for ((i = 0; i < ${#interfaces_ST[@]}; i++)); do
+    #     show_interfaces_ST+="${interfaces_ST[$i]}"
+    #     if ((i < ${#interfaces_ST[@]} - 1)); then
+    #         show_interfaces_ST+=","
+    #     fi
+    # done
     if [ "$autorun" == "false" ]; then
         read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为单独发送): " mode
         if [ "$mode" == "1" ]; then
@@ -2237,8 +2261,9 @@ while true; do
 
     fi
     sendtag=false
-
-    echo "\${prev_rx_bytes_T[\$interface]} \${prev_tx_bytes_T[\$interface]} \$ov_prev_rx_bytes_T \$ov_prev_tx_bytes_T"
+    echo "上一次发送前记录 (为了避免在发送过程中未统计到而造成数据遗漏):"
+    echo "SE模式: rx_bytes[\$interface]: \${prev_rx_bytes_T[\$interface]} tx_bytes[\$interface]: \${prev_tx_bytes_T[\$interface]}"
+    echo "OV模式: ov_rx_bytes: \$ov_prev_rx_bytes_T ov_tx_bytes: \$ov_prev_tx_bytes_T"
 
     sp_ov_prev_rx_bytes=0
     sp_ov_prev_tx_bytes=0
@@ -2336,9 +2361,9 @@ while true; do
         all_tx=\$(Remove_B "\$all_tx")
 
         # 调试使用(tt秒的流量增量)
-        echo "RX_diff(BYTES): \$rx_diff TX_diff(BYTES): \$tx_diff"
+        echo "RX_diff(BYTES): \$rx_diff_bytes TX_diff(BYTES): \$tx_diff_bytes   SE模式下达到 \$THRESHOLD_BYTES 时报警"
         # 调试使用(叠加流量增量)
-        echo "OV_RX_diff(BYTES): \$ov_rx_diff_bytes OV_TX_diff(BYTES): \$ov_tx_diff_bytes "
+        echo "OV_RX_diff(BYTES): \$ov_rx_diff_bytes OV_TX_diff(BYTES): \$ov_tx_diff_bytes   OV模式下达到 \$THRESHOLD_BYTES 时报警"
         # 调试使用(TT前记录的流量)
         echo "Prev_rx_bytes_T(BYTES): \${prev_rx_bytes_T[\$interface]} Prev_tx_bytes_T(BYTES): \${prev_tx_bytes_T[\$interface]}"
         # # 调试使用(持续的流量增加)
@@ -2347,8 +2372,8 @@ while true; do
         echo "OV_Current_RX(BYTES): \$ov_current_rx_bytes OV_Current_TX(BYTES): \$ov_current_tx_bytes"
         # 调试使用(网速)
         echo "rx_speed: \$rx_speed  tx_speed: \$tx_speed"
-        # 是否发送在线时长
-        echo "SendUptime: \$SendUptime"
+        # 状态
+        echo "统计模式: \$StatisticsMode   发送在线时长: \$SendUptime   发送IP: \$SendIP   发送货币报价: \$SendPrice"
 
         # 检查是否超过阈值
         if [ "\$StatisticsMode" == "SE" ]; then
@@ -2663,12 +2688,8 @@ SetFlowReport_TG() {
         fi
         echo "interfaces_RP: $interfaces_RP"
     fi
-    for ((i = 0; i < ${#interfaces[@]}; i++)); do
-        show_interfaces_RP+="${interfaces_RP[$i]}"
-        if ((i < ${#interfaces_RP[@]} - 1)); then
-            show_interfaces_RP+=","
-        fi
-    done
+    interfaces_RP=($(unique_array "${interfaces_RP[@]}")) # 去重处理
+    show_interfaces_RP=$(sep_array interfaces_RP ",") # 加入分隔符
     if [ "$autorun" == "false" ]; then
         read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为单独发送): " mode
         if [ "$mode" == "1" ]; then
