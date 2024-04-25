@@ -9,6 +9,25 @@ export PATH
 #	Author: tse
 #	Blog: https://vtse.eu.org
 #=================================================
+
+# 颜色代码
+GR="\033[32m" && RE="\033[31m" && GRB="\033[42;37m" && REB="\033[41;37m" && NC="\033[0m"
+Inf="${GR}[信息]${NC}:"
+Err="${RE}[错误]${NC}:"
+Tip="${GR}[提示]${NC}:"
+SETTAG="${GR}-> 已设置${NC}"
+UNSETTAG="${RE}-> 未设置${NC}"
+
+# 检测是否root用户
+if [ "$(id -u)" -ne 0 ]; then
+    echo "非 \"root权限\" 用户, 请使用 \"root\" 用户或 \"sudo\" 指令执行."
+    usreid="${REB}非ROOT权限${NC}"
+    exit 1
+else
+    usreid="${GRB}ROOT权限${NC}"
+fi
+
+# 基本参数
 sh_ver="1.0.5"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
@@ -21,37 +40,14 @@ FlowThreshold_de="3GB"
 FlowThresholdMAX_de="500GB"
 ReportTime_de="00:00"
 AutoUpdateTime_de="01:01"
-interfaces_RP_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
-interfaces_RP_de=("${interfaces_RP_0[@]}")
-StatisticsMode_RP_de="SE"
-interfaces_ST_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
-interfaces_ST_de=("${interfaces_ST_0[@]}")
-StatisticsMode_ST_de="SE"
-# StatisticsMode_ST_de="OV" # 整体统计
-# StatisticsMode_ST_de="SE" # 单独统计
 
-# 导入参数
-# if [ -f $ConfigFile ]; then
-#     source $ConfigFile
-# fi
-
-# 颜色代码
-GR="\033[32m" && RE="\033[31m" && GRB="\033[42;37m" && REB="\033[41;37m" && NC="\033[0m"
-Inf="${GR}[信息]${NC}:"
-Err="${RE}[错误]${NC}:"
-Tip="${GR}[提示]${NC}:"
-SETTAG="${GR}-> 已设置${NC}"
-UNSETTAG="${RE}-> 未设置${NC}"
-
-# 检测是否root用户
-(EUID=$(id -u)) 2>/dev/null
-if [ "$EUID" -ne 0 ]; then
-    echo "非 \"root权限\" 用户, 请使用 \"root\" 用户或 \"sudo\" 指令执行."
-    usreid="${REB}非ROOT权限${NC}"
-    exit 1
-else
-    usreid="${GRB}ROOT权限${NC}"
-fi
+# 写入ini文件
+writeini() {
+    if grep -q "^$1=" $ConfigFile; then
+        sed -i "/^$1=/d" $ConfigFile
+    fi
+    echo "$1=$2" >> $ConfigFile
+}
 
 # 创建.shfile目录
 CheckAndCreateFolder() {
@@ -137,6 +133,105 @@ CheckSys() {
         fi
     fi
 }
+
+# 数组去重处理
+# interfaces=($(redup_array "${interfaces[@]}"))
+redup_array() {
+    local array_in=("$@")
+    local array_out=()
+    array_out=($(printf "%s\n" "${array_in[@]}" | awk '!a[$0]++'))
+    echo "${array_out[@]}"
+}
+
+# 去除数组@及其后面
+clear_array() {
+    local array_in=("$@")
+    local array_clear=""
+    local array_out=()
+    for ((i=0; i<${#array_in[@]}; i++)); do
+        array_clear=${array_in[$i]%@*}
+        array_clear=${array_clear%:*}
+        array_out[$i]=$array_clear
+    done
+    echo "${array_out[@]}"
+}
+
+# 数组加入分隔符
+# interfaces=$(sep_array interfaces ",")
+sep_array() {
+    local -n array_in=$1 # 引用传入的数组名称
+    local separator=$2   # 分隔符
+    local array_out=""
+    for ((i = 0; i < ${#array_in[@]}; i++)); do
+        array_out+="${array_in[$i]}"
+        if ((i < ${#array_in[@]} - 1)); then
+            array_out+="$separator"
+        fi
+    done
+    echo "$array_out"
+}
+
+# 将'.'转换成'_' (主要是变量中不允许包含'.' 而很多VLAN设置都包含'.', 比如: eth0.1)
+# interfaces=($(dtu_array "${interfaces[@]}"))
+# choice="${choice//[, ]/}" # 删除','和'空格'
+# choice="${choice//,/_}" # 替换','为'_'
+# choice="${choice//[\[\]]/}" # 删除方括号'['和']'
+dtu_array() {
+    local array_in=("$@")
+    local -a array_out=()
+    for item in "${array_in[@]}"; do
+        local new_item="${item//./_}"
+        array_out+=("$new_item")
+    done
+    echo "${array_out[@]}"
+}
+
+# 将字串与变量结合组成新的变量
+# INTERFACE_RX=$(caav "INTERFACE_RX" "$interface" "$rx_bytes")
+caav() {
+    local parameter="$1"
+    local string="$2"  # 输入的字符串
+    local variable="$3"  # 输入的变量名
+    local value="$4"  # 输入的值
+    local new_variable="${string}_${variable}"  # 新的变量名
+    declare "$new_variable"="$value"  # 声明并赋值
+    # 输出
+    if [ "$parameter" == "-n" ]; then
+        echo "$new_variable"  # 输出新变量的名称
+    fi
+    if [ "$parameter" == "-v" ]; then
+        echo "${!new_variable}"  # 输出新变量的值 (此意思是将new_variable的值作为变量并输出它的值)
+    fi
+}
+
+declare -a interfaces_all=() # 声明数组
+declare -a interfaces_up=()
+# interfaces_all=$(ip -br link | awk '{print $1}')
+interfaces_all=$(ip -br link | awk '{print $1}' | tr '\n' ' ')
+# readarray -t interfaces_all < <(ip -br link | awk '{print $1}')
+interfaces_all=($(redup_array "${interfaces_all[@]}"))
+interfaces_all=($(clear_array "${interfaces_all[@]}"))
+# interfaces_all=($(dtu_array "${interfaces_all[@]}"))
+interfaces_up=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo" | tr '\n' ' ')
+interfaces_up=($(redup_array "${interfaces_up[@]}"))
+interfaces_up=($(clear_array "${interfaces_up[@]}"))
+# interfaces_up=($(dtu_array "${interfaces_up[@]}"))
+# 以下两种复制方法:
+# interfaces=(${interfaces_all[@]}) # 复制数组(interfaces_all必须已经声明)
+# declare -a interfaces=($interfaces_all) # 声明+复制数组
+
+# echo "interfaces_all: ${interfaces_all[@]}" # 调试
+# echo "interfaces_up: ${interfaces_up[@]}" # 调试
+# Pause # 调试
+
+interfaces_RP_0=("${interfaces_up[@]}")
+interfaces_RP_de=("${interfaces_RP_0[@]}")
+StatisticsMode_RP_de="SE"
+interfaces_ST_0=("${interfaces_up[@]}")
+interfaces_ST_de=("${interfaces_ST_0[@]}")
+StatisticsMode_ST_de="SE"
+# StatisticsMode_ST_de="OV" # 整体统计
+# StatisticsMode_ST_de="SE" # 单独统计
 
 # 检测设置标记
 CheckSetup() {
@@ -662,104 +757,96 @@ SetupIniFile() {
                         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
                         break
                     fi
-                    read -e -p "请选择是否开启 设置关机记录流量  N.关闭(删除记录)  回车.开启(默认): " choice
+                    read -e -p "请选择是否开启 设置关机记录流量  Y.开启  其它/回车.关闭(删除记录): " choice
                 fi
-                if [ "$choice" == "n" ] || [ "$choice" == "N" ]; then
-                    systemctl stop tg_shutdown_rt.service > /dev/null 2>&1
-                    systemctl disable tg_shutdown_rt.service > /dev/null 2>&1
-                    sleep 1
-                    rm -f /etc/systemd/system/tg_shutdown_rt.service
-
-                    interfaces_get=$(ip -br link | awk '{print $1}')
-                    declare -a interfaces=($interfaces_get)
-                    for ((i=0; i<${#interfaces[@]}; i++)); do
-                        interface=${interfaces[$i]%@*}
-                        interface=${interface%:*}
-                        interfaces[$i]=$interface
-                        sed -i "/^INTERFACE_RT_RX_MB\[$interface\]=/d" $ConfigFile
-                        sed -i "/^INTERFACE_RT_TX_MB\[$interface\]=/d" $ConfigFile
-                    done
-                    writeini "SHUTDOWN_RT" "false"
-                    echo -e "$Tip 关机记录流量 (已删除记录) 已经取消 / 删除."
-                else
+                if [ "$choice" == "y" ] || [ "$choice" == "Y" ]; then
                     cat <<EOF > $FolderPath/tg_shutdown_rt.sh
 #!/bin/bash
 
 ConfigFile=$ConfigFile
+
 $(declare -f writeini)
+$(declare -f redup_array)
+$(declare -f clear_array)
+$(declare -f caav)
 
-declare -A INTERFACE_RT_RX_b
-declare -A INTERFACE_RT_TX_b
-declare -A INTERFACE_RT_RX_MB
-declare -A INTERFACE_RT_TX_MB
+declare -A INTERFACE_RT_RX_B
+declare -A INTERFACE_RT_TX_B
+declare -A INTERFACE_RT_RX_PB
+declare -A INTERFACE_RT_TX_PB
+declare -a interfaces_all=()
 
-interfaces_get=\$(ip -br link | awk '{print \$1}')
-declare -a interfaces=(\$interfaces_get)
-echo "1统计接口: \${interfaces[@]}"
-for ((i = 0; i < \${#interfaces[@]}; i++)); do
-    echo "\$((i+1)): \${interfaces[i]}"
-done
-for ((i=0; i<\${#interfaces[@]}; i++)); do
-    interface=\${interfaces[\$i]%@*}
-    interface=\${interface%:*}
-    interfaces[\$i]=\$interface
-done
+interfaces_all=\$(ip -br link | awk '{print \$1}' | tr '\n' ' ')
+interfaces_all=(\$(redup_array "\${interfaces_all[@]}"))
+interfaces_all=(\$(clear_array "\${interfaces_all[@]}"))
+# declare -a interfaces=(\$interfaces_all)
+interfaces=(\${interfaces_all[@]})
+# echo "统计接口: \${interfaces[@]}"
+# for ((i = 0; i < \${#interfaces[@]}; i++)); do
+#     echo "\$((i+1)): \${interfaces[i]}"
+# done
+
 source \$ConfigFile
+
 for interface in "\${interfaces[@]}"; do
+    interface_nodot=\${interface//./_}
+    INTERFACE_RT_RX_PB[\$interface]=\${INTERFACE_RT_RX_B[\$interface_nodot]}
+    # echo "读取: INTERFACE_RT_RX_PB[\$interface]: \${INTERFACE_RT_RX_PB[\$interface]}"
+    INTERFACE_RT_TX_PB[\$interface]=\${INTERFACE_RT_TX_B[\$interface_nodot]}
+    # echo "读取: INTERFACE_RT_TX_PB[\$interface]: \${INTERFACE_RT_TX_PB[\$interface]}"
+done
+
+for interface in "\${interfaces[@]}"; do
+    interface_nodot=\${interface//./_}
     echo "----------------------------------- FOR: \$interface"
     rx_bytes=\$(ip -s link show \$interface | awk '/RX:/ { getline; print \$1 }')
     echo "rx_bytes: \$rx_bytes"
     if [ ! -z "\$rx_bytes" ] && [[ \$rx_bytes =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-        INTERFACE_RT_RX_b[\$interface]=\$rx_bytes
-        writeini "INTERFACE_RT_RX_b[\$interface]" "\${INTERFACE_RT_RX_b[\$interface]}"
-        INTERFACE_RT_RX_MB_TEMP=\$(awk -v v1="\$rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
 
-        if [ ! -z "\${INTERFACE_RT_RX_MB[\$interface]}" ] && [[ \${INTERFACE_RT_RX_MB[\$interface]} =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-            INTERFACE_RT_RX_MB[\$interface]=\$(awk -v v1="\$INTERFACE_RT_RX_MB_TEMP" -v v2="\${INTERFACE_RT_RX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
-        else
-            INTERFACE_RT_RX_MB[\$interface]=\$(awk -v v1="\$rx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
+        INTERFACE_RT_RX_B[\$interface]=\$rx_bytes
+        if [ ! -z "\${INTERFACE_RT_RX_PB[\$interface]}" ] && [[ \${INTERFACE_RT_RX_PB[\$interface]} =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+            INTERFACE_RT_RX_B[\$interface]=\$(awk -v v1="\${INTERFACE_RT_RX_B[\$interface]}" -v v2="\${INTERFACE_RT_RX_PB[\$interface]}" 'BEGIN { printf "%.0f", v1 + v2 }')
         fi
 
-        sed -i "/^INTERFACE_RT_RX_MB\[\$interface\]=/d" \$ConfigFile
-        # writeini "INTERFACE_RT_RX_MB[\$interface]" "\${INTERFACE_RT_RX_MB[\$interface]}"
-        echo "INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
+        sed -i "/^INTERFACE_RT_RX_B\[\$interface_nodot\]=/d" \$ConfigFile
+        writeini "INTERFACE_RT_RX_B[\$interface_nodot]" "\${INTERFACE_RT_RX_B[\$interface]}"
+        echo "INTERFACE_RT_RX_B[\$interface]: \${INTERFACE_RT_RX_B[\$interface]}"
     fi
 
     tx_bytes=\$(ip -s link show \$interface | awk '/TX:/ { getline; print \$1 }')
     echo "tx_bytes: \$tx_bytes"
     if [ ! -z "\$tx_bytes" ] && [[ \$tx_bytes =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-        INTERFACE_RT_TX_b[\$interface]=\$tx_bytes
-        writeini "INTERFACE_RT_TX_b[\$interface]" "\${INTERFACE_RT_TX_b[\$interface]}"
-        INTERFACE_RT_TX_MB_TEMP=\$(awk -v v1="\$tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
+        INTERFACE_RT_TX_B[\$interface]=\$tx_bytes
 
-        if [ ! -z "\${INTERFACE_RT_TX_MB[\$interface]}" ] && [[ \${INTERFACE_RT_TX_MB[\$interface]} =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-            INTERFACE_RT_TX_MB[\$interface]=\$(awk -v v1="\$INTERFACE_RT_TX_MB_TEMP" -v v2="\${INTERFACE_RT_TX_MB[\$interface]}" 'BEGIN { printf "%.1f", v1 + v2 }')
-        else
-            INTERFACE_RT_TX_MB[\$interface]=\$(awk -v v1="\$tx_bytes" 'BEGIN { printf "%.1f", v1 / (1024 * 1024) }')
+        if [ ! -z "\${INTERFACE_RT_TX_PB[\$interface]}" ] && [[ \${INTERFACE_RT_TX_PB[\$interface]} =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+            INTERFACE_RT_TX_B[\$interface]=\$(awk -v v1="\${INTERFACE_RT_TX_B[\$interface]}" -v v2="\${INTERFACE_RT_TX_PB[\$interface]}" 'BEGIN { printf "%.0f", v1 + v2 }')
         fi
 
-        sed -i "/^INTERFACE_RT_TX_MB\[\$interface\]=/d" \$ConfigFile
-        # writeini "INTERFACE_RT_TX_MB[\$interface]" "\${INTERFACE_RT_TX_MB[\$interface]}"
-        echo "INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
+        sed -i "/^INTERFACE_RT_TX_B\[\$interface_nodot\]=/d" \$ConfigFile
+        writeini "INTERFACE_RT_TX_B[\$interface_nodot]" "\${INTERFACE_RT_TX_B[\$interface]}"
+        echo "INTERFACE_RT_TX_B[\$interface]: \${INTERFACE_RT_TX_B[\$interface]}"
     fi
 
 done
 echo "====================================== 检正部分"
-cat \$ConfigFile
-echo
+echo "文件内容:"
+cat \$ConfigFile | grep '^INTERFACE_RT'
+echo "======================================"
+echo "读取测试:"
 source \$ConfigFile
 for interface in "\${interfaces[@]}"; do
-    INTERFACE_RT_RX_b[\$interface]=\${INTERFACE_RT_RX_b[\$interface]}
-    echo "读取: INTERFACE_RT_RX_b[\$interface]: \${INTERFACE_RT_RX_b[\$interface]}"
-    INTERFACE_RT_TX_b[\$interface]=\${INTERFACE_RT_TX_b[\$interface]}
-    echo "读取: INTERFACE_RT_TX_b[\$interface]: \${INTERFACE_RT_TX_b[\$interface]}"
+    interface_nodot=\${interface//./_}
+    echo "interface: \$interface"
+    echo "interface_nodot: \$interface_nodot"
+    echo "写入变量名称: INTERFACE_RT_RX_B[\$interface_nodot]"
+    INTERFACE_RT_RX_B[\$interface]=\${INTERFACE_RT_RX_B[\$interface_nodot]}
+    echo "读取: INTERFACE_RT_RX_B[\$interface]: \${INTERFACE_RT_RX_B[\$interface]}"
+    echo "写入变量名称: INTERFACE_RT_TX_B[\$interface_nodot]"
+    INTERFACE_RT_TX_B[\$interface]=\${INTERFACE_RT_TX_B[\$interface_nodot]}
+    echo "读取: INTERFACE_RT_TX_B[\$interface]: \${INTERFACE_RT_TX_B[\$interface]}"
 done
-for interface in "\${interfaces[@]}"; do
-    INTERFACE_RT_RX_MB[\$interface]=\${INTERFACE_RT_RX_MB[\$interface]}
-    echo "读取: INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
-    INTERFACE_RT_TX_MB[\$interface]=\${INTERFACE_RT_TX_MB[\$interface]}
-    echo "读取: INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
-done
+echo "=============================================="
+echo
 EOF
                     chmod +x $FolderPath/tg_shutdown_rt.sh
                     cat <<EOF > /etc/systemd/system/tg_shutdown_rt.service
@@ -770,7 +857,7 @@ Before=shutdown.target
 
 [Service]
 Type=oneshot
-ExecStart=$FolderPath/tg_shutdown_rt.sh
+ExecStart=/bin/bash -c 'exec $FolderPath/tg_shutdown_rt.sh >> $FolderPath/tg_shutdown_rt.log 2>&1'
 TimeoutStartSec=0
 
 [Install]
@@ -779,6 +866,15 @@ EOF
                     systemctl enable tg_shutdown_rt.service > /dev/null
                     writeini "SHUTDOWN_RT" "true"
                     echo -e "$Tip 关机记录流量 已经成功设置."
+                else
+                    systemctl stop tg_shutdown_rt.service > /dev/null 2>&1
+                    systemctl disable tg_shutdown_rt.service > /dev/null 2>&1
+                    sleep 1
+                    rm -f /etc/systemd/system/tg_shutdown_rt.service
+                    sed -i "/^INTERFACE_RT_RX_B/d" $ConfigFile
+                    sed -i "/^INTERFACE_RT_TX_B/d" $ConfigFile
+                    writeini "SHUTDOWN_RT" "false"
+                    echo -e "$Tip 关机记录流量 (已删除记录) 已经取消 / 删除."
                 fi
                 ;;
             6)
@@ -984,14 +1080,6 @@ EOF
 #         echo -e "$Tip 以上为 TelgramBot.ini 文件内容, 可重新执行 ${GR}0${NC} 修改参数."
 #     fi
 # }
-
-# 写入ini文件
-writeini() {
-    if grep -q "^$1=" $ConfigFile; then
-        sed -i "/^$1=/d" $ConfigFile
-    fi
-    echo "$1=$2" >> $ConfigFile
-}
 
 # 删除ini文件指定行
 delini() {
@@ -1978,25 +2066,34 @@ SetupFlow_TG() {
         echo -e "$Tip 输入为空, 默认最大流量上限为: $FlowThresholdMAX_de"
     fi
     if [ "$autorun" == "false" ]; then
-        interfaces_ST_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
-        output=$(ip -br link)
+        # interfaces_ST_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
+        # output=$(ip -br link)
         IFS=$'\n'
         count=1
         choice_array=()
         interfaces_ST=()
         w_interfaces_ST=()
-        for line in $output; do
-            columns_1=$(echo "$line" | awk '{print $1}')
+        # for line in $output; do
+        for line in ${interfaces_all[@]}; do
+            columns_1="$line"
+            # columns_1=$(echo "$line" | awk '{print $1}')
+            # columns_1=${columns_1[$i]%@*}
+            # columns_1=${columns_1%:*}
             columns_1_array+=("$columns_1")
-            columns_2=$(echo "$line" | awk '{print $1"\t"$2}')
-            if [[ $interfaces_ST_0 =~ $columns_1 ]]; then
+            columns_2="$line"
+            # columns_2=$(printf "%s\t\tUP" "$line")
+            # columns_2=$(echo "$line" | awk '{print $1"\t"UP}')
+            # columns_2=${columns_2[$i]%@*}
+            # columns_2=${columns_2%:*}
+            # if [[ $interfaces_ST_0 =~ $columns_1 ]]; then
+            if [[ $interfaces_up =~ $columns_1 ]]; then
                 printf "${GR}%d. %s${NC}\n" "$count" "$columns_2"
             else
                 printf "${GR}%d. ${NC}%s\n" "$count" "$columns_1"
             fi
             ((count++))
         done
-        echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活动接口:"
+        echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活跃接口:"
         read -e -p "请输入统计接口编号: " choice
         if [[ $choice == *0* ]]; then
             tips="$Err 接口编号中没有 0 选项"
@@ -2020,12 +2117,13 @@ SetupFlow_TG() {
                     interfaces_ST+=("${columns_1_array[index]}")
                 fi
             done
-            for ((i = 0; i < ${#interfaces_ST[@]}; i++)); do
-                w_interfaces_ST+="${interfaces_ST[$i]}"
-                if ((i < ${#interfaces_ST[@]} - 1)); then
-                    w_interfaces_ST+=","
-                fi
-            done
+            # for ((i = 0; i < ${#interfaces_ST[@]}; i++)); do
+            #     w_interfaces_ST+="${interfaces_ST[$i]}"
+            #     if ((i < ${#interfaces_ST[@]} - 1)); then
+            #         w_interfaces_ST+=","
+            #     fi
+            # done
+            w_interfaces_ST=$(sep_array interfaces_ST ",")
             # echo "确认选择接口: $w_interfaces_ST"
             writeini "interfaces_ST" "$w_interfaces_ST"
         else
@@ -2033,10 +2131,10 @@ SetupFlow_TG() {
             # IFS=',' read -ra interfaces <<< "$(echo "$interfaces_ST_de" | tr ',' '\n' | sort -u | tr '\n' ',')"
             # IFS=',' read -ra interfaces <<< "$(echo "$interfaces_ST_de" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
             # interfaces_ST=("${interfaces_ST_de[@]}")
-            interfaces_all=$(ip -br link | awk '{print $1}')
+            # interfaces_all=$(ip -br link | awk '{print $1}' | tr '\n' ' ')
             active_interfaces=()
             echo "检查网络接口流量情况..."
-            for interface in $interfaces_all
+            for interface in ${interfaces_all[@]}
             do
             clean_interface=${interface%%@*}
             stats=$(ip -s link show $clean_interface)
@@ -2051,12 +2149,13 @@ SetupFlow_TG() {
             done
             echo -e "$Tip 检测到活动的接口: ${active_interfaces[@]}"
             interfaces_ST=("${active_interfaces[@]}")
-            for ((i = 0; i < ${#interfaces_ST[@]}; i++)); do
-                w_interfaces_ST+="${interfaces_ST[$i]}"
-                if ((i < ${#interfaces_ST[@]} - 1)); then
-                    w_interfaces_ST+=","
-                fi
-            done
+            # for ((i = 0; i < ${#interfaces_ST[@]}; i++)); do
+            #     w_interfaces_ST+="${interfaces_ST[$i]}"
+            #     if ((i < ${#interfaces_ST[@]} - 1)); then
+            #         w_interfaces_ST+=","
+            #     fi
+            # done
+            w_interfaces_ST=$(sep_array interfaces_ST ",")
             # echo "确认选择接口: $w_interfaces_ST"
             writeini "interfaces_ST" "$w_interfaces_ST"
         fi
@@ -2160,7 +2259,7 @@ THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
 THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
 
 # interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
-# interfaces_get=\$(ip -br link | awk '{print \$1}')
+# interfaces_all=\$(ip -br link | awk '{print \$1}' | tr '\n' ' ')
 # declare -a interfaces=(\$interfaces_get)
 # IFS=',' read -ra interfaces <<< "$interfaces_ST"
 # 去重并且分割字符串为数组
@@ -2205,25 +2304,18 @@ declare -A tt_prev_rx_bytes_T
 declare -A tt_prev_tx_bytes_T
 declare -A current_rx_bytes
 declare -A current_tx_bytes
-declare -A INTERFACE_RT_RX_b
-declare -A INTERFACE_RT_TX_b
-declare -A INTERFACE_RT_RX_MB
-declare -A INTERFACE_RT_TX_MB
+declare -A INTERFACE_RT_RX_B
+declare -A INTERFACE_RT_TX_B
 
 # 初始化接口流量数据
 source $ConfigFile
 for interface in "\${interfaces[@]}"; do
-    INTERFACE_RT_RX_b[\$interface]=\${INTERFACE_RT_RX_b[\$interface]}
-    echo "读取: INTERFACE_RT_RX_b[\$interface]: \${INTERFACE_RT_RX_b[\$interface]}"
-    INTERFACE_RT_TX_b[\$interface]=\${INTERFACE_RT_TX_b[\$interface]}
-    echo "读取: INTERFACE_RT_TX_b[\$interface]: \${INTERFACE_RT_TX_b[\$interface]}"
+    interface_nodot=\${interface//./_}
+    INTERFACE_RT_RX_B[\$interface]=\${INTERFACE_RT_RX_B[\$interface_nodot]}
+    echo "读取: INTERFACE_RT_RX_B[\$interface]: \${INTERFACE_RT_RX_B[\$interface]}"
+    INTERFACE_RT_TX_B[\$interface]=\${INTERFACE_RT_TX_B[\$interface_nodot]}
+    echo "读取: INTERFACE_RT_TX_B[\$interface]: \${INTERFACE_RT_TX_B[\$interface]}"
 done
-# for interface in "\${interfaces[@]}"; do
-#     INTERFACE_RT_RX_MB[\$interface]=\${INTERFACE_RT_RX_MB[\$interface]}
-#     echo "读取: INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
-#     INTERFACE_RT_TX_MB[\$interface]=\${INTERFACE_RT_TX_MB[\$interface]}
-#     echo "读取: INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
-# done
 
 # 循环检查
 sendtag=true
@@ -2339,7 +2431,7 @@ while true; do
 
         # 总流量百分比计算
         all_rx_bytes=\$ov_current_rx_bytes
-        all_rx_bytes=\$((all_rx_bytes + INTERFACE_RT_RX_b[\$interface]))
+        all_rx_bytes=\$((all_rx_bytes + INTERFACE_RT_RX_B[\$interface]))
         all_rx_ratio=\$(awk -v used="\$all_rx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.3f", ( used / total ) * 100 }')
 
         ratioandprogress "0" "0" "\$all_rx_ratio"
@@ -2350,7 +2442,7 @@ while true; do
         all_rx=\$(Remove_B "\$all_rx")
 
         all_tx_bytes=\$ov_current_tx_bytes
-        all_tx_bytes=\$((all_tx_bytes + INTERFACE_RT_TX_b[\$interface]))
+        all_tx_bytes=\$((all_tx_bytes + INTERFACE_RT_TX_B[\$interface]))
         all_tx_ratio=\$(awk -v used="\$all_tx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.3f", ( used / total ) * 100 }')
 
         ratioandprogress "0" "0" "\$all_tx_ratio"
@@ -2598,25 +2690,34 @@ SetFlowReport_TG() {
     cronrp="$minute_rp $hour_rp * * *"
 
     if [ "$autorun" == "false" ]; then
-        interfaces_RP_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
-        output=$(ip -br link)
+        # interfaces_RP_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
+        # output=$(ip -br link)
         IFS=$'\n'
         count=1
         choice_array=()
         interfaces_RP=()
         w_interfaces_RP=()
-        for line in $output; do
-            columns_1=$(echo "$line" | awk '{print $1}')
+        # for line in $output; do
+        for line in ${interfaces_all[@]}; do
+            columns_1="$line"
+            # columns_1=$(echo "$line" | awk '{print $1}')
+            # columns_1=${columns_1[$i]%@*}
+            # columns_1=${columns_1%:*}
             columns_1_array+=("$columns_1")
-            columns_2=$(echo "$line" | awk '{print $1"\t"$2}')
-            if [[ $interfaces_RP_0 =~ $columns_1 ]]; then
+            columns_2="$line"
+            # columns_2=$(printf "%s\t\tUP" "$line")
+            # columns_2=$(echo "$line" | awk '{print $1"\t"$2}')
+            # columns_2=${columns_2[$i]%@*}
+            # columns_2=${columns_2%:*}
+            # if [[ $interfaces_RP_0 =~ $columns_1 ]]; then
+            if [[ $interfaces_up =~ $columns_1 ]]; then
                 printf "${GR}%d. %s${NC}\n" "$count" "$columns_2"
             else
                 printf "${GR}%d. ${NC}%s\n" "$count" "$columns_1"
             fi
             ((count++))
         done
-        echo -e "请选择编号进行报告, 例如报告1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活动接口:"
+        echo -e "请选择编号进行报告, 例如报告1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活跃接口:"
         read -e -p "请输入统计接口编号: " choice
         if [[ $choice == *0* ]]; then
             tips="$Err 接口编号中没有 0 选项"
@@ -2640,12 +2741,13 @@ SetFlowReport_TG() {
                     interfaces_RP+=("${columns_1_array[index]}")
                 fi
             done
-            for ((i = 0; i < ${#interfaces_RP[@]}; i++)); do
-                w_interfaces_RP+="${interfaces_RP[$i]}"
-                if ((i < ${#interfaces_RP[@]} - 1)); then
-                    w_interfaces_RP+=","
-                fi
-            done
+            # for ((i = 0; i < ${#interfaces_RP[@]}; i++)); do
+            #     w_interfaces_RP+="${interfaces_RP[$i]}"
+            #     if ((i < ${#interfaces_RP[@]} - 1)); then
+            #         w_interfaces_RP+=","
+            #     fi
+            # done
+            w_interfaces_RP=$(sep_array interfaces_RP ",")
             # echo "确认选择接口: $w_interfaces_RP"
             writeini "interfaces_RP" "$w_interfaces_RP"
         else
@@ -2653,10 +2755,10 @@ SetFlowReport_TG() {
             # IFS=',' read -ra interfaces <<< "$(echo "$interfaces_RP_de" | tr ',' '\n' | sort -u | tr '\n' ',')"
             # IFS=',' read -ra interfaces <<< "$(echo "$interfaces_RP_de" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
             # interfaces_RP=("${interfaces_RP_de[@]}")
-            interfaces_all=$(ip -br link | awk '{print $1}')
+            # interfaces_all=$(ip -br link | awk '{print $1}' | tr '\n' ' ')
             active_interfaces=()
             echo "检查网络接口流量情况..."
-            for interface in $interfaces_all
+            for interface in ${interfaces_all[@]}
             do
             clean_interface=${interface%%@*}
             stats=$(ip -s link show $clean_interface)
@@ -2671,12 +2773,13 @@ SetFlowReport_TG() {
             done
             echo -e "$Tip 检测到活动的接口: ${active_interfaces[@]}"
             interfaces_RP=("${active_interfaces[@]}")
-            for ((i = 0; i < ${#interfaces_RP[@]}; i++)); do
-                w_interfaces_RP+="${interfaces_RP[$i]}"
-                if ((i < ${#interfaces_RP[@]} - 1)); then
-                    w_interfaces_RP+=","
-                fi
-            done
+            # for ((i = 0; i < ${#interfaces_RP[@]}; i++)); do
+            #     w_interfaces_RP+="${interfaces_RP[$i]}"
+            #     if ((i < ${#interfaces_RP[@]} - 1)); then
+            #         w_interfaces_RP+=","
+            #     fi
+            # done
+            w_interfaces_RP=$(sep_array interfaces_RP ",")
             # echo "确认选择接口: $w_interfaces_RP"
             writeini "interfaces_RP" "$w_interfaces_RP"
         fi
@@ -2748,7 +2851,7 @@ THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
 
 interfaces=()
 # interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
-# interfaces=\$(ip -br link | awk '{print \$1}')
+# interfaces_all=\$(ip -br link | awk '{print \$1}' | tr '\n' ' ')
 # IFS=',' read -ra interfaces <<< "$interfaces_RP"
 # 去重并且分割字符串为数组
 # IFS=',' read -ra interfaces <<< "$(echo "$interfaces_RP" | tr ',' '\n' | sort -u | tr '\n' ',')"
@@ -2787,15 +2890,16 @@ declare -A prev_year_rx_bytes
 declare -A prev_year_tx_bytes
 declare -A current_rx_bytes
 declare -A current_tx_bytes
-declare -A INTERFACE_RT_RX_MB
-declare -A INTERFACE_RT_TX_MB
+declare -A INTERFACE_RT_RX_B
+declare -A INTERFACE_RT_TX_B
 
 source $ConfigFile
 for interface in "\${interfaces[@]}"; do
-    INTERFACE_RT_RX_MB[\$interface]=\${INTERFACE_RT_RX_MB[\$interface]}
-    echo "读取: INTERFACE_RT_RX_MB[\$interface]: \${INTERFACE_RT_RX_MB[\$interface]}"
-    INTERFACE_RT_TX_MB[\$interface]=\${INTERFACE_RT_TX_MB[\$interface]}
-    echo "读取: INTERFACE_RT_TX_MB[\$interface]: \${INTERFACE_RT_TX_MB[\$interface]}"
+    interface_nodot=\${interface//./_}
+    INTERFACE_RT_RX_B[\$interface]=\${INTERFACE_RT_RX_B[\$interface_nodot]}
+    echo "读取: INTERFACE_RT_RX_B[\$interface]: \${INTERFACE_RT_RX_B[\$interface]}"
+    INTERFACE_RT_TX_B[\$interface]=\${INTERFACE_RT_TX_B[\$interface_nodot]}
+    echo "读取: INTERFACE_RT_TX_B[\$interface]: \${INTERFACE_RT_TX_B[\$interface]}"
 done
 
 # test_hour="01"
@@ -2935,7 +3039,7 @@ while true; do
         echo "NO.\$nline --------------------------------------rp--- interface: \$interface"
 
         all_rx_bytes=\$ov_current_rx_bytes
-        all_rx_bytes=\$((all_rx_bytes + INTERFACE_RT_RX_b[\$interface]))
+        all_rx_bytes=\$((all_rx_bytes + INTERFACE_RT_RX_B[\$interface]))
         all_rx_ratio=\$(awk -v used="\$all_rx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.3f", ( used / total ) * 100 }')
 
         ratioandprogress "0" "0" "\$all_rx_ratio"
@@ -2946,7 +3050,7 @@ while true; do
         all_rx=\$(Remove_B "\$all_rx")
 
         all_tx_bytes=\$ov_current_tx_bytes
-        all_tx_bytes=\$((all_tx_bytes + INTERFACE_RT_TX_b[\$interface]))
+        all_tx_bytes=\$((all_tx_bytes + INTERFACE_RT_TX_B[\$interface]))
         all_tx_ratio=\$(awk -v used="\$all_tx_bytes" -v total="\$THRESHOLD_BYTES_MAX" 'BEGIN { printf "%.3f", ( used / total ) * 100 }')
 
         ratioandprogress "0" "0" "\$all_tx_ratio"
@@ -3656,25 +3760,35 @@ T_VIEWLOG() {
 
 # 跟踪查看当前网速
 T_NETSPEED() {
-    interfaces_re_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
-    output=$(ip -br link)
+    # interfaces_re_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
+    # output=$(ip -br link)
     IFS=$'\n'
     count=1
     choice_array=()
     interfaces_re=()
     show_interfaces_re=()
-    for line in $output; do
-        columns_1=$(echo "$line" | awk '{print $1}')
+    # for line in $output; do
+    for line in ${interfaces_all[@]}; do
+        columns_1="$line"
+        # columns_1=$(echo "$line" | awk '{print $1}')
+        # columns_1=${columns_1[$i]%@*}
+        # columns_1=${columns_1%:*}
         columns_1_array+=("$columns_1")
-        columns_2=$(echo "$line" | awk '{print $1"\t"$2}')
-        if [[ $interfaces_re_0 =~ $columns_1 ]]; then
+        columns_2="$line"
+        # columns_2=$(printf "%s\t\tUP" "$line")
+        # columns_2=$(echo "$line" | awk '{print $1"\t"UP}')
+        # columns_2=${columns_2[$i]%@*}
+        # columns_2=${columns_2%:*}
+        # columns_2=$(echo "$line" | awk '{print $1"\t"$2}')
+        # if [[ $interfaces_re_0 =~ $columns_1 ]]; then
+        if [[ $interfaces_up =~ $columns_1 ]]; then
             printf "${GR}%d. %s${NC}\n" "$count" "$columns_2"
         else
             printf "${GR}%d. ${NC}%s\n" "$count" "$columns_1"
         fi
         ((count++))
     done
-    echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活动接口:"
+    echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活跃接口:"
     read -e -p "请输入统计接口编号: " choice
     if [[ $choice == *0* ]]; then
         tips="$Err 接口编号中没有 0 选项"
@@ -3698,19 +3812,20 @@ T_NETSPEED() {
                 interfaces_re+=("${columns_1_array[index]}")
             fi
         done
-        for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
-            show_interfaces_re+="${interfaces_re[$i]}"
-            if ((i < ${#interfaces_re[@]} - 1)); then
-                show_interfaces_re+=","
-            fi
-        done
+        # for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
+        #     show_interfaces_re+="${interfaces_re[$i]}"
+        #     if ((i < ${#interfaces_re[@]} - 1)); then
+        #         show_interfaces_re+=","
+        #     fi
+        # done
+        show_interfaces_re=$(sep_array interfaces_re ",")
         # echo "确认选择接口: interfaces_re: ${interfaces_re[@]}  show_interfaces_re: $show_interfaces_re"
         # Pause
     else
-        interfaces_all=$(ip -br link | awk '{print $1}')
+        # interfaces_all=$(ip -br link | awk '{print $1}' | tr '\n' ' ')
         active_interfaces=()
         echo "检查网络接口流量情况..."
-        for interface in $interfaces_all
+        for interface in ${interfaces_all[@]}
         do
         clean_interface=${interface%%@*}
         stats=$(ip -s link show $clean_interface)
@@ -3725,12 +3840,13 @@ T_NETSPEED() {
         done
         echo -e "$Tip 检测到活动的接口: ${active_interfaces[@]}"
         interfaces_re=("${active_interfaces[@]}")
-        for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
-            show_interfaces_re+="${interfaces_re[$i]}"
-            if ((i < ${#interfaces_re[@]} - 1)); then
-                show_interfaces_re+=","
-            fi
-        done
+        # for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
+        #     show_interfaces_re+="${interfaces_re[$i]}"
+        #     if ((i < ${#interfaces_re[@]} - 1)); then
+        #         show_interfaces_re+=","
+        #     fi
+        # done
+        show_interfaces_re=$(sep_array interfaces_re ",")
         # echo "确认选择接口: interfaces_re: $interfaces_re  show_interfaces_re: $show_interfaces_re"
         # Pause
     fi
@@ -3762,11 +3878,11 @@ fi
 FolderPath="$FolderPath"
 
 # 统计接口网速（只统所有接口）
-# interfaces=(\$(ip -br link | awk '{print \$1}'))
+# interfaces=(\$(ip -br link | awk '{print \$1}' | tr '\n' ' '))
 
 # 统计接口网速（只统计 UP 接口）
 # interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
-# interfaces=(\$(ip -br link | awk '{print \$1}'))
+# interfaces=(\$(ip -br link | awk '{print \$1}' | tr '\n' ' '))
 
 # 去重并且保持原有顺序，分割字符串为数组
 IFS=',' read -ra interfaces_r <<< "$(echo "$show_interfaces_re" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
