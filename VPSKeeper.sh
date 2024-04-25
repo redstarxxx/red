@@ -1190,7 +1190,7 @@ EOF
         return 1
     fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"💡当 开机 时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 开机 时将收到通知💡" &
     fi
     tips="$Tip 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
     
@@ -1219,7 +1219,7 @@ EOF
             echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
         fi
         if [ "$mute" == "false" ]; then
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"💡当 登陆 时将收到通知." &
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡" &
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
     elif [ -f /etc/profile ]; then
@@ -1227,7 +1227,7 @@ EOF
             echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/profile
         fi
         if [ "$mute" == "false" ]; then
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"💡当 登陆 时将收到通知." &
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡" &
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
     else
@@ -1292,7 +1292,7 @@ EOF
         return 1
     fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"💡当 关机 时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 关机 时将收到通知💡" &
     fi
     tips="$Tip 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
 }
@@ -1338,7 +1338,7 @@ EOF
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &") | crontab -
     fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"💡当 Docker 列表变更时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 Docker 列表变更时将收到通知💡" &
     fi
     tips="$Tip Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
 }
@@ -1615,7 +1615,7 @@ EOF
 '"主机名: $hostname_show"'
 '"CPU: $cpuusedOfcpus"'
 '"检测工具: $CPUTools"'
-'"💡当 CPU 使用达 $CPUThreshold % 时将收到通知." &
+'"当 CPU 使用达 $CPUThreshold % 时将收到通知💡" &
 #         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: CPU 报警通知⚙️"'
 # '"主机名: $hostname_show"'
 # '"CPU: $cpuusedOfcpus"'
@@ -1623,7 +1623,7 @@ EOF
 # '"交换: ${swap_total}MB"'
 # '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 # '"检测工具: $CPUTools"'
-# '"💡当 CPU 使用达 $CPUThreshold % 时将收到通知." &
+# '"当 CPU 使用达 $CPUThreshold % 时将收到通知💡" &
     fi
     tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
 }
@@ -1748,7 +1748,7 @@ EOF
 '"主机名: $hostname_show"'
 '"内存: ${mem_total}MB"'
 '"交换: ${swap_total}MB"'
-'"💡当 内存 使用达 $MEMThreshold % 时将收到通知." &
+'"当内存使用达 $MEMThreshold % 时将收到通知💡" &
     fi
     tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
 
@@ -1875,7 +1875,7 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 磁盘 报警通知⚙️"'
 '"主机名: $hostname_show"'
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
-'"💡当 磁盘 使用达 $DISKThreshold % 时将收到通知." &
+'"当磁盘使用达 $DISKThreshold % 时将收到通知💡" &
     fi
     tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
 }
@@ -2650,7 +2650,7 @@ EOF
 # EOF
 #     systemctl enable tg_interface_re.service > /dev/null
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"检测接口: $show_interfaces_ST"$'\n'"检测模式: $StatisticsMode_ST"$'\n'"💡当流量达阈值 $FlowThreshold_UB 时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"检测接口: $show_interfaces_ST"$'\n'"检测模式: $StatisticsMode_ST"$'\n'"当流量达阈值 $FlowThreshold_UB 时将收到通知💡" &
     fi
     tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_UB 时将收到通知."
 }
@@ -3456,7 +3456,7 @@ EOF
     fi
     (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &") | crontab -
     if [ "$mute" == "false" ]; then
-        message="流量定时报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"报告接口: $show_interfaces_RP"$'\n'"报告模式: $StatisticsMode_RP"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分"
+        message="流量定时报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"报告接口: $show_interfaces_RP"$'\n'"报告模式: $StatisticsMode_RP"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分📈"
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" &
     fi
     tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
