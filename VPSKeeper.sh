@@ -2178,21 +2178,21 @@ SetupFlow_TG() {
     if [ "$autorun" == "false" ]; then
         read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为单独发送): " mode
         if [ "$mode" == "1" ]; then
-            StatisticsMode="OV"
+            StatisticsMode_ST="OV"
         elif [ "$mode" == "2" ]; then
-            StatisticsMode="SE"
+            StatisticsMode_ST="SE"
         else
-            StatisticsMode=$StatisticsMode_ST_de
+            StatisticsMode_ST=$StatisticsMode_ST_de
         fi
-        writeini "StatisticsMode" "$StatisticsMode"
+        writeini "StatisticsMode_ST" "$StatisticsMode_ST"
     else
-        if [ ! -z "$StatisticsMode" ]; then
-            StatisticsMode=$StatisticsMode
+        if [ ! -z "$StatisticsMode_ST" ]; then
+            StatisticsMode_ST=$StatisticsMode_ST
         else
-            StatisticsMode=$StatisticsMode_ST_de
+            StatisticsMode_ST=$StatisticsMode_ST_de
         fi
     fi
-    echo "统计模式为: $StatisticsMode"
+    echo "统计模式为: $StatisticsMode_ST"
 
     source $ConfigFile
     FlowThreshold_UB=$FlowThreshold
@@ -2237,7 +2237,7 @@ get_price() {
 
 tt=10
 duration=0
-StatisticsMode="$StatisticsMode"
+StatisticsMode_ST="$StatisticsMode_ST"
 
 if [ "$SendUptime" == "true" ]; then
     SendUptime="true"
@@ -2465,10 +2465,10 @@ while true; do
         # 调试使用(网速)
         echo "rx_speed: \$rx_speed  tx_speed: \$tx_speed"
         # 状态
-        echo "统计模式: \$StatisticsMode   发送在线时长: \$SendUptime   发送IP: \$SendIP   发送货币报价: \$SendPrice"
+        echo "统计模式: \$StatisticsMode_ST   发送在线时长: \$SendUptime   发送IP: \$SendIP   发送货币报价: \$SendPrice"
 
         # 检查是否超过阈值
-        if [ "\$StatisticsMode" == "SE" ]; then
+        if [ "\$StatisticsMode_ST" == "SE" ]; then
 
             # threshold_reached=\$(awk -v rx_diff="\$rx_diff" -v tx_diff="\$tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (rx_diff >= threshold) || (tx_diff >= threshold) ? 1 : 0}')
             # if [ "\$threshold_reached" -eq 1 ]; then
@@ -2542,7 +2542,7 @@ while true; do
         fi
         nline=\$((nline + 1))
     done
-    if [ "\$StatisticsMode" == "OV" ]; then
+    if [ "\$StatisticsMode_ST" == "OV" ]; then
 
         if [ \$ov_rx_diff_bytes -ge \$THRESHOLD_BYTES ] || [ \$ov_tx_diff_bytes -ge \$THRESHOLD_BYTES ]; then
 
@@ -2611,8 +2611,8 @@ while true; do
             sendtag=true
         fi
     fi
-    if [ "\$StatisticsMode" != "SE" ] && [ "\$StatisticsMode" != "OV" ]; then
-        echo "StatisticsMode Err!!! \$StatisticsMode"
+    if [ "\$StatisticsMode_ST" != "SE" ] && [ "\$StatisticsMode_ST" != "OV" ]; then
+        echo "StatisticsMode_ST Err!!! \$StatisticsMode_ST"
     fi
 done
 EOF
@@ -2650,7 +2650,7 @@ EOF
 # EOF
 #     systemctl enable tg_interface_re.service > /dev/null
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"检测接口: $show_interfaces_ST"$'\n'"💡当流量达阈值 $FlowThreshold_UB 时将收到通知." &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"检测接口: $show_interfaces_ST"$'\n'"检测模式: $StatisticsMode_ST"$'\n'"💡当流量达阈值 $FlowThreshold_UB 时将收到通知." &
     fi
     tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_UB 时将收到通知."
 }
@@ -2796,21 +2796,21 @@ SetFlowReport_TG() {
     if [ "$autorun" == "false" ]; then
         read -e -p "请选择统计模式: 1.接口合计发送  2.接口单独发送 (回车默认为单独发送): " mode
         if [ "$mode" == "1" ]; then
-            StatisticsMode="OV"
+            StatisticsMode_RP="OV"
         elif [ "$mode" == "2" ]; then
-            StatisticsMode="SE"
+            StatisticsMode_RP="SE"
         else
-            StatisticsMode=$StatisticsMode_RP_de
+            StatisticsMode_RP=$StatisticsMode_RP_de
         fi
-        writeini "StatisticsMode" "$StatisticsMode"
+        writeini "StatisticsMode_RP" "$StatisticsMode_RP"
     else
-        if [ ! -z "$StatisticsMode" ]; then
-            StatisticsMode=$StatisticsMode
+        if [ ! -z "$StatisticsMode_RP" ]; then
+            StatisticsMode_RP=$StatisticsMode_RP
         else
-            StatisticsMode=$StatisticsMode_RP_de
+            StatisticsMode_RP=$StatisticsMode_RP_de
         fi
     fi
-    echo "统计模式为: $StatisticsMode"
+    echo "统计模式为: $StatisticsMode_RP"
 
     source $ConfigFile
     FlowThresholdMAX_UB=$FlowThresholdMAX
@@ -2834,7 +2834,7 @@ progress=""
 ratio=""
 $(declare -f Bytes_BtoKBMBGB)
 $(declare -f Remove_B)
-StatisticsMode="$StatisticsMode"
+StatisticsMode_RP="$StatisticsMode_RP"
 
 if [ "$SendUptime" == "true" ]; then
     SendUptime="true"
@@ -3067,7 +3067,7 @@ while true; do
             diff_rx_day=\$(Bytes_BtoKBMBGB "\$diff_day_rx_bytes")
             diff_tx_day=\$(Bytes_BtoKBMBGB "\$diff_day_tx_bytes")
 
-            if [ "\$StatisticsMode" == "OV" ]; then
+            if [ "\$StatisticsMode_RP" == "OV" ]; then
                 ov_diff_day_rx_bytes=\$(( ov_current_rx_bytes - ov_prev_day_rx_bytes ))
                 ov_diff_day_tx_bytes=\$(( ov_current_tx_bytes - ov_prev_day_tx_bytes ))
                 ov_diff_rx_day=\$(Bytes_BtoKBMBGB "\$ov_diff_day_rx_bytes")
@@ -3080,7 +3080,7 @@ while true; do
                 diff_rx_month=\$(Bytes_BtoKBMBGB "\$diff_month_rx_bytes")
                 diff_tx_month=\$(Bytes_BtoKBMBGB "\$diff_month_tx_bytes")
 
-                if [ "\$StatisticsMode" == "OV" ]; then
+                if [ "\$StatisticsMode_RP" == "OV" ]; then
                     ov_diff_month_rx_bytes=\$(( ov_current_rx_bytes - ov_prev_month_rx_bytes ))
                     ov_diff_month_tx_bytes=\$(( ov_current_tx_bytes - ov_prev_month_tx_bytes ))
                     ov_diff_rx_month=\$(Bytes_BtoKBMBGB "\$ov_diff_month_rx_bytes")
@@ -3093,7 +3093,7 @@ while true; do
                     diff_rx_year=\$(Bytes_BtoKBMBGB "\$diff_year_rx_bytes")
                     diff_tx_year=\$(Bytes_BtoKBMBGB "\$diff_year_tx_bytes")
 
-                    if [ "\$StatisticsMode" == "OV" ]; then
+                    if [ "\$StatisticsMode_RP" == "OV" ]; then
                         ov_diff_year_rx_bytes=\$(( ov_current_rx_bytes - ov_prev_year_rx_bytes ))
                         ov_diff_year_tx_bytes=\$(( ov_current_tx_bytes - ov_prev_year_tx_bytes ))
                         ov_diff_rx_year=\$(Bytes_BtoKBMBGB "\$ov_diff_year_rx_bytes")
@@ -3107,7 +3107,7 @@ while true; do
         fi
 
         # SE发送报告
-        if [ "\$StatisticsMode" == "SE" ]; then
+        if [ "\$StatisticsMode_RP" == "SE" ]; then
             if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
 
                 current_date_send=\$(date +"%Y.%m.%d %T")
@@ -3272,7 +3272,7 @@ while true; do
     done
 
     # OV发送报告
-    if [ "\$StatisticsMode" == "OV" ]; then
+    if [ "\$StatisticsMode_RP" == "OV" ]; then
         if [ "\$current_hour" == "$hour_rp" ] && [ "\$current_minute" == "$minute_rp" ]; then
 
             current_date_send=\$(date +"%Y.%m.%d %T")
@@ -3441,6 +3441,7 @@ while true; do
     echo "活动接口: \$show_interfaces  接收日流量: \$diff_rx_day  发送日流量: \$diff_tx_day 报告时间: $hour_rp 时 $minute_rp 分"
     echo "活动接口: \$show_interfaces  接收月流量: \$diff_rx_month  发送月流量: \$diff_tx_month 报告时间: $hour_rp 时 $minute_rp 分"
     echo "活动接口: \$show_interfaces  接收年流量: \$diff_rx_year  发送年流量: \$diff_tx_year 报告时间: $hour_rp 时 $minute_rp 分"
+    echo "报告模式: \$StatisticsMode_RP"
     echo "当前时间: \$(date)"
     echo "------------------------------------------------------"
 done
@@ -3455,7 +3456,7 @@ EOF
     fi
     (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &") | crontab -
     if [ "$mute" == "false" ]; then
-        message="流量定时报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"报告接口: $show_interfaces_RP  报告模式: $StatisticsMode"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分"
+        message="流量定时报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"报告接口: $show_interfaces_RP"$'\n'"报告模式: $StatisticsMode_RP"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分"
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" &
     fi
     tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
