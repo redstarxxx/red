@@ -4223,7 +4223,7 @@ if awk -v v1="$CT_time" -v v2="$ED_time" 'BEGIN { print (v1 < v2)?"less":"greate
     TelgramBotToken="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
     writeini "TelgramBotToken" "6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
     echo "TelgramBotToken 已经换成 @vpskeeperbot"
-    sleep 3
+    sleep 5
     runtag="YES"
 fi
 echo "runtag: $runtag"
