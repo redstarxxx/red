@@ -607,25 +607,32 @@ SetupIniFile() {
             fi
             echo -e "${GR}5${NC}. 设置关机记录流量\t$settag"
             if [ ! -z "$ProxyURL" ]; then
-                settag="${GR}已启动${NC}"
+                settag="${GR}已启动${NC} | ${GR}$ProxyURL${NC}"
             else
                 settag=""
             fi
             echo -e "${GR}6${NC}. 设置TG代理 (${RE}国内${NC})\t$settag"
             if [ "$SendUptime" == "true" ]; then
-                settag="${GR}已启动${NC}"
+                read uptime idle_time < /proc/uptime
+                uptime=${uptime%.*}
+                days=$((uptime/86400))
+                hours=$(( (uptime%86400)/3600 ))
+                minutes=$(( (uptime%3600)/60 ))
+                seconds=$((uptime%60))
+                uptimeshow="系统已运行: $days 日 $hours 时 $minutes 分 $seconds 秒"
+                settag="${GR}已启动${NC} | ${GR}$uptimeshow${NC}"
             else
                 settag=""
             fi
             echo -e "${GR}7${NC}. 设置发送在线时长\t$settag"
-            if [ "$SendIP" == "true" ]; then
-                settag="${GR}已启动${NC}"
+            if [ "$SendIP" == "true" ] && [ ! -z "$GetIPAddress" ]; then
+                settag="${GR}已启动${NC} | ${GR}$GetIPAddress${NC}"
             else
                 settag=""
             fi
             echo -e "${GR}8${NC}. 设置发送IP地址\t$settag"
             if [ "$SendPrice" == "true" ]; then
-                settag="${GR}已启动${NC}"
+                settag="${GR}已启动${NC} | ${GR}$GetPriceType${NC}"
             else
                 settag=""
             fi
@@ -713,7 +720,6 @@ SetupIniFile() {
                             CPUTools="top_sar"
                             writeini "CPUTools" "$CPUTools"
                         fi
-                        break
                     else
                         echo -e "$Tip 输入为空, 跳过操作."
                         tips=""
@@ -785,7 +791,7 @@ SetupIniFile() {
                         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
                         break
                     fi
-                    read -e -p "请选择是否开启 设置关机记录流量  Y.开启  其它/回车.关闭(删除记录): " choice
+                    read -e -p "请选择是否开启 设置关机记录流量  Y.开启  回车.关闭(删除记录): " choice
                 fi
                 if [ "$choice" == "y" ] || [ "$choice" == "Y" ]; then
                     cat <<EOF > $FolderPath/tg_shutdown_rt.sh
@@ -912,11 +918,11 @@ EOF
                 if [ "$autorun" == "true" ]; then
                     inputurl="1"
                 else
-                    if [ -z "$ProxyURL" ]; then
-                        echo -e "$Inf 目前代理: ${GRB}无${NC}"
-                    else
-                        echo -e "$Inf 目前代理: ${GRB}$ProxyURL${NC}"
-                    fi
+                    # if [ -z "$ProxyURL" ]; then
+                    #     echo -e "$Inf 目前代理: ${GRB}无${NC}"
+                    # else
+                    #     echo -e "$Inf 目前代理: ${GRB}$ProxyURL${NC}"
+                    # fi
                     divline
                     echo "以下代理可用:"
                     echo -e "${GR}1${NC}. https://cp.255.cloudns.biz/proxy/"
@@ -972,11 +978,11 @@ EOF
                 if [ "$autorun" == "true" ]; then
                     choice="Y"
                 else
-                    if [ -z $SendUptime ] || [ "$SendUptime" == "false" ]; then
-                        echo -e "$Inf 目前是否发送机器在线时长: ${GRB}否${NC}"
-                    else
-                        echo -e "$Inf 目前是否发送机器在线时长: ${GRB}是${NC}"
-                    fi
+                    # if [ -z $SendUptime ] || [ "$SendUptime" == "false" ]; then
+                    #     echo -e "$Inf 目前是否发送机器在线时长: ${GRB}否${NC}"
+                    # else
+                    #     echo -e "$Inf 目前是否发送机器在线时长: ${GRB}是${NC}"
+                    # fi
                     divline
                     read -e -p "请选择是否发送机器在线时长  Y.是  其它/回车.否: " choice
                 fi
@@ -995,11 +1001,11 @@ EOF
                     inputurl="1"
                     input46="4"
                 else
-                    if [ -z $SendIP ] || [ "$SendIP" == "false" ]; then
-                        echo -e "$Inf 目前是否发送IP地址: ${GRB}否${NC}"
-                    else
-                        echo -e "$Inf 目前是否发送IP地址: ${GRB}是${NC}"
-                    fi
+                    # if [ -z $SendIP ] || [ "$SendIP" == "false" ]; then
+                    #     echo -e "$Inf 目前是否发送IP地址: ${GRB}否${NC}"
+                    # else
+                    #     echo -e "$Inf 目前是否发送IP地址: ${GRB}是${NC}"
+                    # fi
                     divline
                     read -e -p "请选择是否发送IP地址  Y.是  其它/回车.否: " choice
                 fi
@@ -1040,10 +1046,14 @@ EOF
                     writeini "GetIP46" "$GetIP46"
                     echo -e "$Tip 已开启发送IP地址, 从 ${GRB}$GetIPURL (IPv$GetIP46)${NC} 处获取."
                     TestIP=$(curl -s -"$GetIP46" "$GetIPURL")
+                    if [ ! -z "$TestIP" ]; then
+                        writeini "GetIPAddress" "$TestIP"
+                    fi
                     echo -e "测试结果: ${GR}$TestIP${NC}"
 
                 else
                     writeini "SendIP" "false"
+                    writeini "GetIPAddress" ""
                     echo -e "$Tip 已关闭发送IP地址."
                 fi
                 ;;
@@ -1053,11 +1063,11 @@ EOF
                     choice="Y"
                     inputb="3"
                 else
-                    if [ -z $SendPrice ] || [ "$SendPrice" == "false" ]; then
-                        echo -e "$Inf 目前是否发送加密货币报价: ${GRB}否${NC}"
-                    else
-                        echo -e "$Inf 目前是否发送加密货币报价: ${GRB}是${NC} - ${GR}$GetPriceType${NC} "
-                    fi
+                    # if [ -z $SendPrice ] || [ "$SendPrice" == "false" ]; then
+                    #     echo -e "$Inf 目前是否发送加密货币报价: ${GRB}否${NC}"
+                    # else
+                    #     echo -e "$Inf 目前是否发送加密货币报价: ${GRB}是${NC} - ${GR}$GetPriceType${NC} "
+                    # fi
                     divline
                     read -e -p "请选择是否发送加密货币报价  Y.是  其它/回车.否: " choice
                 fi
