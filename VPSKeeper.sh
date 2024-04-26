@@ -613,12 +613,18 @@ SetupIniFile() {
             fi
             echo -e "${GR}6${NC}. 设置TG代理 (${RE}国内${NC})\t$settag"
             if [ "$SendUptime" == "true" ]; then
+                # read uptime idle_time < /proc/uptime
+                # uptime=${uptime%.*}
+                # days=$((uptime/86400))
+                # hours=$(( (uptime%86400)/3600 ))
+                # minutes=$(( (uptime%3600)/60 ))
+                # seconds=$((uptime%60))
                 read uptime idle_time < /proc/uptime
                 uptime=${uptime%.*}
-                days=$((uptime/86400))
-                hours=$(( (uptime%86400)/3600 ))
-                minutes=$(( (uptime%3600)/60 ))
-                seconds=$((uptime%60))
+                days=$(awk -v up="$uptime" 'BEGIN{print int(up/86400)}')
+                hours=$(awk -v up="$uptime" 'BEGIN{print int((up%86400)/3600)}')
+                minutes=$(awk -v up="$uptime" 'BEGIN{print int((up%3600)/60)}')
+                seconds=$(awk -v up="$uptime" 'BEGIN{print int(up%60)}')
                 uptimeshow="系统已运行: $days 日 $hours 时 $minutes 分 $seconds 秒"
                 settag="${GR}已启动${NC} | ${GR}$uptimeshow${NC}"
             else
@@ -2525,12 +2531,18 @@ while true; do
 
                 # 获取uptime输出
                 if \$SendUptime; then
+                    # read uptime idle_time < /proc/uptime
+                    # uptime=\${uptime%.*}
+                    # days=\$((uptime/86400))
+                    # hours=\$(( (uptime%86400)/3600 ))
+                    # minutes=\$(( (uptime%3600)/60 ))
+                    # seconds=\$((uptime%60))
                     read uptime idle_time < /proc/uptime
                     uptime=\${uptime%.*}
-                    days=\$((uptime/86400))
-                    hours=\$(( (uptime%86400)/3600 ))
-                    minutes=\$(( (uptime%3600)/60 ))
-                    seconds=\$((uptime%60))
+                    days=\$(awk -v up="\$uptime" 'BEGIN{print int(up/86400)}')
+                    hours=\$(awk -v up="\$uptime" 'BEGIN{print int((up%86400)/3600)}')
+                    minutes=\$(awk -v up="\$uptime" 'BEGIN{print int((up%3600)/60)}')
+                    seconds=\$(awk -v up="\$uptime" 'BEGIN{print int(up%60)}')
                     uptimeshow="系统已运行: \$days 日 \$hours 时 \$minutes 分 \$seconds 秒"
                 else
                     uptimeshow=""
@@ -2596,12 +2608,18 @@ while true; do
 
             # 获取uptime输出
             if \$SendUptime; then
+                # read uptime idle_time < /proc/uptime
+                # uptime=\${uptime%.*}
+                # days=\$((uptime/86400))
+                # hours=\$(( (uptime%86400)/3600 ))
+                # minutes=\$(( (uptime%3600)/60 ))
+                # seconds=\$((uptime%60))
                 read uptime idle_time < /proc/uptime
                 uptime=\${uptime%.*}
-                days=\$((uptime/86400))
-                hours=\$(( (uptime%86400)/3600 ))
-                minutes=\$(( (uptime%3600)/60 ))
-                seconds=\$((uptime%60))
+                days=\$(awk -v up="\$uptime" 'BEGIN{print int(up/86400)}')
+                hours=\$(awk -v up="\$uptime" 'BEGIN{print int((up%86400)/3600)}')
+                minutes=\$(awk -v up="\$uptime" 'BEGIN{print int((up%3600)/60)}')
+                seconds=\$(awk -v up="\$uptime" 'BEGIN{print int(up%60)}')
                 uptimeshow="系统已运行: \$days 日 \$hours 时 \$minutes 分 \$seconds 秒"
             else
                 uptimeshow=""
@@ -3155,12 +3173,18 @@ while true; do
 
                 # 获取uptime输出
                 if \$SendUptime; then
+                    # read uptime idle_time < /proc/uptime
+                    # uptime=\${uptime%.*}
+                    # days=\$((uptime/86400))
+                    # hours=\$(( (uptime%86400)/3600 ))
+                    # minutes=\$(( (uptime%3600)/60 ))
+                    # seconds=\$((uptime%60))
                     read uptime idle_time < /proc/uptime
                     uptime=\${uptime%.*}
-                    days=\$((uptime/86400))
-                    hours=\$(( (uptime%86400)/3600 ))
-                    minutes=\$(( (uptime%3600)/60 ))
-                    seconds=\$((uptime%60))
+                    days=\$(awk -v up="\$uptime" 'BEGIN{print int(up/86400)}')
+                    hours=\$(awk -v up="\$uptime" 'BEGIN{print int((up%86400)/3600)}')
+                    minutes=\$(awk -v up="\$uptime" 'BEGIN{print int((up%3600)/60)}')
+                    seconds=\$(awk -v up="\$uptime" 'BEGIN{print int(up%60)}')
                     uptimeshow="系统已运行: \$days 日 \$hours 时 \$minutes 分 \$seconds 秒"
                 else
                     uptimeshow=""
@@ -3320,12 +3344,18 @@ while true; do
 
             # 获取uptime输出
             if \$SendUptime; then
+                # read uptime idle_time < /proc/uptime
+                # uptime=\${uptime%.*}
+                # days=\$((uptime/86400))
+                # hours=\$(( (uptime%86400)/3600 ))
+                # minutes=\$(( (uptime%3600)/60 ))
+                # seconds=\$((uptime%60))
                 read uptime idle_time < /proc/uptime
                 uptime=\${uptime%.*}
-                days=\$((uptime/86400))
-                hours=\$(( (uptime%86400)/3600 ))
-                minutes=\$(( (uptime%3600)/60 ))
-                seconds=\$((uptime%60))
+                days=\$(awk -v up="\$uptime" 'BEGIN{print int(up/86400)}')
+                hours=\$(awk -v up="\$uptime" 'BEGIN{print int((up%86400)/3600)}')
+                minutes=\$(awk -v up="\$uptime" 'BEGIN{print int((up%3600)/60)}')
+                seconds=\$(awk -v up="\$uptime" 'BEGIN{print int(up%60)}')
                 uptimeshow="系统已运行: \$days 日 \$hours 时 \$minutes 分 \$seconds 秒"
             else
                 uptimeshow=""
