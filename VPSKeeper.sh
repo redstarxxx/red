@@ -401,7 +401,8 @@ SetAutoUpdate() {
     fi
     if [ "$autorun" == "false" ]; then
         echo -e "输入定时更新时间, 格式如: 23:34 (即每天 ${GR}23${NC} 时 ${GR}34${NC} 分)"
-        read -e -p "请输入定时模式  (回车默认: $AutoUpdateTime_de ): " input_time
+        echo -en "请输入定时模式  (回车默认: ${GR}$AutoUpdateTime_de${NC} ): "
+        read -er input_time
     else
         if [ -z "$AutoUpdateTime" ]; then
             input_time=""
@@ -583,7 +584,7 @@ SetupIniFile() {
     # 设置电报机器人参数
     autochoice=5
     divline
-    echo -e "$Tip 默认机器人: @iekeeperbot 使用前必须添加并点击 start"
+    echo -e "$Tip 默认机器人: ${GR}@iekeeperbot${NC} 使用前必须添加并点击 ${GR}/start${NC}"
     while true; do
         source $ConfigFile
         if [ "$autorun" == "true" ]; then
@@ -595,17 +596,43 @@ SetupIniFile() {
             fi
         else
             divline
-            echo -e "${GR}1${NC}.BOT Token ${GR}2${NC}.CHAT ID ${GR}3${NC}.CPU检测工具 (默认使用 top)"
+            echo -e "${GR}1${NC}. BOT Token\t\t${GR}$TelgramBotToken${NC}"
+            echo -e "${GR}2${NC}. CHAT ID\t\t${GR}$ChatID_1${NC}"
+            echo -e "${GR}3${NC}. CPU检测工具\t\t${GR}$CPUTools${NC}"
+            echo -e "${GR}4${NC}. 设置流量上限\t\t${GR}$FlowThresholdMAX${NC}"
             if [ "$SHUTDOWN_RT" == "true" ]; then
-                srtag="(${RE}已启动${NC})"
+                settag="${GR}已启动${NC}"
             else
-                srtag=""
+                settag=""
             fi
-            echo -e "${GR}4${NC}.设置流量上限 ${GR}5${NC}.设置关机记录流量$srtag ${GR}6${NC}.设置 Teletram 代理(国内)"
-            echo -e "${GR}7${NC}.设置发送在线时长 ${GR}8${NC}.设置发送IP地址 ${GR}9${NC}.设置发送货币报价"
-            echo -e "${GR}回车${NC}.退出设置"
+            echo -e "${GR}5${NC}. 设置关机记录流量\t$settag"
+            if [ ! -z "$ProxyURL" ]; then
+                settag="${GR}已启动${NC}"
+            else
+                settag=""
+            fi
+            echo -e "${GR}6${NC}. 设置TG代理 (${RE}国内${NC})\t$settag"
+            if [ "$SendUptime" == "true" ]; then
+                settag="${GR}已启动${NC}"
+            else
+                settag=""
+            fi
+            echo -e "${GR}7${NC}. 设置发送在线时长\t$settag"
+            if [ "$SendIP" == "true" ]; then
+                settag="${GR}已启动${NC}"
+            else
+                settag=""
+            fi
+            echo -e "${GR}8${NC}. 设置发送IP地址\t$settag"
+            if [ "$SendPrice" == "true" ]; then
+                settag="${GR}已启动${NC}"
+            else
+                settag=""
+            fi
+            echo -e "${GR}9${NC}. 设置发送货币报价\t$settag"
+            echo -e "${GR}回车${NC}. 退出设置"
             divline
-            read -e -p "请输入你的选择: " choice
+            read -e -p "请输入对应的序号: " choice
         fi
         case $choice in
             1)
@@ -695,7 +722,8 @@ SetupIniFile() {
                 ;;
             4)
                 # 设置流量上限（仅参考）
-                read -e -p "请设置 流量上限 数字 + MB/GB/TB (回车默认: $FlowThresholdMAX_de): " threshold_max
+                echo -en "请设置 流量上限 ${GR}数字 + MB/GB/TB${NC} (回车默认: $FlowThresholdMAX_de): "
+                read -er threshold_max
                 if [ ! -z "$threshold_max" ]; then
                     if [[ $threshold_max =~ ^[0-9]+(\.[0-9])?$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(M)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(MB)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(m)$ ]] || [[ $threshold_max =~ ^[0-9]+(\.[0-9]+)?(mb)$ ]]; then
                         threshold_max=${threshold_max%M}
@@ -871,6 +899,7 @@ EOF
                     systemctl disable tg_shutdown_rt.service > /dev/null 2>&1
                     sleep 1
                     rm -f /etc/systemd/system/tg_shutdown_rt.service
+                    rm -f $FolderPath/tg_shutdown_rt.log
                     sed -i "/^INTERFACE_RT_RX_B/d" $ConfigFile
                     sed -i "/^INTERFACE_RT_TX_B/d" $ConfigFile
                     writeini "SHUTDOWN_RT" "false"
@@ -997,7 +1026,7 @@ EOF
                         GetIPURL=$inputurl
                     fi
                     if [ "$autorun" == "false" ]; then
-                        read -e -p "请选择 IP 类型:  4: IPv4  6: IPv6 (4/6/回车默认: IPv4 ): " input46
+                        read -e -p "请选择 IP 类型:  4: IPv4  6: IPv6 (回车默认: IPv4 ): " input46
                     fi
                     if [ -z "$input46" ]; then
                         GetIP46="4"
@@ -1192,7 +1221,7 @@ EOF
     if [ "$mute" == "false" ]; then
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 开机 时将收到通知💡" &
     fi
-    tips="$Tip 开机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
+    tips="$Tip 开机 通知已经设置成功, 当开机时发出通知."
     
 }
 
@@ -1221,7 +1250,7 @@ EOF
         if [ "$mute" == "false" ]; then
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡" &
         fi
-        tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
+        tips="$Tip 登陆 通知已经设置成功, 当登陆时发出通知."
     elif [ -f /etc/profile ]; then
         if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/profile; then
             echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/profile
@@ -1229,7 +1258,7 @@ EOF
         if [ "$mute" == "false" ]; then
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡" &
         fi
-        tips="$Tip 登陆 通知已经设置成功, 当登陆时你的 Telgram 将收到通知."
+        tips="$Tip 登陆 通知已经设置成功, 当登陆时发出通知."
     else
         tips="$Err 未检测到对应文件, 无法设置登陆通知."
     fi
@@ -1294,7 +1323,7 @@ EOF
     if [ "$mute" == "false" ]; then
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 关机 时将收到通知💡" &
     fi
-    tips="$Tip 关机 通知已经设置成功, 当开机时你的 Telgram 将收到通知."
+    tips="$Tip 关机 通知已经设置成功, 当开机时发出通知."
 }
 
 # 设置Dokcer通知
@@ -1340,7 +1369,7 @@ EOF
     if [ "$mute" == "false" ]; then
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 Docker 列表变更时将收到通知💡" &
     fi
-    tips="$Tip Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时你的 Telgram 将收到通知."
+    tips="$Tip Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时发出通知."
 }
 
 CheckCPU_top() {
@@ -1625,7 +1654,7 @@ EOF
 # '"检测工具: $CPUTools"'
 # '"当 CPU 使用达 $CPUThreshold % 时将收到通知💡" &
     fi
-    tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达到 $CPUThreshold % 时将收到通知."
+    tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达 ${GR}$CPUThreshold${NC} % 时发出通知."
 }
 
 # 设置内存报警
@@ -1750,7 +1779,7 @@ EOF
 '"交换: ${swap_total}MB"'
 '"当内存使用达 $MEMThreshold % 时将收到通知💡" &
     fi
-    tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达到 $MEMThreshold % 时将收到通知."
+    tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达 ${GR}$MEMThreshold${NC} % 时发出通知."
 
 }
 
@@ -1877,7 +1906,7 @@ EOF
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 '"当磁盘使用达 $DISKThreshold % 时将收到通知💡" &
     fi
-    tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达到 $DISKThreshold % 时将收到通知."
+    tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达 ${GR}$DISKThreshold${NC} % 时发出通知."
 }
 
 # 删除变量后面的B
@@ -1961,7 +1990,8 @@ SetupFlow_TG() {
         return 1
     fi
     if [ "$autorun" == "false" ]; then
-        read -e -p "请输入 流量报警阈值 数字 + MB/GB/TB (回车跳过修改): " threshold
+        echo -en "请输入 流量报警阈值 ${GR}数字 + MB/GB/TB${NC} (回车跳过修改): "
+        read -er threshold
     else
         if [ ! -z "$FlowThreshold" ]; then
             threshold=$FlowThreshold
@@ -2013,7 +2043,8 @@ SetupFlow_TG() {
         return 1
     fi
     if [ "$autorun" == "false" ]; then
-        read -e -p "请设置 流量上限 数字 + MB/GB/TB (回车默认: $FlowThresholdMAX_de): " threshold_max
+        echo -en "请设置 流量上限 ${GR}数字 + MB/GB/TB${NC} (回车默认: $FlowThresholdMAX_de): "
+        read -er threshold_max
     else
         if [ ! -z "$FlowThresholdMAX" ]; then
             threshold_max=$FlowThresholdMAX
@@ -2147,7 +2178,6 @@ SetupFlow_TG() {
                 echo "接口: $clean_interface 不活跃."
             fi
             done
-            echo -e "$Tip 检测到活动的接口: ${active_interfaces[@]}"
             interfaces_ST=("${active_interfaces[@]}")
             # for ((i = 0; i < ${#interfaces_ST[@]}; i++)); do
             #     w_interfaces_ST+="${interfaces_ST[$i]}"
@@ -2156,6 +2186,7 @@ SetupFlow_TG() {
             #     fi
             # done
             w_interfaces_ST=$(sep_array interfaces_ST ",")
+            echo -e "$Tip 检测到活动的接口: $w_interfaces_ST"
             # echo "确认选择接口: $w_interfaces_ST"
             writeini "interfaces_ST" "$w_interfaces_ST"
         fi
@@ -2652,7 +2683,7 @@ EOF
     if [ "$mute" == "false" ]; then
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"检测接口: $show_interfaces_ST"$'\n'"检测模式: $StatisticsMode_ST"$'\n'"当流量达阈值 $FlowThreshold_UB 时将收到通知💡" &
     fi
-    tips="$Tip 流量 通知已经设置成功, 当流量使用达到 $FlowThreshold_UB 时将收到通知."
+    tips="$Tip 流量 通知已经设置成功, 当流量使用达 ${GR}$FlowThreshold_UB${NC} 时发出通知."
 }
 
 SetFlowReport_TG() {
@@ -2771,7 +2802,6 @@ SetFlowReport_TG() {
                 echo "接口: $clean_interface 不活跃."
             fi
             done
-            echo -e "$Tip 检测到活动的接口: ${active_interfaces[@]}"
             interfaces_RP=("${active_interfaces[@]}")
             # for ((i = 0; i < ${#interfaces_RP[@]}; i++)); do
             #     w_interfaces_RP+="${interfaces_RP[$i]}"
@@ -2780,6 +2810,7 @@ SetFlowReport_TG() {
             #     fi
             # done
             w_interfaces_RP=$(sep_array interfaces_RP ",")
+            echo -e "$Tip 检测到活动的接口: $w_interfaces_RP"
             # echo "确认选择接口: $w_interfaces_RP"
             writeini "interfaces_RP" "$w_interfaces_RP"
         fi
@@ -3711,7 +3742,7 @@ VIEWLOG() {
     done
     divline
     read -e -p "请输入要 [查看] 的文件序号 : " lognum
-    if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ]; then
+    if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ] || [ "$lognum" -eq 0 ]; then
         tips="$Tip 输入有误 或 未找到对应的文件!"
     else
         divline
@@ -3734,7 +3765,7 @@ T_VIEWLOG() {
     divline
     echo -e "${RE}注意${NC}:  ${REB}按任意键中止${NC}"
     read -e -p "请输入要 [查看] 的文件序号 : " lognum
-    if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ]; then
+    if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ] || [ "$lognum" -eq 0 ]; then
         tips="$Tip 输入有误 或 未找到对应的文件!"
     else
         stty intr ^- # 禁用 CTRL+C
@@ -3759,7 +3790,7 @@ T_VIEWLOG() {
     fi
 }
 
-# 跟踪查看当前网速
+# 实时网速
 T_NETSPEED() {
     # interfaces_re_0=$(ip -br link | awk '$2 == "UP" {print $1}' | grep -v "lo")
     # output=$(ip -br link)
@@ -3789,8 +3820,9 @@ T_NETSPEED() {
         fi
         ((count++))
     done
-    echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活跃接口:"
-    read -e -p "请输入统计接口编号: " choice
+    echo -e "请输入对应的编号进行统计测速"
+    echo -en "例如: ${GR}1${NC} 或 ${GR}2${NC} 或 ${GR}12 (合计)${NC} 或 ${GR}回车 (自动检测活跃接口) ${NC}: "
+    read -er choice
     if [[ $choice == *0* ]]; then
         tips="$Err 接口编号中没有 0 选项"
         return 1
@@ -3839,7 +3871,6 @@ T_NETSPEED() {
             echo "接口: $clean_interface 不活跃."
         fi
         done
-        echo -e "$Tip 检测到活动的接口: ${active_interfaces[@]}"
         interfaces_re=("${active_interfaces[@]}")
         # for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
         #     show_interfaces_re+="${interfaces_re[$i]}"
@@ -3850,8 +3881,10 @@ T_NETSPEED() {
         show_interfaces_re=$(sep_array interfaces_re ",")
         # echo "确认选择接口: interfaces_re: $interfaces_re  show_interfaces_re: $show_interfaces_re"
         # Pause
+        echo -e "$Tip 检测到活动的接口: $show_interfaces_re"
     fi
-    read -e -p "请输入统计间隔时间 (回车默认 2 秒) : " inputtt
+    echo -en "请输入统计间隔时间 (回车默认 ${GR}2${NC} 秒) : "
+    read -er inputtt
     if [ -z "$inputtt" ]; then
         nstt=2
     else
@@ -4177,7 +4210,7 @@ fi
 CLS
 echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
 -- tse | vtse.eu.org | $release -- 
-                                ${flowthm_menu_tag} ${sd_rt_menu_tag} ${proxy_menu_tag} ${senduptime_menu_tag} ${sendip_menu_tag} ${sendprice_menu_tag}
+                        ${flowthm_menu_tag}             ${sd_rt_menu_tag} ${proxy_menu_tag} ${senduptime_menu_tag} ${sendip_menu_tag} ${sendprice_menu_tag}
  ${GR}0.${NC} 检查依赖 / 设置参数 \t$reset_menu_tag
 ———————————————————————
  ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知 \t\t\t$boot_menu_tag
@@ -4189,7 +4222,7 @@ echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 ${RE}[v${sh_ver}]${NC
  ${GR}7.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 ${REB}阈值${NC}: $FlowThreshold_tag \t$flow_menu_tag
  ${GR}8.${NC} 设置 ${GR}[流量定时报告]${NC} Telgram 通知 \t\t$flowrp_menu_tag${NC}
  ${GR}9.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知 \t\t$docker_menu_tag${NC} ${REB}$reDockerSet${NC}
- ———————————————————————————————————————————————————————
+ ————————————————————————————————————————————————————————
  ${GR}t.${NC} 测试 - 发送一条信息用以检验参数设置
  ——————————————————————————————————————
  ${GR}h.${NC} 修改 - 主机名 以此作为主机标记
@@ -4208,7 +4241,8 @@ if [ "$tips" = "" ]; then
 else
     echo -e "$tips" && echo
 fi
-read -e -p "请输入选项 [0-8|t|h|o|c|f|u|x]:" num
+echo -en "请输入选项 [${GR}0-9${NC}|${GR}t${NC}|${GR}h${NC}|${GR}o${NC}|${GR}c${NC}|${GR}f${NC}|${GR}u${NC}|${GR}v${NC}|${GR}x${NC}] : "
+read -er num
 case "$num" in
     0)
     CheckAndCreateFolder
@@ -4326,7 +4360,7 @@ case "$num" in
         echo -e "l     - 查看log日志文件"
         echo -e "ll    - 追踪查看log日志文件"
         echo -e "L     - 删除log日志文件"
-        echo -e "ss    - 追踪查看当前网速"
+        echo -e "ss    - 实时网速"
         Pause
     ;;
     L)
