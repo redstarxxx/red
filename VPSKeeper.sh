@@ -31,7 +31,7 @@ fi
 sh_ver="1.0.5"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
-BOTToken_de="7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
+BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
 CPUTools_de="top"
 CPUThreshold_de="80"
 MEMThreshold_de="80"
@@ -584,7 +584,7 @@ SetupIniFile() {
     # 设置电报机器人参数
     autochoice=5
     divline
-    echo -e "$Tip 默认机器人: ${GR}@iekeeperbot${NC} 使用前必须添加并点击 ${GR}/start${NC}"
+    echo -e "$Tip 默认机器人: ${GR}@vpskeeperbot${NC} 使用前必须添加并点击 ${GR}/start${NC}"
     while true; do
         source $ConfigFile
         if [ "$autorun" == "true" ]; then
@@ -647,7 +647,7 @@ SetupIniFile() {
                 divline
                 read -e -p "请输入 BOT Token (回车跳过修改 / 输入 R 使用默认机器人): " bottoken
                 if [ "$bottoken" == "r" ] || [ "$bottoken" == "R" ]; then
-                    writeini "TelgramBotToken" "7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws"
+                    writeini "TelgramBotToken" "6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
                     UN_ALL
                     tips="$Tip 接收信息已经改动, 请重新设置所有通知."
                     break
@@ -3625,7 +3625,8 @@ UN_ALL() {
     kill -9 $(ps | grep '[t]g_' | awk '{print $1}')
     fi
     crontab -l | grep -v "$FolderPath/tg_" | crontab -
-    if [ "$autorun" == "false" ]; then
+    # if [ "$autorun" == "false" ]; then
+    if [ "$un_sendtag" == "true" ]; then
         current_date_send=$(date +"%Y.%m.%d %T")
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已执行一键删除所有通知 ☎️"'
 '"主机名: $hostname_show"'
@@ -4207,6 +4208,26 @@ if [ -z $SendPrice ] || [ "$SendPrice" == "false" ]; then
 else
     sendprice_menu_tag="${GRB}Pi${NC}"
 fi
+
+# gettime=$(date +%s%N) # 时间戳 (纳秒)
+# gettime=$(date +%s) # 时间戳 (秒)
+# gettime=$(date -d "2024-05-01 00:00:00" +%s) # 指定时间戳 (秒)
+
+ED_Time_0="2024-05-01 00:00:00"
+CT_time=$(date +%s)
+ED_time=$(date -d "$ED_Time_0" +%s)
+runtag="NO"
+echo "检测到期时间 (之后将不检测): $ED_Time_0   |   CT_time: $CT_time  ED_time: $ED_time"
+if awk -v v1="$CT_time" -v v2="$ED_time" 'BEGIN { print (v1 < v2)?"less":"greater" }' | grep -q "less" && [[ "${TelgramBotToken:-""}" == "7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws" ]]; then
+    echo "TelgramBotToken: $TelgramBotToken"
+    TelgramBotToken="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
+    writeini "TelgramBotToken" "6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
+    echo "TelgramBotToken 已经换成 @vpskeeperbot"
+    sleep 3
+    runtag="YES"
+fi
+echo "runtag: $runtag"
+
 CLS
 echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
 -- tse | vtse.eu.org | $release -- 
@@ -4336,7 +4357,9 @@ case "$num" in
     c|C)
     echo "卸载前:"
     pgrep '^tg_' | xargs -I {} ps -p {} -o pid,cmd
+    un_sendtag=true
     UN_ALL
+    un_sendtag=false
     echo "卸载后:"
     pgrep '^tg_' | xargs -I {} ps -p {} -o pid,cmd
     ;;
