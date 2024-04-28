@@ -2,13 +2,13 @@
 PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 export PATH
 
-#=================================================
+#=======================================================
 #	System Required: CentOS/Debian/Ubuntu/OpenWRT
 #	Description: VPS keeper for telgram
-#	Version: 1.0.3
+#	Version: 1.0.5
 #	Author: tse
 #	Blog: https://vtse.eu.org
-#=================================================
+#=======================================================
 
 # 颜色代码
 GR="\033[32m" && RE="\033[31m" && GRB="\033[42;37m" && REB="\033[41;37m" && NC="\033[0m"
