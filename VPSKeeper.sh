@@ -4236,6 +4236,7 @@ if [ ! -z "\${4}" ] && [ \$send_status -eq 0 ]; then
     sleep 6
     touch $FolderPath/send_tg[\${4}\${5}].log
     message_id[\${4}\${5}]=\$(grep -o '"message_id":[0-9]*' $FolderPath/send_tg[\${4}\${5}].log | grep -o '[0-9]*')
+    rm -f "$FolderPath/send_tg[].log"
     rm -f "$FolderPath/send_tg[\${5}].log"
     rm -f "$FolderPath/send_tg[\${4}\${5}].log"
     if [ ! -z "\${message_id[\${4}\${5}]}" ]; then
