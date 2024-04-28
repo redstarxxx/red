@@ -3,7 +3,7 @@ PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 export PATH
 
 #=================================================
-#	System Required: CentOS/Debian/Ubuntu
+#	System Required: CentOS/Debian/Ubuntu/OpenWRT
 #	Description: VPS keeper for telgram
 #	Version: 1.0.3
 #	Author: tse
