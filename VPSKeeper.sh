@@ -542,7 +542,8 @@ EOF
         mute_mode="静音模式"
     fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"通知模式: $mute_mode" &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"通知模式: $mute_mode" "autoud" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "autoud") &
     fi
     tips="$Tip 自动更新设置成功, 更新时间: 每天 $hour_ud 时 $minute_ud 分, 通知模式: ${GR}$mute_mode${NC}"
 }
@@ -1150,7 +1151,8 @@ test() {
     fi
     # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
     #     -d chat_id="$ChatID_1" -d text="来自 $hostname_show 的测试信息" > /dev/null
-    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "来自 $hostname_show 的测试信息"
+    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "来自 $hostname_show 的测试信息" "test" &
+    (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "test") &
     tips="$Inf 测试信息已发出, 电报将收到一条\"来自 $hostname_show 的测试信息\"的信息."
 }
 
@@ -1235,7 +1237,8 @@ EOF
         return 1
     fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 开机 时将收到通知💡" &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 开机 时将收到通知💡" "boot" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "boot") &
     fi
     tips="$Tip 开机 通知已经设置成功, 当开机时发出通知."
     
@@ -1264,7 +1267,8 @@ EOF
             echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
         fi
         if [ "$mute" == "false" ]; then
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡" &
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡" "login" &
+            (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "login") &
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时发出通知."
     elif [ -f /etc/profile ]; then
@@ -1272,7 +1276,8 @@ EOF
             echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/profile
         fi
         if [ "$mute" == "false" ]; then
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡" &
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡 " "login" &
+            (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "login") &
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时发出通知."
     else
@@ -1337,7 +1342,8 @@ EOF
         return 1
     fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 关机 时将收到通知💡" &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 关机 时将收到通知💡" "shutdown" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "shutdown") &
     fi
     tips="$Tip 关机 通知已经设置成功, 当开机时发出通知."
 }
@@ -1383,7 +1389,8 @@ EOF
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &") | crontab -
     fi
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 Docker 列表变更时将收到通知💡" &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 Docker 列表变更时将收到通知💡" "docker" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "docker") &
     fi
     tips="$Tip Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时发出通知."
 }
@@ -1660,7 +1667,7 @@ EOF
 '"主机名: $hostname_show"'
 '"CPU: $cpuusedOfcpus"'
 '"检测工具: $CPUTools"'
-'"当 CPU 使用达 $CPUThreshold % 时将收到通知💡" &
+'"当 CPU 使用达 $CPUThreshold % 时将收到通知💡" "cpu" &
 #         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: CPU 报警通知⚙️"'
 # '"主机名: $hostname_show"'
 # '"CPU: $cpuusedOfcpus"'
@@ -1669,6 +1676,7 @@ EOF
 # '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 # '"检测工具: $CPUTools"'
 # '"当 CPU 使用达 $CPUThreshold % 时将收到通知💡" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "cpu") &
     fi
     tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达 ${GR}$CPUThreshold${NC} % 时发出通知."
 }
@@ -1793,7 +1801,8 @@ EOF
 '"主机名: $hostname_show"'
 '"内存: ${mem_total}MB"'
 '"交换: ${swap_total}MB"'
-'"当内存使用达 $MEMThreshold % 时将收到通知💡" &
+'"当内存使用达 $MEMThreshold % 时将收到通知💡" "mem" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "mem") &
     fi
     tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达 ${GR}$MEMThreshold${NC} % 时发出通知."
 
@@ -1920,7 +1929,8 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 磁盘 报警通知⚙️"'
 '"主机名: $hostname_show"'
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
-'"当磁盘使用达 $DISKThreshold % 时将收到通知💡" &
+'"当磁盘使用达 $DISKThreshold % 时将收到通知💡" "disk" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "disk") &
     fi
     tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达 ${GR}$DISKThreshold${NC} % 时发出通知."
 }
@@ -2709,7 +2719,9 @@ EOF
 # EOF
 #     systemctl enable tg_interface_re.service > /dev/null
     if [ "$mute" == "false" ]; then
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 流量 报警通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"检测接口: $show_interfaces_ST"$'\n'"检测模式: $StatisticsMode_ST"$'\n'"当流量达阈值 $FlowThreshold_UB 时将收到通知💡" &
+        message="流量报警设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"检测接口: $show_interfaces_ST"$'\n'"检测模式: $StatisticsMode_ST"$'\n'"当流量达阈值 $FlowThreshold_UB 时将收到通知💡"
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "flow" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flow") &
     fi
     tips="$Tip 流量 通知已经设置成功, 当流量使用达 ${GR}$FlowThreshold_UB${NC} 时发出通知."
 }
@@ -3528,7 +3540,8 @@ EOF
     (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &") | crontab -
     if [ "$mute" == "false" ]; then
         message="流量定时报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"报告接口: $show_interfaces_RP"$'\n'"报告模式: $StatisticsMode_RP"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分📈"
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "flowrp" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flowrp") &
     fi
     tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
 }
@@ -3670,7 +3683,8 @@ UN_ALL() {
         current_date_send=$(date +"%Y.%m.%d %T")
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已执行一键删除所有通知 ☎️"'
 '"主机名: $hostname_show"'
-'"服务器时间: $current_date_send" &
+'"服务器时间: $current_date_send" "delall" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "delall") &
         tips="$Tip 已取消 / 删除所有通知."
     fi
 }
@@ -4097,10 +4111,40 @@ fi
 # declare -f send_telegram_message | sed -n '/^{/,/^}/p' | sed '1d;$d' | sed 's/$1/$3/g; s/$TelgramBotToken/$1/g; s/$ChatID_1/$2/g' > $FolderPath/send_tg.sh
 cat <<EOF > $FolderPath/send_tg.sh
 #!/bin/bash
+
+declare -A send_tg=()
+declare -A message_id=()
+
 curl -s -X POST "${ProxyURL}https://api.telegram.org/bot\${1}/sendMessage" \
-    -d chat_id="\${2}" -d text="\${3}" > /dev/null 2>&1 &
+    -d chat_id="\${2}" -d text="\${3}" > $FolderPath/send_tg[\${4}].log 2>&1 &
+send_status=${?}
+
+if [ ! -z "\${4}" ] && [ \$send_status -eq 0 ]; then
+    sleep 6
+    message_id[\${4}]=\$(grep -o '"message_id":[0-9]*' $FolderPath/send_tg[\${4}].log | grep -o '[0-9]*')
+    rm -f "$FolderPath/send_tg[\${4}].log"
+    if [ -z "\${message_id[\${4}]}" ]; then
+        echo "message_id 获取失败."
+    else
+        echo "message_id[\${4}]=\${message_id[\${4}]}" > "$FolderPath/message_id[\${4}].txt"
+    fi
+fi
 EOF
 chmod +x $FolderPath/send_tg.sh
+cat <<EOF > $FolderPath/del_lm_tg.sh
+#!/bin/bash
+
+declare -A message_id=()
+
+if [ -f $FolderPath/message_id[\${3}].txt ]; then
+    source "$FolderPath/message_id[\${3}].txt"
+    rm -f "$FolderPath/message_id[\${3}].txt"
+fi
+
+curl -s -X POST "${ProxyURL}https://api.telegram.org/bot\${1}/deleteMessage" \
+    -d chat_id="\${2}" -d message_id="\${message_id[\${3}]}" > /dev/null 2>&1 &
+EOF
+chmod +x $FolderPath/del_lm_tg.sh
 if [ -z "$ChatID_1" ]; then
     CLS
     echo -e "$Tip 在使用前请先设置 [${GR}CHAT ID${NC}] 用以接收通知信息."
