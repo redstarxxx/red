@@ -238,13 +238,13 @@ CheckSetup() {
     echo "检测中..."
     if [ -f $FolderPath/tg_login.sh ]; then
         if [ -f /etc/bash.bashrc ] && [ "$release" != "openwrt" ]; then
-            if grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
+            if grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1 &" /etc/bash.bashrc; then
                 login_menu_tag="$SETTAG"
             else
                 login_menu_tag="$UNSETTAG"
             fi
         elif [ -f /etc/profile ]; then
-            if grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/profile; then
+            if grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1 &" /etc/profile; then
                 login_menu_tag="$SETTAG"
             else
                 login_menu_tag="$UNSETTAG"
@@ -277,7 +277,7 @@ CheckSetup() {
     else
         shutdown_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_docker.sh ]; then
+    if [ -f $FolderPath/tg_docker.sh ] && ps aux | grep '[t]g_docker' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
             docker_menu_tag="$SETTAG"
         else
@@ -286,7 +286,7 @@ CheckSetup() {
     else
         docker_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_cpu.sh ]; then
+    if [ -f $FolderPath/tg_cpu.sh ] && ps aux | grep '[t]g_cpu' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
             cpu_menu_tag="$SETTAG"
         else
@@ -295,7 +295,7 @@ CheckSetup() {
     else
         cpu_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_mem.sh ]; then
+    if [ -f $FolderPath/tg_mem.sh ] && ps aux | grep '[t]g_mem' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
             mem_menu_tag="$SETTAG"
         else
@@ -304,7 +304,7 @@ CheckSetup() {
     else
         mem_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_disk.sh ]; then
+    if [ -f $FolderPath/tg_disk.sh ] && ps aux | grep '[t]g_disk' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
             disk_menu_tag="$SETTAG"
         else
@@ -313,7 +313,7 @@ CheckSetup() {
     else
         disk_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_flow.sh ]; then
+    if [ -f $FolderPath/tg_flow.sh ] && ps aux | grep '[t]g_flow' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
             flow_menu_tag="$SETTAG"
         else
@@ -322,7 +322,7 @@ CheckSetup() {
     else
         flow_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_flowrp.sh ]; then
+    if [ -f $FolderPath/tg_flowrp.sh ] && ps aux | grep '[t]g_flowrp' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
             flowrp_menu_tag="$SETTAG"
         else
@@ -330,6 +330,15 @@ CheckSetup() {
         fi
     else
         flowrp_menu_tag="$UNSETTAG"
+    fi
+    if [ -f $FolderPath/tg_ddns.sh ] && ps aux | grep '[t]g_ddns' > /dev/null 2>&1; then
+        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"; then
+            ddns_menu_tag="$SETTAG"
+        else
+            ddns_menu_tag="$UNSETTAG"
+        fi
+    else
+        ddns_menu_tag="$UNSETTAG"
     fi
     if [ -f $FolderPath/tg_autoud.sh ]; then
         if crontab -l | grep -q "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &"; then
@@ -1318,8 +1327,8 @@ $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
 EOF
     chmod +x $FolderPath/tg_login.sh
     if [ -f /etc/bash.bashrc ] && [ "$release" != "openwrt" ]; then
-        if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/bash.bashrc; then
-            echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/bash.bashrc
+        if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1 &" /etc/bash.bashrc; then
+            echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1 &" >> /etc/bash.bashrc
         fi
         if [ "$mute" == "false" ]; then
             send_time=$(echo $(date +%s%N) | cut -c 16-)
@@ -1329,8 +1338,8 @@ EOF
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时发出通知."
     elif [ -f /etc/profile ]; then
-        if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1" /etc/profile; then
-            echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1" >> /etc/profile
+        if ! grep -q "bash $FolderPath/tg_login.sh > /dev/null 2>&1 &" /etc/profile; then
+            echo "bash $FolderPath/tg_login.sh > /dev/null 2>&1 &" >> /etc/profile
         fi
         if [ "$mute" == "false" ]; then
             send_time=$(echo $(date +%s%N) | cut -c 16-)
@@ -3647,6 +3656,246 @@ EOF
     tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
 }
 
+ddns() {
+    if [ ! -z "$ddns_pid" ] && ps -p $ddns_pid > /dev/null; then
+        tips="$Err PID: $ddns_pid 正在发送中,请稍后..."
+        return
+    fi
+    if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
+        tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
+        return 1
+    fi
+    # if [ "$autorun" == "false" ]; then
+    echo -en "开启 Cloudflare DDNS, 请输入IP格式: ${GR}4.${NC}IPv4 ${GR}6.${NC}IPv6 : "
+    read -er input_iptype
+    if [ "$input_iptype" == "4" ]; then
+        CFDDNS_IP_TYPE="A"
+    elif [ "$input_iptype" == "6" ]; then
+        CFDDNS_IP_TYPE="AAAA"
+    else
+        tips="$Err 输入有误, 取消操作."
+        return 1
+    fi
+    echo -en "请输入 Cloudflare 帐号名 (邮箱) : "
+    read -er input_email
+    email_regex="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    if [ -z "$input_email" ] || [[ ! $input_email =~ $email_regex ]]; then
+        tips="$Err 输入有误, 取消操作."
+        return 1
+    else
+        CFDDNS_EMAIL=$input_email
+    fi
+    echo -en "请输入 Cloudflare Global API Key : "
+    read -er input_apikey
+    if [ -z "$input_apikey" ]; then
+        tips="$Err 输入有误, 取消操作."
+        return 1
+    else
+        CFDDNS_APIKEY=$input_apikey
+    fi
+    echo -en "请输入 Cloudflare Zone ID : "
+    read -er input_zoneid
+    if [ -z "$input_zoneid" ]; then
+        tips="$Err 输入有误, 取消操作."
+        return 1
+    else
+        CFDDNS_ZID=$input_zoneid
+    fi
+    echo -e "请输入 DDNS 完整域名 (含前缀)"
+    echo -en "( 如: abc.xxx.cloudns.biz ) : "
+    read -er input_domain
+    if [ -z "$input_domain" ]; then
+        tips="$Err 输入有误, 取消操作."
+        return 1
+    else
+        CFDDNS_DOMAIN_P="${input_domain%%.*}"
+        CFDDNS_DOMAIN_S="${input_domain#*.}"
+    fi
+    cat <<EOF > "$FolderPath/tg_ddns.sh"
+#!/bin/bash
+
+#################################################################### Cloudflare账户信息
+email="$CFDDNS_EMAIL" # 帐号邮箱
+api_key="$CFDDNS_APIKEY" # 主页获取
+zone_id="$CFDDNS_ZID" # 主页获取
+domain="$CFDDNS_DOMAIN_P" # 域名
+record_name="$CFDDNS_DOMAIN_S" # 自定义前缀
+iptype="$CFDDNS_IP_TYPE" # 动态解析IP类型: A为IPV4, AAAA为IPV6
+ttls="1" # TTL: 1为自动, 60为1分钟, 120为2分钟
+proxysw="false" # 是否开启小云朵(CF代理)( true 或 false )
+####################################################################
+
+action() {
+    local iptype_lo="\${1}"
+    local ipaddress="\${2}"
+
+    # 尝试获取DNS记录的ID，最多尝试5次
+    attempts=1 # 尝试次数标记
+    max_attempts=5 # 最多获取次数(可自定义)
+    record_id="" # 无需更改
+
+    while [ \$attempts -le \$max_attempts ]; do
+    # 获取DNS记录的ID
+    response=\$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/\$zone_id/dns_records?type=A&name=\$record_name.\$domain" \
+        -H "X-Auth-Email: \$email" \
+        -H "X-Auth-Key: \$api_key" \
+        -H "Content-Type: application/json")
+
+    # 输出完整的API响应
+    echo "获取DNS记录API响应: \$response"
+
+    # 检查是否成功获取DNS记录ID
+    record_id=\$(echo "\$response" | awk -F'"' '/id/{print \$6; exit}')
+
+    if [ -z "\$record_id" ]; then
+        echo "第 \$attempts 次获取DNS记录ID失败。"
+        if [ \$attempts -eq \$max_attempts ]; then
+        echo "获取DNS记录ID失败，请检查输入的信息是否正确。"
+        exit 1
+        else
+        attempts=\$((attempts+1))
+        fi
+    else
+        echo "成功获取DNS记录ID: \$record_id"
+        break
+    fi
+    done
+
+    # 更新DNS记录
+    update_response=\$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/\$zone_id/dns_records/\$record_id" \
+        -H "X-Auth-Email: \$email" \
+        -H "X-Auth-Key: \$api_key" \
+        -H "Content-Type: application/json" \
+        --data '{"type":"'\$iptype_lo'","name":"'\$record_name'","content":"'\$ipaddress'","ttl":'\$ttls',"proxied":'\$proxysw'}')
+
+    # 输出更新DNS记录的API响应
+    echo "更新DNS记录API响应: \$update_response"
+
+    # 检查是否成功更新DNS记录
+    if [[ \$update_response == *"success\":true"* ]]; then
+    echo "DNS记录更新成功。"
+    date
+    else
+    echo "DNS记录更新失败，请检查输入的信息是否正确。"
+    date
+    exit 1
+    fi
+}
+
+O_IPV4=""
+customizeURL="\$1"
+echo "自定URL\$1: \$customizeURL"
+getipurl4=('ip.sb' 'ip.gs' 'ifconfig.io' 'ipinfo.io/ip')
+getipurl6=('ip.sb' 'ip.gs' 'ifconfig.io')
+echo "获取 IPv4 URL: \${getipurl4[@]}"
+echo "获取 IPv6 URL: \${getipurl6[@]}"
+echo "----------------------------------------------------------"
+
+
+while true; do
+
+    N_IPV4=""
+    N_IPV6=""
+
+    if [ ! -z "\$customizeURL_1" ]; then
+        N_IPV4=\$(curl -4 "\$customizeURL_1")
+        if [ -z "\$N_IPV4" ]; then
+            echo "从 \$customizeURL_1 获取IP失败!"
+        else
+            echo "IPv4: \$N_IPV4   GET: \$customizeURL_1"
+        fi
+    fi
+    if [ "\$iptype" == "A" ]; then
+        for url in "\${getipurl4[@]}"; do
+            if [ -z "\$N_IPV4" ]; then
+                GETURL="\$url"
+                echo "CURL: \$GETURL ..."
+                N_IPV4=\$(curl -4 "\$GETURL")
+            else
+                echo "IPv4: \$N_IPV4   GET: \$GETURL"
+                break
+            fi
+        done
+    elif [ "\$iptype" == "AAAA" ]; then
+        for url in "\${getipurl6[@]}"; do
+            if [ -z "\$N_IPV6" ]; then
+                GETURL="\$url"
+                echo "CURL: \$GETURL ..."
+                N_IPV6=\$(curl -6 "\$GETURL")
+            else
+                echo "IPv6: \$N_IPV6   GET: \$GETURL"
+                break
+            fi
+        done
+    else
+        echo "IP type 有误."
+    fi
+
+    if [ "\$iptype" == "A" ]; then
+        COM_N_IPV4=\$(echo "\$N_IPV4" | tr -d '.')
+        echo "COM_N_IPV4: \$COM_N_IPV4"
+        COM_O_IPV4=\$(echo "\$O_IPV4" | tr -d '.')
+        echo "COM_O_IPV4: \$COM_O_IPV4"
+        if [[ "\$COM_N_IPV4" != "\$COM_O_IPV4" ]]; then
+            echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
+            if [ -z "\$COM_O_IPV4" ]; then
+                echo "首次执行 DDNS 更新IP中..." # 调试
+            else
+                echo "IP已改变! 正在执行 DDNS 更新IP中..." # 调试
+            fi
+            action "\$iptype" "\$N_IPV4"
+            O_IPV4=\$N_IPV4
+        else
+            echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
+            echo "IP未改变." # 调试
+        fi
+    elif [ "\$iptype" == "AAAA" ]; then
+        COM_N_IPV6=\$(echo "\$N_IPV6" | tr -d ':')
+        echo "COM_N_IPV6: \$COM_N_IPV6"
+        COM_O_IPV6=\$(echo "\$O_IPV6" | tr -d ':')
+        echo "COM_O_IPV6: \$COM_O_IPV6"
+        if [[ "\$COM_N_IPV6" != "\$COM_O_IPV6" ]]; then
+            echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
+            if [ -z "\$COM_O_IPV6" ]; then
+                echo "首次执行 DDNS 更新IP中..." # 调试
+            else
+                echo "IP已改变! 正在执行 DDNS 更新IP中..." # 调试
+            fi
+            action "\$iptype" "\$N_IPV6"
+            O_IPV6=\$N_IPV6
+        else
+            echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
+            echo "IP未改变." # 调试
+        fi
+    else
+        echo "IP type 有误."
+    fi
+    echo "----------------------------------------------------------"
+    sleep 3
+done
+# END
+EOF
+    chmod +x $FolderPath/tg_ddns.sh
+    pkill tg_ddns.sh > /dev/null 2>&1 &
+    pkill tg_ddns.sh > /dev/null 2>&1 &
+    kill $(ps | grep '[t]g_ddns.sh' | awk '{print $1}')
+    nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &
+    if crontab -l | grep -q "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"; then
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &" | crontab -
+    fi
+    (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &") | crontab -
+    if [ "$mute" == "false" ]; then
+        send_time=$(echo $(date +%s%N) | cut -c 16-)
+        message="DDNS 报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"当系统检测到 IP 变更时将收到通知."
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "ddns" "$send_time" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "ddns" "$send_time") &
+        ddns_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+    fi
+    tips="$Tip DDNS 报告设置成功, 当系统检测到 IP 变更时发出通知."
+
+
+}
+
 # 卸载
 UN_SetupBoot_TG() {
     if [ "$boot_menu_tag" == "$SETTAG" ]; then
@@ -3873,6 +4122,7 @@ DELLOGFILE() {
     # rm -f "${LogFiles[@]}"
     logn=1
     divline
+    echo -e "${REB}删除记录:${NC}"
     for file in "${LogFiles[@]}"; do
         echo -e "${REB}$logn${NC}  $file"
         ((logn++))
@@ -3898,6 +4148,7 @@ VIEWLOG() {
     LogFiles=( $(find ${FolderPath} -name "*.log") )
     logn=1
     divline
+    echo -e "${GRB}查看log:${NC}"
     for file in "${LogFiles[@]}"; do
         echo -e "${GR}$logn${NC}  $file"
         ((logn++))
@@ -3920,6 +4171,7 @@ T_VIEWLOG() {
     LogFiles=( $(find ${FolderPath} -name "*.log") )
     logn=1
     divline
+    echo -e "${GRB}跟踪log:${NC}"
     for file in "${LogFiles[@]}"; do
         echo -e "${GR}$logn${NC}  $file"
         ((logn++))
@@ -4432,15 +4684,16 @@ echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 ${RE}[v${sh_ver}]${NC
                         ${flowthm_menu_tag}             ${sd_rt_menu_tag} ${proxy_menu_tag} ${senduptime_menu_tag} ${sendip_menu_tag} ${sendprice_menu_tag}
  ${GR}0.${NC} 检查依赖 / 设置参数 \t$reset_menu_tag
 ———————————————————————
- ${GR}1.${NC} 设置 ${GR}[开机]${NC} Telgram 通知 \t\t\t$boot_menu_tag
- ${GR}2.${NC} 设置 ${GR}[登陆]${NC} Telgram 通知 \t\t\t$login_menu_tag
- ${GR}3.${NC} 设置 ${GR}[关机]${NC} Telgram 通知 \t\t\t$shutdown_menu_tag
- ${GR}4.${NC} 设置 ${GR}[CPU 报警]${NC} Telgram 通知 ${REB}阈值${NC}: $CPUThreshold_tag \t$cpu_menu_tag
- ${GR}5.${NC} 设置 ${GR}[内存报警]${NC} Telgram 通知 ${REB}阈值${NC}: $MEMThreshold_tag \t$mem_menu_tag
- ${GR}6.${NC} 设置 ${GR}[磁盘报警]${NC} Telgram 通知 ${REB}阈值${NC}: $DISKThreshold_tag \t$disk_menu_tag
- ${GR}7.${NC} 设置 ${GR}[流量报警]${NC} Telgram 通知 ${REB}阈值${NC}: $FlowThreshold_tag \t$flow_menu_tag
- ${GR}8.${NC} 设置 ${GR}[流量定时报告]${NC} Telgram 通知 \t\t$flowrp_menu_tag${NC}
- ${GR}9.${NC} 设置 ${GR}[Docker 变更]${NC} Telgram 通知 \t\t$docker_menu_tag${NC} ${REB}$reDockerSet${NC}
+ ${GR}1. ${NC} 设置 ${GR}[开机]${NC} TG 通知 \t\t\t$boot_menu_tag
+ ${GR}2. ${NC} 设置 ${GR}[登陆]${NC} TG 通知 \t\t\t$login_menu_tag
+ ${GR}3. ${NC} 设置 ${GR}[关机]${NC} TG 通知 \t\t\t$shutdown_menu_tag
+ ${GR}4. ${NC} 设置 ${GR}[CPU 报警]${NC} TG 通知 ${REB}阈值${NC} : $CPUThreshold_tag \t$cpu_menu_tag
+ ${GR}5. ${NC} 设置 ${GR}[内存报警]${NC} TG 通知 ${REB}阈值${NC} : $MEMThreshold_tag \t$mem_menu_tag
+ ${GR}6. ${NC} 设置 ${GR}[磁盘报警]${NC} TG 通知 ${REB}阈值${NC} : $DISKThreshold_tag \t$disk_menu_tag
+ ${GR}7. ${NC} 设置 ${GR}[流量报警]${NC} TG 通知 ${REB}阈值${NC} : $FlowThreshold_tag \t$flow_menu_tag
+ ${GR}8. ${NC} 设置 ${GR}[流量定时报告]${NC} TG 通知 \t\t$flowrp_menu_tag${NC}
+ ${GR}9. ${NC} 设置 ${GR}[Docker 变更]${NC} TG 通知 \t\t$docker_menu_tag${NC} ${REB}$reDockerSet${NC}
+ ${GR}10.${NC} 设置 ${GR}[CF-DDNS IP 变更]${NC} TG 通知 \t\t$ddns_menu_tag
  ————————————————————————————————————————————————————————
  ${GR}t.${NC} 测试 - 发送一条信息用以检验参数设置
  ——————————————————————————————————————
@@ -4464,137 +4717,161 @@ echo -en "请输入选项 [${GR}0-9${NC}|${GR}t${NC}|${GR}h${NC}|${GR}o${NC}|${G
 read -er num
 case "$num" in
     0)
-    CheckAndCreateFolder
-    source $ConfigFile
-    CheckRely
-    SetupIniFile
-    source $ConfigFile
+        CheckAndCreateFolder
+        source $ConfigFile
+        CheckRely
+        SetupIniFile
+        source $ConfigFile
     ;;
     1)
-    CheckAndCreateFolder
-    if [ "$boot_menu_tag" == "$SETTAG" ]; then
-        UN_SetupBoot_TG
-    else
-        SetupBoot_TG
-    fi
+        CheckAndCreateFolder
+        if [ "$boot_menu_tag" == "$SETTAG" ]; then
+            UN_SetupBoot_TG
+        else
+            SetupBoot_TG
+        fi
     ;;
     2)
-    CheckAndCreateFolder
-    if [ "$login_menu_tag" == "$SETTAG" ]; then
-        UN_SetupLogin_TG
-    else
-        SetupLogin_TG
-    fi
+        CheckAndCreateFolder
+        if [ "$login_menu_tag" == "$SETTAG" ]; then
+            UN_SetupLogin_TG
+        else
+            SetupLogin_TG
+        fi
     ;;
     3)
-    CheckAndCreateFolder
-    if [ "$shutdown_menu_tag" == "$SETTAG" ]; then
-        UN_SetupShutdown_TG
-    else
-        SetupShutdown_TG
-    fi
+        CheckAndCreateFolder
+        if [ "$shutdown_menu_tag" == "$SETTAG" ]; then
+            UN_SetupShutdown_TG
+        else
+            SetupShutdown_TG
+        fi
     ;;
     4)
-    CheckAndCreateFolder
-    if [ "$cpu_menu_tag" == "$SETTAG" ]; then
-        UN_SetupCPU_TG
-    else
-        SetupCPU_TG
-    fi
+        CheckAndCreateFolder
+        if [ "$cpu_menu_tag" == "$SETTAG" ]; then
+            UN_SetupCPU_TG
+        else
+            SetupCPU_TG
+        fi
     ;;
     5)
-    CheckAndCreateFolder
-    if [ "$mem_menu_tag" == "$SETTAG" ]; then
-        UN_SetupMEM_TG
-    else
-        SetupMEM_TG
-    fi
+        CheckAndCreateFolder
+        if [ "$mem_menu_tag" == "$SETTAG" ]; then
+            UN_SetupMEM_TG
+        else
+            SetupMEM_TG
+        fi
     ;;
     6)
-    CheckAndCreateFolder
-    if [ "$disk_menu_tag" == "$SETTAG" ]; then
-        UN_SetupDISK_TG
-    else
-        SetupDISK_TG
-    fi
+        CheckAndCreateFolder
+        if [ "$disk_menu_tag" == "$SETTAG" ]; then
+            UN_SetupDISK_TG
+        else
+            SetupDISK_TG
+        fi
     ;;
     7)
-    CheckAndCreateFolder
-    if [ "$flow_menu_tag" == "$SETTAG" ]; then
-        UN_SetupFlow_TG
-    else
-        SetupFlow_TG
-    fi
+        CheckAndCreateFolder
+        if [ "$flow_menu_tag" == "$SETTAG" ]; then
+            UN_SetupFlow_TG
+        else
+            SetupFlow_TG
+        fi
     ;;
     8)
-    CheckAndCreateFolder
-    if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
-        UN_SetFlowReport_TG
-    else
-        SetFlowReport_TG
-    fi
+        CheckAndCreateFolder
+        if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
+            UN_SetFlowReport_TG
+        else
+            SetFlowReport_TG
+        fi
     ;;
     9)
-    CheckAndCreateFolder
-    if [ "$docker_menu_tag" == "$SETTAG" ]; then
-        UN_SetupDocker_TG
-    else
-        SetupDocker_TG
-    fi
+        CheckAndCreateFolder
+        if [ "$docker_menu_tag" == "$SETTAG" ]; then
+            UN_SetupDocker_TG
+        else
+            SetupDocker_TG
+        fi
+    ;;
+    10)
+        CheckAndCreateFolder
+        ddns
     ;;
     t|T)
-    CheckAndCreateFolder
-    test
+        CheckAndCreateFolder
+        test
     ;;
     t1)
-    CheckAndCreateFolder
-    test1
+        CheckAndCreateFolder
+        test1
     ;;
     h|H)
-    ModifyHostname
+        ModifyHostname
     ;;
     o|O)
-    OneKeydefault
+        OneKeydefault
     ;;
     c|C)
-    echo "卸载前:"
-    pgrep '^tg_' | xargs -I {} ps -p {} -o pid,cmd
-    un_sendtag=true
-    UN_ALL
-    un_sendtag=false
-    echo "卸载后:"
-    pgrep '^tg_' | xargs -I {} ps -p {} -o pid,cmd
+        echo "卸载前:"
+        pgrep '^tg_' | xargs -I {} ps -p {} -o pid,cmd
+        un_sendtag=true
+        UN_ALL
+        un_sendtag=false
+        echo "卸载后:"
+        pgrep '^tg_' | xargs -I {} ps -p {} -o pid,cmd
     ;;
     f|F)
-    DELFOLDER
+        DELFOLDER
     ;;
     u|U)
-    CheckAndCreateFolder
-    if [ "$autoud_menu_tag" == "$SETTAG" ]; then
-        UN_SetAutoUpdate
-    else
-        SetAutoUpdate
-    fi
+        CheckAndCreateFolder
+        if [ "$autoud_menu_tag" == "$SETTAG" ]; then
+            UN_SetAutoUpdate
+        else
+            SetAutoUpdate
+        fi
     ;;
     v|V)
         # 查看配置文件
         divline
+        echo -e "${GRB}文件参数:${NC}"
         cat $ConfigFile
         divline
         echo -e "${GRB}调试指令:${NC}"
         echo -e "l     - 查看log日志文件"
-        echo -e "ll    - 追踪查看log日志文件"
-        echo -e "L     - 删除log日志文件"
+        echo -e "lt    - 追踪查看log日志文件"
+        echo -e "ld    - 删除log日志文件"
         echo -e "ss    - 实时网速"
+        echo -e "vb    - 查询后台执行中的 tg_ "
+        echo -e "vc    - 查询 crontab 中的 tg_ "
+        divline
         Pause
     ;;
-    L)
+    vb)
+        # 查看配置文件
+        divline
+        echo -e "${GRB}后台:${NC}"
+        ps | grep '[t]g_'
+        divline
+        Pause
+    ;;
+    vc)
+        # 查看配置文件
+        divline
+        echo -e "${GRB}Crontab:${NC}"
+        crontab -l | grep '[t]g_'
+        divline
+        Pause
+    ;;
+    ld)
         DELLOGFILE
     ;;
     l)
         VIEWLOG
     ;;
-    ll)
+    lt)
         T_VIEWLOG
     ;;
     ss)
@@ -4604,7 +4881,7 @@ case "$num" in
         exit 0
     ;;
     *)
-    tips="$Err 请输入正确数字或字母."
+        tips="$Err 请输入正确数字或字母."
     ;;
 esac
 done
