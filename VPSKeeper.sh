@@ -3843,6 +3843,12 @@ while true; do
                 echo "IP已改变! 正在执行 DDNS 更新IP中..." # 调试
             fi
             action "\$iptype" "\$N_IPV4"
+            current_date_send=\$(date +"%Y.%m.%d %T")
+            message="IP 已变更! 🔄"$'\n'
+            message+="主机名: $hostname_show"$'\n'
+            message+="IP地址: \$N_IPV4"$'\n'
+            message+="服务器时间: \$current_date_send"
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
             O_IPV4=\$N_IPV4
         else
             echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
@@ -3861,6 +3867,12 @@ while true; do
                 echo "IP已改变! 正在执行 DDNS 更新IP中..." # 调试
             fi
             action "\$iptype" "\$N_IPV6"
+            current_date_send=\$(date +"%Y.%m.%d %T")
+            message="IP 已变更! 🔄"$'\n'
+            message+="主机名: $hostname_show"$'\n'
+            message+="IP地址: \$N_IPV6"$'\n'
+            message+="服务器时间: \$current_date_send"
+            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
             O_IPV6=\$N_IPV6
         else
             echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
