@@ -3956,13 +3956,13 @@ while true; do
         echo "IP type 有误."
         exit 1
     fi
-    echo "----------------------------------------------------------"
     if [ "\$dellog_tag" == 200 ]; then
         > $FolderPath/tg_ddns.log
     else
         echo "dellog_tag: \$dellog_tag   MAX: 200"
         ((dellog_tag++))
     fi
+    echo "----------------------------------------------------------"
 done
 # END
 EOF
