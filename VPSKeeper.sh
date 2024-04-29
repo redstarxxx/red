@@ -3736,9 +3736,9 @@ action() {
 
     while [ \$attempts -le \$max_attempts ]; do
     # 获取DNS记录的ID
-    response=\$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/\$zone_id/dns_records?type=A&name=\$record_name.\$domain" \
-        -H "X-Auth-Email: \$email" \
-        -H "X-Auth-Key: \$api_key" \
+    response=\$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/\${zone_id}/dns_records?type=\${iptype}&name=\${record_name}.\${domain}" \
+        -H "X-Auth-Email: \${email}" \
+        -H "X-Auth-Key: \${api_key}" \
         -H "Content-Type: application/json")
 
     # 输出完整的API响应
@@ -3750,11 +3750,12 @@ action() {
     if [ -z "\$record_id" ]; then
         echo "第 \$attempts 次获取DNS记录ID失败。"
         if [ \$attempts -eq \$max_attempts ]; then
-        echo "获取DNS记录ID失败，请检查输入的信息是否正确。"
-        exit 1
+            echo "获取DNS记录ID失败，请检查输入的信息是否正确。"
+            return 1
         else
-        attempts=\$((attempts+1))
+            attempts=\$((attempts+1))
         fi
+        sleep 1
     else
         echo "成功获取DNS记录ID: \$record_id"
         break
@@ -3762,29 +3763,29 @@ action() {
     done
 
     # 更新DNS记录
-    update_response=\$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/\$zone_id/dns_records/\$record_id" \
-        -H "X-Auth-Email: \$email" \
-        -H "X-Auth-Key: \$api_key" \
+    update_response=\$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/\${zone_id}/dns_records/\${record_id}" \
+        -H "X-Auth-Email: \${email}" \
+        -H "X-Auth-Key: \${api_key}" \
         -H "Content-Type: application/json" \
-        --data '{"type":"'\$iptype_lo'","name":"'\$record_name'","content":"'\$ipaddress'","ttl":'\$ttls',"proxied":'\$proxysw'}')
+        --data '{"type":"'\${iptype_lo}'","name":"'\${record_name}'","content":"'\${ipaddress}'","ttl":'\${ttls}',"proxied":'\${proxysw}'}')
 
     # 输出更新DNS记录的API响应
     echo "更新DNS记录API响应: \$update_response"
 
     # 检查是否成功更新DNS记录
-    if [[ \$update_response == *"success\":true"* ]]; then
-    echo "DNS记录更新成功。"
-    date
+    if [[ "\$update_response" == *"success\":true"* ]]; then
+        echo "DNS记录更新成功。"
+        date
     else
-    echo "DNS记录更新失败，请检查输入的信息是否正确。"
-    date
-    exit 1
+        echo "DNS记录更新失败，请检查输入的信息是否正确。"
+        date
+        exit 1
     fi
 }
 
 O_IPV4=""
-customizeURL="\$1"
-echo "自定URL\$1: \$customizeURL"
+customizeURL="\${1}"
+echo "自定URL\${1}: \$customizeURL"
 getipurl4=('ip.sb' 'ip.gs' 'ifconfig.io' 'ipinfo.io/ip')
 getipurl6=('ip.sb' 'ip.gs' 'ifconfig.io')
 echo "获取 IPv4 URL: \${getipurl4[@]}"
@@ -3796,12 +3797,12 @@ while true; do
     N_IPV4=""
     N_IPV6=""
 
-    if [ ! -z "\$customizeURL_1" ]; then
-        N_IPV4=\$(curl -4 "\$customizeURL_1")
+    if [ ! -z "\$customizeURL" ]; then
+        N_IPV4=\$(curl -4 "\$customizeURL")
         if [ -z "\$N_IPV4" ]; then
-            echo "从 \$customizeURL_1 获取IP失败!"
+            echo "从 \$customizeURL 获取IP失败!"
         else
-            echo "IPv4: \$N_IPV4   GET: \$customizeURL_1"
+            echo "IPv4: \$N_IPV4   GET: \$customizeURL"
         fi
     fi
     if [ "\$iptype" == "A" ]; then
@@ -3843,16 +3844,24 @@ while true; do
                 echo "IP已改变! 正在执行 DDNS 更新IP中..." # 调试
             fi
             action "\$iptype" "\$N_IPV4"
-            current_date_send=\$(date +"%Y.%m.%d %T")
-            message="IP 已变更! 🔄"$'\n'
-            message+="主机名: $hostname_show"$'\n'
-            message+="IP地址: \$N_IPV4"$'\n'
-            message+="服务器时间: \$current_date_send"
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
-            O_IPV4=\$N_IPV4
+            return_code=$?
+            if [ "\$return_code" -eq 1 ]; then
+                echo "获取DNS记录ID失败."
+                sleep 120
+            else
+                current_date_send=\$(date +"%Y.%m.%d %T")
+                message="IP 已变更! 🔄"$'\n'
+                message+="主机名: $hostname_show"$'\n'
+                message+="IP地址: \$N_IPV4"$'\n'
+                message+="服务器时间: \$current_date_send"
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+                O_IPV4=\$N_IPV4
+                sleep 1800
+            fi
         else
             echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
             echo "IP未改变." # 调试
+            sleep 120
         fi
     elif [ "\$iptype" == "AAAA" ]; then
         COM_N_IPV6=\$(echo "\$N_IPV6" | tr -d ':')
@@ -3867,22 +3876,30 @@ while true; do
                 echo "IP已改变! 正在执行 DDNS 更新IP中..." # 调试
             fi
             action "\$iptype" "\$N_IPV6"
-            current_date_send=\$(date +"%Y.%m.%d %T")
-            message="IP 已变更! 🔄"$'\n'
-            message+="主机名: $hostname_show"$'\n'
-            message+="IP地址: \$N_IPV6"$'\n'
-            message+="服务器时间: \$current_date_send"
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
-            O_IPV6=\$N_IPV6
+            return_code=$?
+            if [ "\$return_code" -eq 1 ]; then
+                echo "获取DNS记录ID失败."
+                sleep 120
+            else
+                current_date_send=\$(date +"%Y.%m.%d %T")
+                message="IP 已变更! 🔄"$'\n'
+                message+="主机名: $hostname_show"$'\n'
+                message+="IP地址: \$N_IPV6"$'\n'
+                message+="服务器时间: \$current_date_send"
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+                O_IPV6=\$N_IPV6
+                sleep 1800
+            fi
         else
             echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
             echo "IP未改变." # 调试
+            sleep 120
         fi
     else
         echo "IP type 有误."
+        exit 1
     fi
     echo "----------------------------------------------------------"
-    sleep 3
 done
 # END
 EOF
