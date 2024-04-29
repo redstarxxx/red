@@ -4013,7 +4013,7 @@ UN_SetupDocker_TG() {
     fi
 }
 UN_SetupDDNS_TG() {
-    if [ "$docker_menu_tag" == "$SETTAG" ]; then
+    if [ "$ddns_menu_tag" == "$SETTAG" ]; then
         pkill tg_ddns.sh > /dev/null 2>&1 &
         pkill tg_ddns.sh > /dev/null 2>&1 &
         kill $(ps | grep '[t]g_ddns.sh' | awk '{print $1}')
