@@ -3847,7 +3847,6 @@ while true; do
             return_code=$?
             if [ "\$return_code" -eq 1 ]; then
                 echo "获取DNS记录ID失败."
-                sleep 120
             else
                 current_date_send=\$(date +"%Y.%m.%d %T")
                 message="IP 已变更! 🔄"$'\n'
@@ -3856,12 +3855,12 @@ while true; do
                 message+="服务器时间: \$current_date_send"
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
                 O_IPV4=\$N_IPV4
-                sleep 1800
             fi
+            sleep 60
         else
             echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
             echo "IP未改变." # 调试
-            sleep 120
+            sleep 15
         fi
     elif [ "\$iptype" == "AAAA" ]; then
         COM_N_IPV6=\$(echo "\$N_IPV6" | tr -d ':')
@@ -3879,7 +3878,6 @@ while true; do
             return_code=$?
             if [ "\$return_code" -eq 1 ]; then
                 echo "获取DNS记录ID失败."
-                sleep 120
             else
                 current_date_send=\$(date +"%Y.%m.%d %T")
                 message="IP 已变更! 🔄"$'\n'
@@ -3888,12 +3886,12 @@ while true; do
                 message+="服务器时间: \$current_date_send"
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
                 O_IPV6=\$N_IPV6
-                sleep 1800
             fi
+            sleep 60
         else
             echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
             echo "IP未改变." # 调试
-            sleep 120
+            sleep 15
         fi
     else
         echo "IP type 有误."
