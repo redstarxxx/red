@@ -3888,6 +3888,7 @@ while true; do
             return_code=\$?
             # ping_result=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
             ping_result=\$(curl -s https://dns.google/resolve?name=\${record_name}.\${domain} | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
+            echo "\${record_name}.\${domain} - \$ping_result"
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! 🔄"$'\n'
             message+="主机名: $hostname_show"$'\n'
@@ -3928,6 +3929,7 @@ while true; do
             return_code=\$?
             # ping_result=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
             ping_result=\$(curl -s https://dns.google/resolve?name=\${record_name}.\${domain} | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
+            echo "\${record_name}.\${domain} - \$ping_result"
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! 🔄"$'\n'
             message+="主机名: $hostname_show"$'\n'
