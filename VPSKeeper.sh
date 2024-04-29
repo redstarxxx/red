@@ -4013,6 +4013,15 @@ UN_SetupDocker_TG() {
         tips="$Tip Docker变更通知 已经取消 / 删除."
     fi
 }
+UN_SetupDDNS_TG() {
+    if [ "$docker_menu_tag" == "$SETTAG" ]; then
+        pkill tg_ddns.sh > /dev/null 2>&1 &
+        pkill tg_ddns.sh > /dev/null 2>&1 &
+        kill $(ps | grep '[t]g_ddns.sh' | awk '{print $1}')
+        crontab -l | grep -v "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &" | crontab -
+        tips="$Tip Docker变更通知 已经取消 / 删除."
+    fi
+}
 UN_SetAutoUpdate() {
     if [ "$autoud_menu_tag" == "$SETTAG" ]; then
         pkill tg_autoud.sh > /dev/null 2>&1 &
@@ -4821,7 +4830,11 @@ case "$num" in
     ;;
     10)
         CheckAndCreateFolder
-        ddns
+        if [ "$ddns_menu_tag" == "$SETTAG" ]; then
+            UN_SetupDDNS_TG
+        else
+            ddns
+        fi
     ;;
     t|T)
         CheckAndCreateFolder
