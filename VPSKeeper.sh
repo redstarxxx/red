@@ -3787,9 +3787,9 @@ action() {
 
 customizeURL="\${1}"
 echo "自定URL\${1}: \$customizeURL"
-getipurl4=('ip.sb' 'ip.gs' 'ifconfig.io' 'ipinfo.io/ip')
-getipurl42=('ipinfo.io/ip')
-getipurl6=('ip.sb' 'ip.gs' 'ifconfig.io')
+getipurl4=('ip.sb' 'ip.gs' 'ifconfig.io' 'ipinfo.io/ip' 'ifconfig.me' 'icanhazip.com' 'ipecho.net/plain')
+getipurl42=('ip.sb' 'ip.gs' 'ifconfig.io' 'ipinfo.io/ip' 'ifconfig.me' 'icanhazip.com' 'ipecho.net/plain')
+getipurl6=('ip.sb' 'ip.gs' 'ifconfig.io' 'ifconfig.me' 'ipecho.net/plain')
 echo "获取 IPv4 URL: \${getipurl4[@]} \${getipurl42[@]}"
 echo "获取 IPv6 URL: \${getipurl6[@]}"
 ipv4_regex="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
