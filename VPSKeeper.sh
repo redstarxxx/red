@@ -3843,6 +3843,7 @@ else
     echo "IP type 有误."
 fi
 
+dellog_tag=1
 while true; do
 
     N_IPV4=""
@@ -3956,6 +3957,12 @@ while true; do
         exit 1
     fi
     echo "----------------------------------------------------------"
+    if [ "\$dellog_tag" == 200 ]; then
+        > $FolderPath/tg_ddns.log
+    else
+        echo "dellog_tag: \$dellog_tag   MAX: 200"
+        ((dellog_tag++))
+    fi
 done
 # END
 EOF
