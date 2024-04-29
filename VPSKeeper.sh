@@ -3656,7 +3656,7 @@ EOF
     tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
 }
 
-ddns() {
+SetupDDNS_TG() {
     if [ ! -z "$ddns_pid" ] && ps -p $ddns_pid > /dev/null; then
         tips="$Err PID: $ddns_pid 正在发送中,请稍后..."
         return
@@ -3779,7 +3779,6 @@ action() {
     else
         echo "DNS记录更新失败，请检查输入的信息是否正确。"
         date
-        exit 1
     fi
 }
 
@@ -4833,7 +4832,7 @@ case "$num" in
         if [ "$ddns_menu_tag" == "$SETTAG" ]; then
             UN_SetupDDNS_TG
         else
-            ddns
+            SetupDDNS_TG
         fi
     ;;
     t|T)
