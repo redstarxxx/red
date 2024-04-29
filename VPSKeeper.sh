@@ -3877,6 +3877,9 @@ while true; do
         echo "COM_N_IPV4: \$COM_N_IPV4"
         COM_O_IPV4=\$(echo "\$O_IPV4" | tr -d '.')
         echo "COM_O_IPV4: \$COM_O_IPV4"
+        # ping_result=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
+        ping_result=\$(curl -s https://dns.google/resolve?name=\${record_name}.\${domain} | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
+        echo "\${record_name}.\${domain} - \$ping_result"
         if [[ "\$COM_N_IPV4" != "\$COM_O_IPV4" ]]; then
             echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
             if [ -z "\$COM_O_IPV4" ]; then
@@ -3886,9 +3889,6 @@ while true; do
             fi
             action "\$iptype" "\$N_IPV4"
             return_code=\$?
-            # ping_result=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
-            ping_result=\$(curl -s https://dns.google/resolve?name=\${record_name}.\${domain} | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
-            echo "\${record_name}.\${domain} - \$ping_result"
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! 🔄"$'\n'
             message+="主机名: $hostname_show"$'\n'
@@ -3918,6 +3918,9 @@ while true; do
         echo "COM_N_IPV6: \$COM_N_IPV6"
         COM_O_IPV6=\$(echo "\$O_IPV6" | tr -d ':')
         echo "COM_O_IPV6: \$COM_O_IPV6"
+        # ping_result=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
+        ping_result=\$(curl -s https://dns.google/resolve?name=\${record_name}.\${domain} | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
+        echo "\${record_name}.\${domain} - \$ping_result"
         if [[ "\$COM_N_IPV6" != "\$COM_O_IPV6" ]]; then
             echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
             if [ -z "\$COM_O_IPV6" ]; then
@@ -3927,9 +3930,6 @@ while true; do
             fi
             action "\$iptype" "\$N_IPV6"
             return_code=\$?
-            # ping_result=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
-            ping_result=\$(curl -s https://dns.google/resolve?name=\${record_name}.\${domain} | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
-            echo "\${record_name}.\${domain} - \$ping_result"
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! 🔄"$'\n'
             message+="主机名: $hostname_show"$'\n'
