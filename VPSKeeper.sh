@@ -3791,7 +3791,6 @@ echo "获取 IPv4 URL: \${getipurl4[@]}"
 echo "获取 IPv6 URL: \${getipurl6[@]}"
 echo "----------------------------------------------------------"
 
-
 while true; do
 
     N_IPV4=""
@@ -3892,8 +3891,6 @@ EOF
         ddns_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
     fi
     tips="$Tip DDNS 报告设置成功, 当系统检测到 IP 变更时发出通知."
-
-
 }
 
 # 卸载
