@@ -3782,7 +3782,13 @@ action() {
     fi
 }
 
-O_IPV4=""
+if [ "\$iptype" == "A" ]; then
+    O_IPV4="$(curl -4 ip.sb)"
+fi
+fi [ "\$iptype" == "AAAA" ]; then
+    O_IPV6="$(curl -6 ip.sb)"
+fi
+
 customizeURL="\${1}"
 echo "自定URL\${1}: \$customizeURL"
 getipurl4=('ip.sb' 'ip.gs' 'ifconfig.io' 'ipinfo.io/ip')
