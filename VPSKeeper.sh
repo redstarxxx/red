@@ -3885,8 +3885,8 @@ while true; do
             fi
             action "\$iptype" "\$N_IPV4"
             return_code=\$?
-            # ping_result=\$(ping -c 1 \$record_name.\$domain | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
-            ping_result=\$(curl -s https://dns.google/resolve?name=\$record_name.\$domain | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
+            # ping_result=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
+            ping_result=\$(curl -s https://dns.google/resolve?name=\${record_name}.\${domain} | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! 🔄"$'\n'
             message+="主机名: $hostname_show"$'\n'
@@ -3925,8 +3925,8 @@ while true; do
             fi
             action "\$iptype" "\$N_IPV6"
             return_code=\$?
-            # ping_result=\$(ping -c 1 \$record_name.\$domain | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
-            ping_result=\$(curl -s https://dns.google/resolve?name=\$record_name.\$domain | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
+            # ping_result=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
+            ping_result=\$(curl -s https://dns.google/resolve?name=\${record_name}.\${domain} | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! 🔄"$'\n'
             message+="主机名: $hostname_show"$'\n'
@@ -3970,6 +3970,7 @@ EOF
     (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &") | crontab -
     if [ "$mute" == "false" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
+        # ping_result=$(curl -s https://dns.google/resolve?name=$CFDDNS_DOMAIN_P.$CFDDNS_DOMAIN_S | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
         message="DDNS 报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"当系统检测到 IP 变更时将收到通知."
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "ddns" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "ddns" "$send_time") &
