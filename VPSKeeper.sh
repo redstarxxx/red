@@ -3839,7 +3839,8 @@ url_get_ipv4() {
         # URL_IPV4=\$(curl -s "https://api.ipify.org?format=json&hostname=\${record_name}.\${domain}" | awk -F'"' '/ip/{print \$4}')
         URL_IPV4=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
         if [ -z "\$URL_IPV4" ] || [[ ! \$URL_IPV4 =~ \$ipv4_regex ]]; then
-            echo "show_URL_IPV4获取失败!  |  URL_IPV4: URL_IPV4"
+            # echo "show_URL_IPV4获取失败!  |  URL_IPV4: URL_IPV4"
+            echo "IPV4获取失败!"
             return 1
         fi
     fi
@@ -3854,7 +3855,8 @@ url_get_ipv6() {
     if [ -z "\$URL_IPV6" ] || [[ ! \$URL_IPV6 =~ \$ipv6_regex ]]; then
         URL_IPV6=\$(curl -s "https://api6.ipify.org?format=json&hostname=z6.iexx.eu.org" | awk -F'"' '/ip/{print \$4}')
         if [ -z "\$URL_IPV6" ] || [[ ! \$URL_IPV6 =~ \$ipv6_regex ]]; then
-            echo "show_URL_IPV6获取失败!  |  URL_IPV6: URL_IPV6"
+            # echo "show_URL_IPV6获取失败!  |  URL_IPV6: URL_IPV6"
+            echo "IPV6获取失败!"
             return 1
         fi
     fi
