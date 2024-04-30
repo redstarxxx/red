@@ -1248,8 +1248,8 @@ SetupBoot_TG() {
 #!/bin/bash
 
 current_date_send=\$(date +"%Y.%m.%d %T")
-message="$hostname_show 已启动❗️"'
-'"服务器时间: \$current_date_send"
+message="$hostname_show 已启动❗️"$'\n'
+message+="服务器时间: \$current_date_send"
 
 # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
 #     -d chat_id="$ChatID_1" -d text="\$message"
@@ -1280,8 +1280,8 @@ STOP=15
 
 start() {
     current_date_send=\$(date +"%Y.%m.%d %T")
-    message="$hostname_show 已启动❗️"'
-    '"服务器时间: \$current_date_send"
+    message="$hostname_show 已启动❗️"$'\n'
+    message+="服务器时间: \$current_date_send"
 
     # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
     #     -d chat_id="$ChatID_1" -d text="\$message"
@@ -1318,8 +1318,8 @@ SetupLogin_TG() {
 #!/bin/bash
 
 current_date_send=\$(date +"%Y.%m.%d %T")
-message="$hostname_show \$(id -nu) 用户登陆成功❗️"'
-'"服务器时间: \$current_date_send"
+message="$hostname_show \$(id -nu) 用户登陆成功❗️"$'\n'
+message+="服务器时间: \$current_date_send"
 
 # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
 #             -d chat_id="$ChatID_1" -d text="\$message"
@@ -1367,8 +1367,8 @@ SetupShutdown_TG() {
 #!/bin/bash
 
 current_date_send=\$(date +"%Y.%m.%d %T")
-message="$hostname_show \$(id -nu) 正在执行关机...❗️"'
-'"服务器时间: \$current_date_send"
+message="$hostname_show \$(id -nu) 正在执行关机...❗️"$'\n'
+message+="服务器时间: \$current_date_send"
 
 # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
 #             -d chat_id="$ChatID_1" -d text="\$message"
@@ -1399,8 +1399,8 @@ STOP=15
 
 stop() {
     current_date_send=\$(date +"%Y.%m.%d %T")
-    message="$hostname_show \$(id -nu) 正在执行关机...❗️"'
-    '"服务器时间: \$current_date_send"
+    message="$hostname_show \$(id -nu) 正在执行关机...❗️"$'\n'
+    message+="服务器时间: \$current_date_send"
 
     # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
     #     -d chat_id="$ChatID_1" -d text="\$message"
@@ -1446,11 +1446,11 @@ while true; do
     if [ "\$new_message" != "\$old_message" ]; then
         current_date_send=\$(date +"%Y.%m.%d %T")
         old_message=\$new_message
-        message="DOCKER 列表变更❗️"'
-'"主机名: $hostname_show"'
-'"───────────────"'
-'"\$new_message"'
-'"服务器时间: \$current_date_send"
+        message="DOCKER 列表变更❗️"$'\n'
+        message+="主机名: $hostname_show"$'\n'
+        message+="───────────────"$'\n'
+        message+="\$new_message"$'\n'
+        message+="服务器时间: \$current_date_send"
         # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
         #     -d chat_id="$ChatID_1" -d text="\$message"
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
@@ -1717,17 +1717,17 @@ while true; do
         disk_use_ratio=\$ratio
 
         current_date_send=\$(date +"%Y.%m.%d %T")
-        message="CPU 使用率超过阈值 > \$CPUThreshold%❗️"'
-'"主机名: $hostname_show"'
-'"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
-'"内存: \$mem_use_progress \$mem_use_ratio"'
-'"交换: \$swap_use_progress \$swap_use_ratio"'
-'"磁盘: \$disk_use_progress \$disk_use_ratio"'
-'"使用率排行:"'
-'"🟠  \$cpu_h1"'
-'"🟠  \$cpu_h2"'
-'"检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"'
-'"服务器时间: \$current_date_send"
+        message="CPU 使用率超过阈值 > \$CPUThreshold%❗️"$'\n'
+        message+="主机名: $hostname_show"$'\n'
+        message+="CPU: \$cpu_usage_progress \$cpu_usage_ratio"$'\n'
+        message+="内存: \$mem_use_progress \$mem_use_ratio"$'\n'
+        message+="交换: \$swap_use_progress \$swap_use_ratio"$'\n'
+        message+="磁盘: \$disk_use_progress \$disk_use_ratio"$'\n'
+        message+="使用率排行:"$'\n'
+        message+="🟠  \$cpu_h1"$'\n'
+        message+="🟠  \$cpu_h2"$'\n'
+        message+="检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"$'\n'
+        message+="服务器时间: \$current_date_send"
         # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
         #     -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
@@ -1857,17 +1857,17 @@ while true; do
         disk_use_ratio=\$ratio
 
         current_date_send=\$(date +"%Y.%m.%d %T")
-        message="内存 使用率超过阈值 > \$MEMThreshold%❗️"'
-'"主机名: $hostname_show"'
-'"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
-'"内存: \$mem_use_progress \$mem_use_ratio"'
-'"交换: \$swap_use_progress \$swap_use_ratio"'
-'"磁盘: \$disk_use_progress \$disk_use_ratio"'
-'"使用率排行:"'
-'"🟠  \$cpu_h1"'
-'"🟠  \$cpu_h2"'
-'"检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"'
-'"服务器时间: \$current_date_send"
+        message="内存 使用率超过阈值 > \$MEMThreshold%❗️"$'\n'
+        message+="主机名: $hostname_show"$'\n'
+        message+="CPU: \$cpu_usage_progress \$cpu_usage_ratio"$'\n'
+        message+="内存: \$mem_use_progress \$mem_use_ratio"$'\n'
+        message+="交换: \$swap_use_progress \$swap_use_ratio"$'\n'
+        message+="磁盘: \$disk_use_progress \$disk_use_ratio"$'\n'
+        message+="使用率排行:"$'\n'
+        message+="🟠  \$cpu_h1"$'\n'
+        message+="🟠  \$cpu_h2"$'\n'
+        message+="检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"$'\n'
+        message+="服务器时间: \$current_date_send"
         # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
         #     -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
@@ -1992,17 +1992,17 @@ while true; do
         echo "后: cpu: \$cpu_usage_ratio mem: \$mem_use_ratio swap: \$swap_use_ratio disk: \$disk_use_ratio"
 
         current_date_send=\$(date +"%Y.%m.%d %T")
-        message="磁盘 使用率超过阈值 > \$DISKThreshold%❗️"'
-'"主机名: $hostname_show"'
-'"CPU: \$cpu_usage_progress \$cpu_usage_ratio"'
-'"内存: \$mem_use_progress \$mem_use_ratio"'
-'"交换: \$swap_use_progress \$swap_use_ratio"'
-'"磁盘: \$disk_use_progress \$disk_use_ratio"'
-'"使用率排行:"'
-'"🟠  \$cpu_h1"'
-'"🟠  \$cpu_h2"'
-'"检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"'
-'"服务器时间: \$current_date_send"
+        message="磁盘 使用率超过阈值 > \$DISKThreshold%❗️"$'\n'
+        message+="主机名: $hostname_show"$'\n'
+        message+="CPU: \$cpu_usage_progress \$cpu_usage_ratio"$'\n'
+        message+="内存: \$mem_use_progress \$mem_use_ratio"$'\n'
+        message+="交换: \$swap_use_progress \$swap_use_ratio"$'\n'
+        message+="磁盘: \$disk_use_progress \$disk_use_ratio"$'\n'
+        message+="使用率排行:"$'\n'
+        message+="🟠  \$cpu_h1"$'\n'
+        message+="🟠  \$cpu_h2"$'\n'
+        message+="检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"$'\n'
+        message+="服务器时间: \$current_date_send"
         # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
         #     -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
@@ -4294,9 +4294,10 @@ UN_ALL() {
     if [ "$un_sendtag" == "true" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         current_date_send=$(date +"%Y.%m.%d %T")
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已执行一键删除所有通知 ☎️"'
-'"主机名: $hostname_show"'
-'"服务器时间: $current_date_send" "delall" "$send_time" &
+        message="已执行一键删除所有通知 ☎️"$'\n'
+        message+="主机名: $hostname_show"$'\n'
+        message+="服务器时间: $current_date_send"
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "delall" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "delall" "$send_time") &
         delall_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         tips="$Tip 已取消 / 删除所有通知."
@@ -4346,25 +4347,26 @@ OneKeydefault() {
     SetAutoUpdate
     if [ "$mutebakup" == "false" ]; then
         current_date_send=$(date +"%Y.%m.%d %T")
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "已成功启动以下通知 ☎️"'
-'"主机名: $hostname_show"'
-'"───────────────"'
-'"开机通知"'
-'"登陆通知"'
-'"关机通知"'
-'"CPU使用率超 ${CPUThreshold}% 报警"'
-'"内存使用率超 ${MEMThreshold}% 报警"'
-'"磁盘使用率超 ${DISKThreshold}% 报警"'
-'"流量使用率超 ${FlowThreshold_UB} 报警"'
-'"流量报告时间 ${ReportTime}"'
-'"自动更新时间 ${AutoUpdateTime}"'
-'"开启重启时记录流量"'
-'"开启TG代理"'
-'"开启发送在线时长"'
-'"开启发送IP地址"'
-'"开启发送货币报价"'
-'"───────────────"'
-'"服务器时间: $current_date_send" &
+        message="已成功启动以下通知 ☎️"$'\n'
+        message+="主机名: $hostname_show"$'\n'
+        message+="───────────────"$'\n'
+        message+="开机通知"$'\n'
+        message+="登陆通知"$'\n'
+        message+="关机通知"$'\n'
+        message+="CPU使用率超 ${CPUThreshold}% 报警"$'\n'
+        message+="内存使用率超 ${MEMThreshold}% 报警"$'\n'
+        message+="磁盘使用率超 ${DISKThreshold}% 报警"$'\n'
+        message+="流量使用率超 ${FlowThreshold_UB} 报警"$'\n'
+        message+="流量报告时间 ${ReportTime}"$'\n'
+        message+="自动更新时间 ${AutoUpdateTime}"$'\n'
+        message+="开启重启时记录流量"$'\n'
+        message+="开启TG代理"$'\n'
+        message+="开启发送在线时长"$'\n'
+        message+="开启发送IP地址"$'\n'
+        message+="开启发送货币报价"$'\n'
+        message+="───────────────"$'\n'
+        message+="服务器时间: $current_date_send"
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" &
     fi
     tips="$Tip 已经启动所有通知 (除了Docker 变更通知)."
     autorun=false
@@ -4849,7 +4851,9 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
     if [ "$1" != "mute" ] && [ "$2" != "mute" ] && [ "$3" != "mute" ]; then
         if [[ "$boot_menu_tag" == "$SETTAG" || "$login_menu_tag" == "$SETTAG" || "$shutdown_menu_tag" == "$SETTAG" || "$cpu_menu_tag" == "$SETTAG" || "$mem_menu_tag" == "$SETTAG" || "$disk_menu_tag" == "$SETTAG" || "$flow_menu_tag" == "$SETTAG" || "$flowrp_menu_tag" == "$SETTAG" || "$docker_menu_tag" == "$SETTAG" || "$autoud_menu_tag" == "$SETTAG" ]] && [[ "$Setuped" ]]; then
             current_date_send=$(date +"%Y.%m.%d %T")
-            message="VPSKeeper 脚本已更新 ♻️"$'\n'"主机名: $hostname_show"$'\n'"服务器时间: $current_date_send"
+            message="VPSKeeper 脚本已更新 ♻️"$'\n'
+            message+="主机名: $hostname_show"$'\n'
+            message+="服务器时间: $current_date_send"
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" &
         fi
     fi
