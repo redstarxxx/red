@@ -3741,24 +3741,18 @@ action() {
     local iptype_lo="\${1}"
     local ipaddress="\${2}"
 
-    # 尝试获取DNS记录的ID，最多尝试5次
     attempts=1 # 尝试次数标记
     max_attempts=5 # 最多获取次数(可自定义)
     record_id="" # 无需更改
 
     while [ \$attempts -le \$max_attempts ]; do
-    # 获取DNS记录的ID
     response=\$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/\${zone_id}/dns_records?type=\${iptype}&name=\${record_name}.\${domain}" \
         -H "X-Auth-Email: \${email}" \
         -H "X-Auth-Key: \${api_key}" \
         -H "Content-Type: application/json")
 
-    # 输出完整的API响应
     echo "获取DNS记录API响应: \$response"
-
-    # 检查是否成功获取DNS记录ID
     record_id=\$(echo "\$response" | awk -F'"' '/id/{print \$6; exit}')
-
     if [ -z "\$record_id" ]; then
         echo "第 \$attempts 次获取DNS记录ID失败。"
         if [ \$attempts -eq \$max_attempts ]; then
@@ -3776,18 +3770,13 @@ action() {
         break
     fi
     done
-
-    # 更新DNS记录
     update_response=\$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/\${zone_id}/dns_records/\${record_id}" \
         -H "X-Auth-Email: \${email}" \
         -H "X-Auth-Key: \${api_key}" \
         -H "Content-Type: application/json" \
         --data '{"type":"'\${iptype_lo}'","name":"'\${record_name}'","content":"'\${ipaddress}'","ttl":'\${ttls}',"proxied":'\${proxysw}'}')
 
-    # 输出更新DNS记录的API响应
     echo "更新DNS记录API响应: \$update_response"
-
-    # 检查是否成功更新DNS记录
     if [[ "\$update_response" == *"success\":true"* ]]; then
         echo "DNS记录更新成功。"
         date
@@ -3873,6 +3862,7 @@ url_get_ipv6() {
 }
 
 if [ "\$ddns_mode" == "1" ]; then
+    show_ddns_mode="↪️"
     if [ "\$iptype" == "A" ]; then
         get_ipvx "getipurl4[@]" "-4" "\$ipv4_regex"
         O_IPV4="\$ip_result"
@@ -3888,6 +3878,7 @@ if [ "\$ddns_mode" == "1" ]; then
         echo "IP type 有误."
     fi
 elif [ "\$ddns_mode" == "2" ]; then
+    show_ddns_mode="↩️"
     if [ "\$iptype" == "A" ]; then
         O_URL_IPV4=\$(url_get_ipv4 "O_URL_IPV4")
     elif [ "\$iptype" == "AAAA" ]; then
@@ -3951,7 +3942,7 @@ while true; do
                 echo "首次执行 DDNS 失败!"
             else
                 current_date_send=\$(date +"%Y.%m.%d %T")
-                message="首次执行 DDNS !   MODE: \$ddns_mode"$'\n'
+                message="首次执行 DDNS \$show_ddns_mode"$'\n'
                 message+="主机名: $hostname_show"$'\n'
                 message+="URL: \$record_name.\$domain"$'\n'
                 if [ "\$ddns_mode" == "1" ]; then
@@ -3987,7 +3978,7 @@ while true; do
             done
             echo "\${record_name}.\${domain} - \$N_URL_IPV4"
             current_date_send=\$(date +"%Y.%m.%d %T")
-            message="IP 已变更! 🔄   MODE: \$ddns_mode"$'\n'
+            message="IP 已变更! \$show_ddns_mode"$'\n'
             message+="主机名: $hostname_show"$'\n'
             message+="URL: \$record_name.\$domain"$'\n'
             if [ "\$ddns_mode" == "1" ]; then
@@ -4045,7 +4036,7 @@ while true; do
                 echo "首次执行 DDNS 失败!"
             else
                 current_date_send=\$(date +"%Y.%m.%d %T")
-                message="首次执行 DDNS !   MODE: \$ddns_mode"$'\n'
+                message="首次执行 DDNS \$show_ddns_mode"$'\n'
                 message+="主机名: $hostname_show"$'\n'
                 message+="URL: \$record_name.\$domain"$'\n'
                 if [ "\$ddns_mode" == "1" ]; then
@@ -4081,7 +4072,7 @@ while true; do
             done
             echo "\${record_name}.\${domain} - \$N_URL_IPV6"
             current_date_send=\$(date +"%Y.%m.%d %T")
-            message="IP 已变更! 🔄   MODE: \$ddns_mode"$'\n'
+            message="IP 已变更! \$show_ddns_mode"$'\n'
             message+="主机名: $hostname_show"$'\n'
             message+="URL: \$record_name.\$domain"$'\n'
             if [ "\$ddns_mode" == "1" ]; then
