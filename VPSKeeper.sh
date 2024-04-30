@@ -3976,7 +3976,14 @@ while true; do
             fi
             action "\$iptype" "\$N_IPV4"
             return_code=\$?
-            N_URL_IPV4=\$(url_get_ipv4 "N_URL_IPV4")
+            for ((i=1; i<=6; i++)); do
+                N_URL_IPV4=\$(url_get_ipv4 "N_URL_IPV4")
+                COM_N_IPV4=\$(echo "\$N_URL_IPV4" | tr -d '.')
+                if [[ "\$COM_N_IPV4" != "\$COM_O_IPV4" ]]; then
+                    break
+                fi
+                sleep 10
+            done
             echo "\${record_name}.\${domain} - \$N_URL_IPV4"
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! 🔄   MODE: \$ddns_mode"$'\n'
@@ -4061,7 +4068,14 @@ while true; do
             fi
             action "\$iptype" "\$N_IPV6"
             return_code=\$?
-            N_URL_IPV6=\$(url_get_ipv6 "N_URL_IPV6")
+            for ((i=1; i<=6; i++)); do
+                N_URL_IPV6=\$(url_get_ipv6 "N_URL_IPV6")
+                COM_N_IPV6=\$(echo "\$N_URL_IPV6" | tr -d ':')
+                if [[ "\$COM_N_IPV6" != "\$COM_O_IPV6" ]]; then
+                    break
+                fi
+                sleep 10
+            done
             echo "\${record_name}.\${domain} - \$N_URL_IPV6"
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! 🔄   MODE: \$ddns_mode"$'\n'
