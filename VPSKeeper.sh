@@ -3666,7 +3666,7 @@ SetupDDNS_TG() {
         return 1
     fi
     # if [ "$autorun" == "false" ]; then
-    echo -en "开启 Cloudflare DDNS, 请输入IP格式: ${GR}4.${NC}IPv4 ${GR}6.${NC}IPv6 : "
+    echo -en "请输入 DDNS 的 IP 格式: ${GR}4.${NC}IPv4 ${GR}6.${NC}IPv6 : "
     read -er input_iptype
     if [ "$input_iptype" == "4" ]; then
         CFDDNS_IP_TYPE="A"
@@ -3676,7 +3676,7 @@ SetupDDNS_TG() {
         tips="$Err 输入有误, 取消操作."
         return 1
     fi
-    echo -en "请输入 Cloudflare 帐号名 (邮箱) : "
+    echo -en "请输入 CF 帐号名 (邮箱) : "
     read -er input_email
     email_regex="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     if [ -z "$input_email" ] || [[ ! $input_email =~ $email_regex ]]; then
@@ -3685,7 +3685,7 @@ SetupDDNS_TG() {
     else
         CFDDNS_EMAIL=$input_email
     fi
-    echo -en "请输入 Cloudflare Global API Key : "
+    echo -en "请输入 CF Global API Key : "
     read -er input_apikey
     if [ -z "$input_apikey" ]; then
         tips="$Err 输入有误, 取消操作."
@@ -3693,7 +3693,7 @@ SetupDDNS_TG() {
     else
         CFDDNS_APIKEY=$input_apikey
     fi
-    echo -en "请输入 Cloudflare Zone ID : "
+    echo -en "请输入 CF Zone ID : "
     read -er input_zoneid
     if [ -z "$input_zoneid" ]; then
         tips="$Err 输入有误, 取消操作."
@@ -3702,7 +3702,7 @@ SetupDDNS_TG() {
         CFDDNS_ZID=$input_zoneid
     fi
     echo -e "请输入 DDNS 完整域名 (含前缀)"
-    echo -en "( 如: abc.xxx.cloudns.biz ) : "
+    echo -en "( 如: abc.xxx.eu.org ) : "
     read -er input_domain
     if [ -z "$input_domain" ]; then
         tips="$Err 输入有误, 取消操作."
@@ -3711,8 +3711,8 @@ SetupDDNS_TG() {
         CFDDNS_DOMAIN_P="${input_domain%%.*}"
         CFDDNS_DOMAIN_S="${input_domain#*.}"
     fi
-    echo -e "模式: ${GR}1.${NC}当服务器自身发生变化时 ${GR}2.${NC}当与域名对比发生变化时"
-    echo -en "请选择 DDNS 模式 : "
+    echo -e "模式: ${GR}1.${NC}当自身IP发生变化时 ${GR}2.${NC}当与域名IP对比不匹配时"
+    echo -en "请选择 DDNS 模式 ( 回车默认 1 ) : "
     read -er input_choice
     if [ "$input_choice" == "1" ] || [ -z "$input_choice" ]; then
         CFDDNS_MODE="1"
@@ -4135,12 +4135,12 @@ EOF
     if [ "$mute" == "false" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         # N_URL_IPV4=$(curl -s https://dns.google/resolve?name=$CFDDNS_DOMAIN_P.$CFDDNS_DOMAIN_S | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
-        message="DDNS 报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"当系统检测到 IP 变更时将收到通知."
+        message="DDNS 报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"当主机 IP 变更时将收到通知."
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "ddns" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "ddns" "$send_time") &
         ddns_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
     fi
-    tips="$Tip DDNS 报告设置成功, 当系统检测到 IP 变更时发出通知."
+    tips="$Tip DDNS 报告设置成功, 当主机 IP 变更时发出通知."
 }
 
 # 卸载
