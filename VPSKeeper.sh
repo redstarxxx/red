@@ -3953,6 +3953,7 @@ while true; do
                 current_date_send=\$(date +"%Y.%m.%d %T")
                 message="首次执行 DDNS !   MODE: \$ddns_mode"$'\n'
                 message+="主机名: $hostname_show"$'\n'
+                message+="URL: \$record_name.\$domain"$'\n'
                 if [ "\$ddns_mode" == "1" ]; then
                     message+="更新前IP地址: \$O_IPV4"$'\n'
                 elif [ "\$ddns_mode" == "2" ]; then
@@ -3988,26 +3989,27 @@ while true; do
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! 🔄   MODE: \$ddns_mode"$'\n'
             message+="主机名: $hostname_show"$'\n'
+            message+="URL: \$record_name.\$domain"$'\n'
             if [ "\$ddns_mode" == "1" ]; then
                 message+="更新前IP地址: \$O_IPV4"$'\n'
             elif [ "\$ddns_mode" == "2" ]; then
                 message+="更新前IP地址: \$O_URL_IPV4"$'\n'
             fi
-            if [ "\$return_code" -eq 1 ]; then
-                message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
-            else
-                # if [ ! -z "\$O_URL_IPV4" ]; then
-                    message+="\$record_name.\$domain \$O_URL_IPV4"$'\n'
-                # fi
-            fi
+            # if [ "\$return_code" -eq 1 ]; then
+            #     message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
+            # else
+            #     # if [ ! -z "\$O_URL_IPV4" ]; then
+            #         message+="\$record_name.\$domain \$O_URL_IPV4"$'\n'
+            #     # fi
+            # fi
             message+="更新后IP地址: \$N_IPV4"$'\n'
-            if [ "\$return_code" -eq 1 ]; then
-                message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
-            else
-                # if [ ! -z "\$N_URL_IPV4" ]; then
-                    message+="\$record_name.\$domain \$N_URL_IPV4"$'\n'
-                # fi
-            fi
+            # if [ "\$return_code" -eq 1 ]; then
+            #     message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
+            # else
+            #     # if [ ! -z "\$N_URL_IPV4" ]; then
+            #         message+="\$record_name.\$domain \$N_URL_IPV4"$'\n'
+            #     # fi
+            # fi
             message+="───────────────"$'\n'
             if [[ \$N_IPV4 =~ \$ipv4_regex ]]; then
                 message+="GETIP 地址: \$GETURL"$'\n'
@@ -4045,6 +4047,7 @@ while true; do
                 current_date_send=\$(date +"%Y.%m.%d %T")
                 message="首次执行 DDNS !   MODE: \$ddns_mode"$'\n'
                 message+="主机名: $hostname_show"$'\n'
+                message+="URL: \$record_name.\$domain"$'\n'
                 if [ "\$ddns_mode" == "1" ]; then
                     message+="更新前IP地址: \$O_IPV6"$'\n'
                 elif [ "\$ddns_mode" == "2" ]; then
@@ -4080,26 +4083,27 @@ while true; do
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! 🔄   MODE: \$ddns_mode"$'\n'
             message+="主机名: $hostname_show"$'\n'
+            message+="URL: \$record_name.\$domain"$'\n'
             if [ "\$ddns_mode" == "1" ]; then
                 message+="更新前IP地址: \$O_IPV6"$'\n'
             elif [ "\$ddns_mode" == "2" ]; then
                 message+="更新前IP地址: \$O_URL_IPV6"$'\n'
             fi
-            if [ "\$return_code" -eq 1 ]; then
-                message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
-            else
-                # if [ ! -z "\$O_URL_IPV6" ]; then
-                    message+="\$record_name.\$domain \$O_URL_IPV6"$'\n'
-                # fi
-            fi
+            # if [ "\$return_code" -eq 1 ]; then
+            #     message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
+            # else
+            #     # if [ ! -z "\$O_URL_IPV6" ]; then
+            #         message+="\$record_name.\$domain \$O_URL_IPV6"$'\n'
+            #     # fi
+            # fi
             message+="更新后IP地址: \$N_IPV6"$'\n'
-            if [ "\$return_code" -eq 1 ]; then
-                message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
-            else
-                # if [ ! -z "\$N_URL_IPV6" ]; then
-                    message+="\$record_name.\$domain \$N_URL_IPV6"$'\n'
-                # fi
-            fi
+            # if [ "\$return_code" -eq 1 ]; then
+            #     message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
+            # else
+            #     # if [ ! -z "\$N_URL_IPV6" ]; then
+            #         message+="\$record_name.\$domain \$N_URL_IPV6"$'\n'
+            #     # fi
+            # fi
             message+="───────────────"$'\n'
             if [[ \$N_IPV6 =~ \$ipv6_regex ]]; then
                 message+="GETIP 地址: \$GETURL"$'\n'
