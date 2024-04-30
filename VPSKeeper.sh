@@ -3853,7 +3853,7 @@ url_get_ipv6() {
     # URL_IPV6=\$(dig +short AAAA \${record_name}.\${domain})
     URL_IPV6=\$(curl -s "https://ipv6-test.com/api/myip.php?host=\${record_name}.\${domain}")
     if [ -z "\$URL_IPV6" ] || [[ ! \$URL_IPV6 =~ \$ipv6_regex ]]; then
-        URL_IPV6=\$(curl -s "https://api6.ipify.org?format=json&hostname=z6.iexx.eu.org" | awk -F'"' '/ip/{print \$4}')
+        URL_IPV6=\$(curl -s "https://api6.ipify.org?format=json&hostname=\${record_name}.\${domain}" | awk -F'"' '/ip/{print \$4}')
         if [ -z "\$URL_IPV6" ] || [[ ! \$URL_IPV6 =~ \$ipv6_regex ]]; then
             # echo "show_URL_IPV6获取失败!  |  URL_IPV6: URL_IPV6"
             echo "IPV6获取失败!"
