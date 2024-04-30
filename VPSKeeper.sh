@@ -3711,6 +3711,17 @@ SetupDDNS_TG() {
         CFDDNS_DOMAIN_P="${input_domain%%.*}"
         CFDDNS_DOMAIN_S="${input_domain#*.}"
     fi
+    echo -e "模式: ${GR}1.${NC}当服务器自身发生变化时 ${GR}2.${NC}当与域名对比发生变化时"
+    echo -en "请选择 DDNS 模式 : "
+    read -er input_choice
+    if [ "$input_choice" == "1" ] || [ -z "$input_choice" ]; then
+        CFDDNS_MODE="1"
+    elif [ "$input_choice" == "2" ]; then
+        CFDDNS_MODE="2"
+    else
+        tips="$Err 输入有误, 取消操作."
+        return 1
+    fi
     cat <<EOF > "$FolderPath/tg_ddns.sh"
 #!/bin/bash
 
@@ -3721,6 +3732,7 @@ zone_id="$CFDDNS_ZID" # 主页获取
 domain="$CFDDNS_DOMAIN_S" # 域名
 record_name="$CFDDNS_DOMAIN_P" # 自定义前缀
 iptype="$CFDDNS_IP_TYPE" # 动态解析IP类型: A为IPV4, AAAA为IPV6
+ddns_mode="$CFDDNS_MODE"
 ttls="1" # TTL: 1为自动, 60为1分钟, 120为2分钟
 proxysw="false" # 是否开启小云朵(CF代理)( true 或 false )
 ####################################################################
@@ -3789,7 +3801,7 @@ customizeURL="\${1}"
 echo "自定URL\${1}: \$customizeURL"
 getipurl4=('ip.sb' 'ip.gs' 'ifconfig.io' 'ipinfo.io/ip' 'ifconfig.me' 'icanhazip.com' 'ipecho.net/plain')
 getipurl42=('ip.sb' 'ip.gs' 'ifconfig.io' 'ipinfo.io/ip' 'ifconfig.me' 'icanhazip.com' 'ipecho.net/plain')
-getipurl6=('ip.sb' 'ip.gs' 'ifconfig.io' 'ifconfig.me' 'ipecho.net/plain')
+getipurl6=('ip.sb' 'ip.gs' 'ifconfig.io' 'ifconfig.me' 'ipecho.net/plain' 'ipv6.icanhazip.com')
 echo "获取 IPv4 URL: \${getipurl4[@]} \${getipurl42[@]}"
 echo "获取 IPv6 URL: \${getipurl6[@]}"
 ipv4_regex="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
@@ -3817,6 +3829,7 @@ get_ipvx() {
         ip_result=\$(curl \$option "\$url")
         if [[ \$ip_result =~ \$ip_regex ]]; then
             echo "IP: \$ip_result   GET: \$url"
+            export GETURL="\$url"
             export ip_result="\$ip_result"  # 将 ip_result 导出为全局变量
             return 0  # 返回成功
         else
@@ -3828,22 +3841,67 @@ get_ipvx() {
     return 1  # 返回失败
 }
 
-if [ "\$iptype" == "A" ]; then
-    get_ipvx "getipurl4[@]" "-4" "\$ipv4_regex"
-    O_IPV4="\$ip_result"
-    O_IPV4_tag="\$get_tag"
-    if [ "\$O_IPV4_tag" == "geterr" ]; then
-        get_ipvx "getipurl42[@]" "" "\$ipv4_regex"
-        O_IPV4="\$ip_result"
+url_get_ipv4() {
+    local show_URL_IPV4="\${1}"
+    local URL_IPV4=""
+    # URL_IPV4=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
+    URL_IPV4=\$(curl -s https://dns.google/resolve?name=\${record_name}.\${domain} | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
+    if [ -z "\$URL_IPV4" ] || [[ ! \$URL_IPV4 =~ \$ipv4_regex ]]; then
+        # URL_IPV4=\$(curl -s "https://api.ipify.org?format=json&hostname=\${record_name}.\${domain}" | awk -F'"' '/ip/{print \$4}')
+        URL_IPV4=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
+        if [ -z "\$URL_IPV4" ] || [[ ! \$URL_IPV4 =~ \$ipv4_regex ]]; then
+            echo "show_URL_IPV4获取失败!  |  URL_IPV4: URL_IPV4"
+            return 1
+        fi
     fi
-elif [ "\$iptype" == "AAAA" ]; then
-    get_ipvx "getipurl6[@]" "" "\$ipv6_regex"
-    O_IPV6="\$ip_result"
+    echo "\$URL_IPV4"
+}
+
+url_get_ipv6() {
+    local show_URL_IPV6="\${1}"
+    local URL_IPV6=""
+    # URL_IPV6=\$(dig +short AAAA \${record_name}.\${domain})
+    URL_IPV6=\$(curl -s "https://ipv6-test.com/api/myip.php?host=\${record_name}.\${domain}")
+    if [ -z "\$URL_IPV6" ] || [[ ! \$URL_IPV6 =~ \$ipv6_regex ]]; then
+        URL_IPV6=\$(curl -s "https://api6.ipify.org?format=json&hostname=z6.iexx.eu.org" | awk -F'"' '/ip/{print \$4}')
+        if [ -z "\$URL_IPV6" ] || [[ ! \$URL_IPV6 =~ \$ipv6_regex ]]; then
+            echo "show_URL_IPV6获取失败!  |  URL_IPV6: URL_IPV6"
+            return 1
+        fi
+    fi
+    echo "\$URL_IPV4"
+}
+
+if [ "\$ddns_mode" == "1" ]; then
+    if [ "\$iptype" == "A" ]; then
+        get_ipvx "getipurl4[@]" "-4" "\$ipv4_regex"
+        O_IPV4="\$ip_result"
+        O_IPV4_tag="\$get_tag"
+        if [ "\$O_IPV4_tag" == "geterr" ]; then
+            get_ipvx "getipurl42[@]" "" "\$ipv4_regex"
+            O_IPV4="\$ip_result"
+        fi
+    elif [ "\$iptype" == "AAAA" ]; then
+        get_ipvx "getipurl6[@]" "" "\$ipv6_regex"
+        O_IPV6="\$ip_result"
+    else
+        echo "IP type 有误."
+    fi
+elif [ "\$ddns_mode" == "2" ]; then
+    if [ "\$iptype" == "A" ]; then
+        O_URL_IPV4=\$(url_get_ipv4 "O_URL_IPV4")
+    elif [ "\$iptype" == "AAAA" ]; then
+        O_URL_IPV6=\$(url_get_ipv6 "O_URL_IPV6")
+    else
+        echo "IP type 有误."
+    fi
 else
-    echo "IP type 有误."
+    echo "DDNS mode 有误."
 fi
 
 dellog_tag=1
+only_onece="true"
+
 while true; do
 
     N_IPV4=""
@@ -3872,14 +3930,43 @@ while true; do
         echo "IP type 有误."
     fi
 
-    if [ "\$iptype" == "A" ]; then
+    if [ "\$iptype" == "A" ] && [ ! -z "\$N_IPV4" ]; then
+
         COM_N_IPV4=\$(echo "\$N_IPV4" | tr -d '.')
         echo "COM_N_IPV4: \$COM_N_IPV4"
-        COM_O_IPV4=\$(echo "\$O_IPV4" | tr -d '.')
-        echo "COM_O_IPV4: \$COM_O_IPV4"
-        # ping_result=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
-        ping_result=\$(curl -s https://dns.google/resolve?name=\${record_name}.\${domain} | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
-        echo "\${record_name}.\${domain} - \$ping_result"
+        if [ "\$ddns_mode" == "1" ]; then
+            COM_O_IPV4=\$(echo "\$O_IPV4" | tr -d '.')
+            echo "COM_O_IPV4: \$COM_O_IPV4  |  DDNS_MODE: \$ddns_mode"
+        elif [ "\$ddns_mode" == "2" ]; then
+            COM_O_IPV4=\$(echo "\$O_URL_IPV4" | tr -d '.')
+            echo "COM_O_IPV4: \$COM_O_IPV4  |  DDNS_MODE: \$ddns_mode"
+        else
+            echo "DDNS mode 有误."
+        fi
+
+        if [ "\$only_onece" == "true" ]; then
+            action "\$iptype" "\$N_IPV4"
+            return_code=\$?
+            if [ "\$return_code" -eq 1 ]; then
+                echo "首次执行 DDNS 失败!"
+            else
+                current_date_send=\$(date +"%Y.%m.%d %T")
+                message="首次执行 DDNS !   MODE: \$ddns_mode"$'\n'
+                message+="主机名: $hostname_show"$'\n'
+                if [ "\$ddns_mode" == "1" ]; then
+                    message+="更新前IP地址: \$O_IPV4"$'\n'
+                elif [ "\$ddns_mode" == "2" ]; then
+                    message+="更新前IP地址: \$O_URL_IPV4"$'\n'
+                fi
+                message+="更新后IP地址: \$N_IPV4"$'\n'
+                message+="───────────────"$'\n'
+                message+="GETIP 地址: \$GETURL"$'\n'
+                message+="服务器时间: \$current_date_send"
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+            fi
+            only_onece="false"
+        fi
+
         if [[ "\$COM_N_IPV4" != "\$COM_O_IPV4" ]]; then
             echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
             if [ -z "\$COM_O_IPV4" ]; then
@@ -3889,38 +3976,82 @@ while true; do
             fi
             action "\$iptype" "\$N_IPV4"
             return_code=\$?
+            N_URL_IPV4=\$(url_get_ipv4 "N_URL_IPV4")
+            echo "\${record_name}.\${domain} - \$N_URL_IPV4"
             current_date_send=\$(date +"%Y.%m.%d %T")
-            message="IP 已变更! 🔄"$'\n'
+            message="IP 已变更! 🔄   MODE: \$ddns_mode"$'\n'
             message+="主机名: $hostname_show"$'\n'
-            message+="更新前IP地址: \$O_IPV4"$'\n'
-            message+="更新后IP地址: \$N_IPV4"$'\n'
-            if [[ \$N_IPV4 =~ \$ipv4_regex ]]; then
-                message+="GETIP地址: \$GETURL"$'\n'
+            if [ "\$ddns_mode" == "1" ]; then
+                message+="更新前IP地址: \$O_IPV4"$'\n'
+            elif [ "\$ddns_mode" == "2" ]; then
+                message+="更新前IP地址: \$O_URL_IPV4"$'\n'
             fi
             if [ "\$return_code" -eq 1 ]; then
                 message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
             else
-                if [ ! -z "\$ping_result" ]; then
-                    message+="\$record_name.\$domain \$ping_result"$'\n'
-                fi
+                # if [ ! -z "\$O_URL_IPV4" ]; then
+                    message+="\$record_name.\$domain \$O_URL_IPV4"$'\n'
+                # fi
+            fi
+            message+="更新后IP地址: \$N_IPV4"$'\n'
+            if [ "\$return_code" -eq 1 ]; then
+                message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
+            else
+                # if [ ! -z "\$N_URL_IPV4" ]; then
+                    message+="\$record_name.\$domain \$N_URL_IPV4"$'\n'
+                # fi
+            fi
+            message+="───────────────"$'\n'
+            if [[ \$N_IPV4 =~ \$ipv4_regex ]]; then
+                message+="GETIP 地址: \$GETURL"$'\n'
             fi
             message+="服务器时间: \$current_date_send"
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
             O_IPV4=\$N_IPV4
+            O_URL_IPV4=\$N_URL_IPV4
             sleep 60
         else
             echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
             echo "IP未改变." # 调试
             sleep 15
         fi
-    elif [ "\$iptype" == "AAAA" ]; then
+    elif [ "\$iptype" == "AAAA" ] && [ ! -z "\$N_IPV6" ]; then
+
         COM_N_IPV6=\$(echo "\$N_IPV6" | tr -d ':')
         echo "COM_N_IPV6: \$COM_N_IPV6"
-        COM_O_IPV6=\$(echo "\$O_IPV6" | tr -d ':')
-        echo "COM_O_IPV6: \$COM_O_IPV6"
-        # ping_result=\$(ping -c 1 \${record_name}.\${domain} | awk '/^PING/{print \$3}' | awk -F'[()]' '{print \$2}')
-        ping_result=\$(curl -s https://dns.google/resolve?name=\${record_name}.\${domain} | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
-        echo "\${record_name}.\${domain} - \$ping_result"
+        if [ "\$ddns_mode" == "1" ]; then
+            COM_O_IPV6=\$(echo "\$O_IPV6" | tr -d ':')
+            echo "COM_O_IPV6: \$COM_O_IPV6  |  DDNS_MODE: \$ddns_mode"
+        elif [ "\$ddns_mode" == "2" ]; then
+            COM_O_IPV6=\$(echo "\$O_URL_IPV6" | tr -d ':')
+            echo "COM_O_IPV6: \$COM_O_IPV6  |  DDNS_MODE: \$ddns_mode"
+        else
+            echo "DDNS mode 有误."
+        fi
+
+        if [ "\$only_onece" == "true" ]; then
+            action "\$iptype" "\$N_IPV6"
+            return_code=\$?
+            if [ "\$return_code" -eq 1 ]; then
+                echo "首次执行 DDNS 失败!"
+            else
+                current_date_send=\$(date +"%Y.%m.%d %T")
+                message="首次执行 DDNS !   MODE: \$ddns_mode"$'\n'
+                message+="主机名: $hostname_show"$'\n'
+                if [ "\$ddns_mode" == "1" ]; then
+                    message+="更新前IP地址: \$O_IPV6"$'\n'
+                elif [ "\$ddns_mode" == "2" ]; then
+                    message+="更新前IP地址: \$O_URL_IPV6"$'\n'
+                fi
+                message+="更新后IP地址: \$N_IPV6"$'\n'
+                message+="───────────────"$'\n'
+                message+="GETIP 地址: \$GETURL"$'\n'
+                message+="服务器时间: \$current_date_send"
+                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+            fi
+            only_onece="false"
+        fi
+
         if [[ "\$COM_N_IPV6" != "\$COM_O_IPV6" ]]; then
             echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
             if [ -z "\$COM_O_IPV6" ]; then
@@ -3930,24 +4061,39 @@ while true; do
             fi
             action "\$iptype" "\$N_IPV6"
             return_code=\$?
+            N_URL_IPV6=\$(url_get_ipv6 "N_URL_IPV6")
+            echo "\${record_name}.\${domain} - \$N_URL_IPV6"
             current_date_send=\$(date +"%Y.%m.%d %T")
-            message="IP 已变更! 🔄"$'\n'
+            message="IP 已变更! 🔄   MODE: \$ddns_mode"$'\n'
             message+="主机名: $hostname_show"$'\n'
-            message+="更新前IP地址: \$O_IPV6"$'\n'
-            message+="更新后IP地址: \$N_IPV6"$'\n'
-            if [[ \$N_IPV6 =~ \$ipv6_regex ]]; then
-                message+="GETIP地址: \$GETURL"$'\n'
+            if [ "\$ddns_mode" == "1" ]; then
+                message+="更新前IP地址: \$O_IPV6"$'\n'
+            elif [ "\$ddns_mode" == "2" ]; then
+                message+="更新前IP地址: \$O_URL_IPV6"$'\n'
             fi
             if [ "\$return_code" -eq 1 ]; then
                 message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
             else
-                if [ ! -z "\$ping_result" ]; then
-                    message+="\$record_name.\$domain \$ping_result"$'\n'
-                fi
+                # if [ ! -z "\$O_URL_IPV6" ]; then
+                    message+="\$record_name.\$domain \$O_URL_IPV6"$'\n'
+                # fi
+            fi
+            message+="更新后IP地址: \$N_IPV6"$'\n'
+            if [ "\$return_code" -eq 1 ]; then
+                message+="\$record_name.\$domain 更新失败! ✖️"$'\n'
+            else
+                # if [ ! -z "\$N_URL_IPV6" ]; then
+                    message+="\$record_name.\$domain \$N_URL_IPV6"$'\n'
+                # fi
+            fi
+            message+="───────────────"$'\n'
+            if [[ \$N_IPV6 =~ \$ipv6_regex ]]; then
+                message+="GETIP 地址: \$GETURL"$'\n'
             fi
             message+="服务器时间: \$current_date_send"
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
             O_IPV6=\$N_IPV6
+            O_URL_IPV6=\$N_URL_IPV6
             sleep 60
         else
             echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
@@ -3955,7 +4101,7 @@ while true; do
             sleep 15
         fi
     else
-        echo "IP type 有误."
+        echo "N_IPV4/6 获取失败 或 IP type 有误."
         exit 1
     fi
     if [ "\$dellog_tag" == 200 ]; then
@@ -3979,7 +4125,7 @@ EOF
     (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &") | crontab -
     if [ "$mute" == "false" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
-        # ping_result=$(curl -s https://dns.google/resolve?name=$CFDDNS_DOMAIN_P.$CFDDNS_DOMAIN_S | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
+        # N_URL_IPV4=$(curl -s https://dns.google/resolve?name=$CFDDNS_DOMAIN_P.$CFDDNS_DOMAIN_S | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
         message="DDNS 报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"当系统检测到 IP 变更时将收到通知."
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "ddns" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "ddns" "$send_time") &
