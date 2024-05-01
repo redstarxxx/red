@@ -560,6 +560,7 @@ EOF
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"通知模式: $mute_mode" "autoud" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "autoud" "$send_time") &
+        sleep 1
         if [ "$release" == "openwrt" ]; then
             autoud_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
@@ -1193,6 +1194,7 @@ test1() {
     send_time=$(echo $(date +%s%N) | cut -c 16-)
     $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "test1" "$send_time" "MarkdownV2" "$(echo $entities)"&
     (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "test1" "$send_time") &
+    sleep 1
     if [ "$release" == "openwrt" ]; then
         test1_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
     else
@@ -1216,6 +1218,7 @@ test() {
     send_time=$(echo $(date +%s%N) | cut -c 16-)
     $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "来自 $hostname_show 的测试信息." "test" "$send_time" &
     (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "test" "$send_time") &
+    sleep 1
     if [ "$release" == "openwrt" ]; then
         test_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
     else
@@ -1312,6 +1315,7 @@ EOF
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 开机 时将收到通知💡" "boot" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "boot" "$send_time") &
+        sleep 1
         if [ "$release" == "openwrt" ]; then
             boot_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
@@ -1352,6 +1356,7 @@ EOF
             send_time=$(echo $(date +%s%N) | cut -c 16-)
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡" "login" "$send_time" &
             (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "login" "$send_time") &
+            sleep 1
             if [ "$release" == "openwrt" ]; then
                 login_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
             else
@@ -1367,6 +1372,7 @@ EOF
             send_time=$(echo $(date +%s%N) | cut -c 16-)
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡 " "login" "$send_time" &
             (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "login" "$send_time") &
+            sleep 1
             if [ "$release" == "openwrt" ]; then
                 login_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
             else
@@ -1443,6 +1449,7 @@ EOF
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 关机 时将收到通知💡" "shutdown" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "shutdown" "$send_time") &
+        sleep 1
         if [ "$release" == "openwrt" ]; then
             shutdown_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
@@ -1500,6 +1507,7 @@ EOF
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 Docker 列表变更时将收到通知💡" "docker" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "docker" "$send_time") &
+        sleep 1
         if [ "$release" == "openwrt" ]; then
             docker_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
@@ -1796,6 +1804,7 @@ EOF
 # '"检测工具: $CPUTools"'
 # '"当 CPU 使用达 $CPUThreshold % 时将收到通知💡" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "cpu" "$send_time") &
+        sleep 1
         if [ "$release" == "openwrt" ]; then
             cpu_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
@@ -1932,6 +1941,7 @@ EOF
 '"交换: ${swap_total}MB"'
 '"当内存使用达 $MEMThreshold % 时将收到通知💡" "mem" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "mem" "$send_time") &
+        sleep 1
         if [ "$release" == "openwrt" ]; then
             mem_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
@@ -2070,6 +2080,7 @@ EOF
 '"磁盘: ${disk_total}B     已使用: ${disk_used}B"'
 '"当磁盘使用达 $DISKThreshold % 时将收到通知💡" "disk" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "disk" "$send_time") &
+        sleep 1
         if [ "$release" == "openwrt" ]; then
             disk_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
@@ -2891,6 +2902,7 @@ EOF
         message="流量报警设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"检测接口: $show_interfaces_ST"$'\n'"检测模式: $StatisticsMode_ST"$'\n'"当流量达阈值 $FlowThreshold_UB 时将收到通知💡"
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "flow" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flow" "$send_time") &
+        sleep 1
         if [ "$release" == "openwrt" ]; then
             flow_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
@@ -3729,6 +3741,7 @@ EOF
         message="流量定时报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"报告接口: $show_interfaces_RP"$'\n'"报告模式: $StatisticsMode_RP"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分📈"
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "flowrp" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flowrp" "$send_time") &
+        sleep 1
         if [ "$release" == "openwrt" ]; then
             flowrp_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
@@ -4223,6 +4236,7 @@ EOF
         message="DDNS 报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"当主机 IP 变更时将收到通知."
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "ddns" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "ddns" "$send_time") &
+        sleep 1
         if [ "$release" == "openwrt" ]; then
             ddns_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
@@ -4386,6 +4400,7 @@ UN_ALL() {
         message+="服务器时间: $current_date_send"
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "delall" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "delall" "$send_time") &
+        sleep 1
         if [ "$release" == "openwrt" ]; then
             delall_pid=$(pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
