@@ -279,7 +279,7 @@ CheckSetup() {
     else
         shutdown_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_docker.sh ] && $pscom | grep '[t]g_docker' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_docker.sh ] && ps aux | grep '[t]g_docker' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
             docker_menu_tag="$SETTAG"
         else
@@ -288,7 +288,7 @@ CheckSetup() {
     else
         docker_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_cpu.sh ] && $pscom | grep '[t]g_cpu' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_cpu.sh ] && ps aux | grep '[t]g_cpu' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
             cpu_menu_tag="$SETTAG"
         else
@@ -297,7 +297,7 @@ CheckSetup() {
     else
         cpu_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_mem.sh ] && $pscom | grep '[t]g_mem' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_mem.sh ] && ps aux | grep '[t]g_mem' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
             mem_menu_tag="$SETTAG"
         else
@@ -306,7 +306,7 @@ CheckSetup() {
     else
         mem_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_disk.sh ] && $pscom | grep '[t]g_disk' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_disk.sh ] && ps aux | grep '[t]g_disk' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
             disk_menu_tag="$SETTAG"
         else
@@ -315,7 +315,7 @@ CheckSetup() {
     else
         disk_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_flow.sh ] && $pscom | grep '[t]g_flow' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_flow.sh ] && ps aux | grep '[t]g_flow' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
             flow_menu_tag="$SETTAG"
         else
@@ -324,7 +324,7 @@ CheckSetup() {
     else
         flow_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_flowrp.sh ] && $pscom | grep '[t]g_flowrp' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_flowrp.sh ] && ps aux | grep '[t]g_flowrp' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
             flowrp_menu_tag="$SETTAG"
         else
@@ -333,7 +333,7 @@ CheckSetup() {
     else
         flowrp_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_ddns.sh ] && $pscom | grep '[t]g_ddns' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_ddns.sh ] && ps aux | grep '[t]g_ddns' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"; then
             ddns_menu_tag="$SETTAG"
         else
