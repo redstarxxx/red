@@ -3374,6 +3374,8 @@ while true; do
 
                 if \$month_rp; then
 
+                    sleep 15 # 当有多台VPS时,避免与日报告同时发送造成信息混乱
+
                     # if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
                         current_year=\$(date +'%Y')
                         current_month=\$(date +'%m')
@@ -3415,6 +3417,8 @@ while true; do
                 fi
 
                 if \$year_rp; then
+
+                    sleep 15
 
                     # if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
                         current_year=\$(date +'%Y')
@@ -3544,7 +3548,9 @@ while true; do
             fi
 
             if \$month_rp; then
-                
+
+                sleep 15
+
                 # if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
                     current_year=\$(date +'%Y')
                     current_month=\$(date +'%m')
@@ -3586,7 +3592,9 @@ while true; do
             fi
 
             if \$year_rp; then
-                
+
+                sleep 15
+
                 # if cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
                     current_year=\$(date +'%Y')
                     previous_year=\$((current_year - 1))
