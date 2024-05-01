@@ -2039,9 +2039,11 @@ Remove_B() {
     echo "${var%B}"
 }
 
-Bytes_MBtoGBKB() {
+Bytes_M_TGK() {
     bitvalue="$1"
-    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
+    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024)) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fTB", value / (1024 * 1024) }')
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
         bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / 1024 }')
     elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue < 1) }'; then
         bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.0fKB", value * 1024 }')
@@ -2051,37 +2053,33 @@ Bytes_MBtoGBKB() {
     echo "$bitvalue"
 }
 
-Bytes_KBtoMBGB () 
-{ 
-    bitvalue="$1";
-    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024)) }'; then
-        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / (1024 * 1024) }');
+Bytes_K_TGM() {
+    bitvalue="$1"
+    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024 * 1024)) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fTB", value / (1024 * 1024 * 1024) }')
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024)) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / (1024 * 1024) }')
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMB", value / 1024 }')
     else
-        if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
-            bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMB", value / 1024 }');
-        else
-            bitvalue="${bitvalue}KB";
-        fi;
-    fi;
+        bitvalue="${bitvalue}KB"
+    fi
     echo "$bitvalue"
 }
 
-Bytes_BtoKBMBGB () 
-{ 
-    bitvalue="$1";
-    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024 * 1024)) }'; then
-        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / (1024 * 1024 * 1024) }');
+Bytes_B_TGMK() {
+    bitvalue="$1"
+    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024 * 1024 * 1024)) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fTB", value / (1024 * 1024 * 1024 * 1024) }')
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024 * 1024)) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / (1024 * 1024 * 1024) }')
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024 * 1024) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMB", value / (1024 * 1024) }')
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fKB", value / 1024 }')
     else
-        if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024 * 1024) }'; then
-            bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMB", value / (1024 * 1024) }');
-        else
-            if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
-                bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fKB", value / 1024 }');
-            else
-                bitvalue="${bitvalue}bB";
-            fi;
-        fi;
-    fi;
+        bitvalue="${bitvalue}bB"
+    fi
     echo "$bitvalue"
 }
 
@@ -2385,7 +2383,7 @@ $(declare -f create_progress_bar)
 $(declare -f ratioandprogress)
 progress=""
 ratio=""
-$(declare -f Bytes_BtoKBMBGB)
+$(declare -f Bytes_B_TGMK)
 $(declare -f Remove_B)
 
 get_price() {
@@ -2583,8 +2581,30 @@ while true; do
         # 计算网速
         ov_rx_diff_speed=\$((sp_ov_current_rx_bytes - sp_ov_prev_rx_bytes))
         ov_tx_diff_speed=\$((sp_ov_current_tx_bytes - sp_ov_prev_tx_bytes))
-        rx_speed=\$(awk "BEGIN { speed = \$ov_rx_diff_speed / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-        tx_speed=\$(awk "BEGIN { speed = \$ov_tx_diff_speed / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+        # rx_speed=\$(awk "BEGIN { speed = \$ov_rx_diff_speed / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+        # tx_speed=\$(awk "BEGIN { speed = \$ov_tx_diff_speed / (\$tt * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+        rx_speed=\$(awk -v v1="\$ov_rx_diff_speed" -v t1="\$tt" \
+            'BEGIN {
+                speed = v1 / (t1 * 1024)
+                if (speed >= (1024 * 1024)) {
+                    printf "%.1fGB", speed/(1024 * 1024)
+                } else if (speed >= 1024) {
+                    printf "%.1fMB", speed/1024
+                } else {
+                    printf "%.1fKB", speed
+                }
+            }')
+        tx_speed=\$(awk -v v1="\$ov_tx_diff_speed" -v t1="\$tt" \
+            'BEGIN {
+                speed = v1 / (t1 * 1024)
+                if (speed >= (1024 * 1024)) {
+                    printf "%.1fGB", speed/(1024 * 1024)
+                } else if (speed >= 1024) {
+                    printf "%.1fMB", speed/1024
+                } else {
+                    printf "%.1fKB", speed
+                }
+            }')
         rx_speed=\$(Remove_B "\$rx_speed")
         tx_speed=\$(Remove_B "\$tx_speed")
 
@@ -2597,7 +2617,7 @@ while true; do
         all_rx_progress=\$progress
         all_rx_ratio=\$ratio
 
-        all_rx=\$(Bytes_BtoKBMBGB "\$all_rx_bytes")
+        all_rx=\$(Bytes_B_TGMK "\$all_rx_bytes")
         all_rx=\$(Remove_B "\$all_rx")
 
         all_tx_bytes=\$ov_current_tx_bytes
@@ -2608,7 +2628,7 @@ while true; do
         all_tx_progress=\$progress
         all_tx_ratio=\$ratio
 
-        all_tx=\$(Bytes_BtoKBMBGB "\$all_tx_bytes")
+        all_tx=\$(Bytes_B_TGMK "\$all_tx_bytes")
         all_tx=\$(Remove_B "\$all_tx")
 
         # 调试使用(tt秒的流量增量)
@@ -2634,8 +2654,8 @@ while true; do
 
             if [ \$rx_diff_bytes -ge \$THRESHOLD_BYTES ] || [ \$tx_diff_bytes -ge \$THRESHOLD_BYTES ]; then
 
-                rx_diff=\$(Bytes_BtoKBMBGB "\$rx_diff_bytes")
-                tx_diff=\$(Bytes_BtoKBMBGB "\$tx_diff_bytes")
+                rx_diff=\$(Bytes_B_TGMK "\$rx_diff_bytes")
+                tx_diff=\$(Bytes_B_TGMK "\$tx_diff_bytes")
                 rx_diff=\$(Remove_B "\$rx_diff")
                 tx_diff=\$(Remove_B "\$tx_diff")
 
@@ -2711,8 +2731,8 @@ while true; do
 
         if [ \$ov_rx_diff_bytes -ge \$THRESHOLD_BYTES ] || [ \$ov_tx_diff_bytes -ge \$THRESHOLD_BYTES ]; then
 
-            ov_rx_diff=\$(Bytes_BtoKBMBGB "\$ov_rx_diff_bytes")
-            ov_tx_diff=\$(Bytes_BtoKBMBGB "\$ov_tx_diff_bytes")
+            ov_rx_diff=\$(Bytes_B_TGMK "\$ov_rx_diff_bytes")
+            ov_tx_diff=\$(Bytes_B_TGMK "\$ov_tx_diff_bytes")
             ov_rx_diff=\$(Remove_B "\$ov_rx_diff")
             ov_tx_diff=\$(Remove_B "\$ov_tx_diff")
 
@@ -3011,7 +3031,7 @@ $(declare -f create_progress_bar)
 $(declare -f ratioandprogress)
 progress=""
 ratio=""
-$(declare -f Bytes_BtoKBMBGB)
+$(declare -f Bytes_B_TGMK)
 $(declare -f Remove_B)
 StatisticsMode_RP="$StatisticsMode_RP"
 
@@ -3225,7 +3245,7 @@ while true; do
         all_rx_progress=\$progress
         all_rx_ratio=\$ratio
 
-        all_rx=\$(Bytes_BtoKBMBGB "\$all_rx_bytes")
+        all_rx=\$(Bytes_B_TGMK "\$all_rx_bytes")
         all_rx=\$(Remove_B "\$all_rx")
 
         all_tx_bytes=\$ov_current_tx_bytes
@@ -3236,47 +3256,47 @@ while true; do
         all_tx_progress=\$progress
         all_tx_ratio=\$ratio
 
-        all_tx=\$(Bytes_BtoKBMBGB "\$all_tx_bytes")
+        all_tx=\$(Bytes_B_TGMK "\$all_tx_bytes")
         all_tx=\$(Remove_B "\$all_tx")
 
         # 日报告 #################################################################################################################
         if [ "\$current_hour" == "00" ] && [ "\$current_minute" == "00" ]; then
             diff_day_rx_bytes=\$(( current_rx_bytes[\$interface] - prev_day_rx_bytes[\$interface] ))
             diff_day_tx_bytes=\$(( current_tx_bytes[\$interface] - prev_day_tx_bytes[\$interface] ))
-            diff_rx_day=\$(Bytes_BtoKBMBGB "\$diff_day_rx_bytes")
-            diff_tx_day=\$(Bytes_BtoKBMBGB "\$diff_day_tx_bytes")
+            diff_rx_day=\$(Bytes_B_TGMK "\$diff_day_rx_bytes")
+            diff_tx_day=\$(Bytes_B_TGMK "\$diff_day_tx_bytes")
 
             if [ "\$StatisticsMode_RP" == "OV" ]; then
                 ov_diff_day_rx_bytes=\$(( ov_current_rx_bytes - ov_prev_day_rx_bytes ))
                 ov_diff_day_tx_bytes=\$(( ov_current_tx_bytes - ov_prev_day_tx_bytes ))
-                ov_diff_rx_day=\$(Bytes_BtoKBMBGB "\$ov_diff_day_rx_bytes")
-                ov_diff_tx_day=\$(Bytes_BtoKBMBGB "\$ov_diff_day_tx_bytes")
+                ov_diff_rx_day=\$(Bytes_B_TGMK "\$ov_diff_day_rx_bytes")
+                ov_diff_tx_day=\$(Bytes_B_TGMK "\$ov_diff_day_tx_bytes")
             fi
             # 月报告
             if [ "\$current_day" == "01" ]; then
                 diff_month_rx_bytes=\$(( current_rx_bytes[\$interface] - prev_month_rx_bytes[\$interface] ))
                 diff_month_tx_bytes=\$(( current_tx_bytes[\$interface] - prev_month_tx_bytes[\$interface] ))
-                diff_rx_month=\$(Bytes_BtoKBMBGB "\$diff_month_rx_bytes")
-                diff_tx_month=\$(Bytes_BtoKBMBGB "\$diff_month_tx_bytes")
+                diff_rx_month=\$(Bytes_B_TGMK "\$diff_month_rx_bytes")
+                diff_tx_month=\$(Bytes_B_TGMK "\$diff_month_tx_bytes")
 
                 if [ "\$StatisticsMode_RP" == "OV" ]; then
                     ov_diff_month_rx_bytes=\$(( ov_current_rx_bytes - ov_prev_month_rx_bytes ))
                     ov_diff_month_tx_bytes=\$(( ov_current_tx_bytes - ov_prev_month_tx_bytes ))
-                    ov_diff_rx_month=\$(Bytes_BtoKBMBGB "\$ov_diff_month_rx_bytes")
-                    ov_diff_tx_month=\$(Bytes_BtoKBMBGB "\$ov_diff_month_tx_bytes")
+                    ov_diff_rx_month=\$(Bytes_B_TGMK "\$ov_diff_month_rx_bytes")
+                    ov_diff_tx_month=\$(Bytes_B_TGMK "\$ov_diff_month_tx_bytes")
                 fi
                 # 年报告
                 if [ "\$current_month" == "01" ] && [ "\$current_day" == "01" ]; then
                     diff_year_rx_bytes=\$(( current_rx_bytes[\$interface] - prev_year_rx_bytes[\$interface] ))
                     diff_year_tx_bytes=\$(( current_tx_bytes[\$interface] - prev_year_tx_bytes[\$interface] ))
-                    diff_rx_year=\$(Bytes_BtoKBMBGB "\$diff_year_rx_bytes")
-                    diff_tx_year=\$(Bytes_BtoKBMBGB "\$diff_year_tx_bytes")
+                    diff_rx_year=\$(Bytes_B_TGMK "\$diff_year_rx_bytes")
+                    diff_tx_year=\$(Bytes_B_TGMK "\$diff_year_tx_bytes")
 
                     if [ "\$StatisticsMode_RP" == "OV" ]; then
                         ov_diff_year_rx_bytes=\$(( ov_current_rx_bytes - ov_prev_year_rx_bytes ))
                         ov_diff_year_tx_bytes=\$(( ov_current_tx_bytes - ov_prev_year_tx_bytes ))
-                        ov_diff_rx_year=\$(Bytes_BtoKBMBGB "\$ov_diff_year_rx_bytes")
-                        ov_diff_tx_year=\$(Bytes_BtoKBMBGB "\$ov_diff_year_tx_bytes")
+                        ov_diff_rx_year=\$(Bytes_B_TGMK "\$ov_diff_year_rx_bytes")
+                        ov_diff_tx_year=\$(Bytes_B_TGMK "\$ov_diff_year_tx_bytes")
                     fi
                     year_rp=true
                 fi
@@ -4677,8 +4697,30 @@ while true; do
     # 计算网速
     sp_ov_rx_diff_speed=\$((sp_ov_current_rx_bytes - sp_ov_prev_rx_bytes))
     sp_ov_tx_diff_speed=\$((sp_ov_current_tx_bytes - sp_ov_prev_tx_bytes))
-    rx_speed=\$(awk "BEGIN { speed = \$sp_ov_rx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-    tx_speed=\$(awk "BEGIN { speed = \$sp_ov_tx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+    # rx_speed=\$(awk "BEGIN { speed = \$sp_ov_rx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+    # tx_speed=\$(awk "BEGIN { speed = \$sp_ov_tx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
+    rx_speed=\$(awk -v v1="\$sp_ov_rx_diff_speed" -v t1="\$TT" \
+        'BEGIN {
+            speed = v1 / (t1 * 1024)
+            if (speed >= (1024 * 1024)) {
+                printf "%.1fGB", speed/(1024 * 1024)
+            } else if (speed >= 1024) {
+                printf "%.1fMB", speed/1024
+            } else {
+                printf "%.1fKB", speed
+            }
+        }')
+    tx_speed=\$(awk -v v1="\$sp_ov_tx_diff_speed" -v t1="\$TT" \
+        'BEGIN {
+            speed = v1 / (t1 * 1024)
+            if (speed >= (1024 * 1024)) {
+                printf "%.1fGB", speed/(1024 * 1024)
+            } else if (speed >= 1024) {
+                printf "%.1fMB", speed/1024
+            } else {
+                printf "%.1fKB", speed
+            }
+        }')
     rx_speed=\$(Remove_B "\$rx_speed")
     tx_speed=\$(Remove_B "\$tx_speed")
 
