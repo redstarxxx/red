@@ -134,6 +134,60 @@ CheckSys() {
     fi
 }
 
+getpid() {
+    local process_name="$1"
+    # local pre_name="${filename%%.*}"
+    # local ext_name="${filename##*.}"
+    local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
+    # echo "process_name: $process_name"
+    # echo "enclosed_name: $enclosed_name"
+
+    num_lines=$(ps | grep "$enclosed_name" | wc -l)
+    if [ "$num_lines" -gt 1 ]; then
+        if ps x > /dev/null 2>&1; then
+            out_pids=($(ps x | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+            out_pid=${out_pids[0]}
+        else
+            out_pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+            out_pid=${out_pids[0]}
+        fi
+    else
+        if ps x > /dev/null 2>&1; then
+            out_pid=$(ps x | grep "$enclosed_name" | tail -n 1 | awk '{print $1}') > /dev/null 2>&1
+        else
+            out_pid=$(ps | grep "$enclosed_name" | tail -n 1 | awk '{print $1}') > /dev/null 2>&1
+        fi
+    fi
+    # if [ -z "$out_pid" ] || ! [[ "$out_pid" =~ ^[0-9]+$ ]]; then
+    #     echo "获取PID失败: '$process_name'" >&2
+    # fi
+    # echo "$out_pid"
+}
+
+killpid() {
+    local process_name="$1"
+    local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
+
+    num_lines=$(ps | grep "$enclosed_name" | wc -l)
+    if [ "$num_lines" -gt 1 ]; then
+        if command -v pkill; then
+            pkill "$process_name" > /dev/null 2>&1 &
+        else
+            pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+            for pid in "${pids[@]}"; do
+                kill "$pid" > /dev/null 2>&1 &
+            done
+        fi
+    else
+        if command -v pkill; then
+            pkill "$process_name" > /dev/null 2>&1 &
+        else
+            getpid "$process_name"
+            kill "$out_pid" > /dev/null 2>&1 &
+        fi
+    fi
+}
+
 # 数组去重处理
 # interfaces=($(redup_array "${interfaces[@]}"))
 redup_array() {
@@ -233,6 +287,31 @@ StatisticsMode_ST_de="SE"
 # StatisticsMode_ST_de="OV" # 整体统计
 # StatisticsMode_ST_de="SE" # 单独统计
 
+Checkprocess() {
+    local process_name="$1"
+    local prefix_name="${process_name%%.*}"
+    local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
+
+    if [ -f "$FolderPath"/"$process_name" ] && \
+        crontab -l | grep -q "@reboot nohup "$FolderPath"/"$process_name" > "$FolderPath"/"$prefix_name".log 2>&1 &"; then
+        if ps x > /dev/null 2>&1; then
+            if  ps x | grep "$enclosed_name" > /dev/null 2>&1; then
+                menu_tag="$SETTAG"
+            else
+                menu_tag="$UNSETTAG"
+            fi
+        else
+            if ps | grep "$enclosed_name" > /dev/null 2>&1; then
+                menu_tag="$SETTAG"
+            else
+                menu_tag="$UNSETTAG"
+            fi
+        fi
+    else
+        menu_tag="$UNSETTAG"
+    fi
+}
+
 # 检测设置标记
 CheckSetup() {
     echo "检测中..."
@@ -277,69 +356,83 @@ CheckSetup() {
     else
         shutdown_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_docker.sh ] && ps | grep '[t]g_docker' > /dev/null 2>&1; then
-        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
-            docker_menu_tag="$SETTAG"
-        else
-            docker_menu_tag="$UNSETTAG"
-        fi
-    else
-        docker_menu_tag="$UNSETTAG"
-    fi
-    if [ -f $FolderPath/tg_cpu.sh ] && ps | grep '[t]g_cpu' > /dev/null 2>&1; then
-        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
-            cpu_menu_tag="$SETTAG"
-        else
-            cpu_menu_tag="$UNSETTAG"
-        fi
-    else
-        cpu_menu_tag="$UNSETTAG"
-    fi
-    if [ -f $FolderPath/tg_mem.sh ] && ps | grep '[t]g_mem' > /dev/null 2>&1; then
-        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
-            mem_menu_tag="$SETTAG"
-        else
-            mem_menu_tag="$UNSETTAG"
-        fi
-    else
-        mem_menu_tag="$UNSETTAG"
-    fi
-    if [ -f $FolderPath/tg_disk.sh ] && ps | grep '[t]g_disk' > /dev/null 2>&1; then
-        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
-            disk_menu_tag="$SETTAG"
-        else
-            disk_menu_tag="$UNSETTAG"
-        fi
-    else
-        disk_menu_tag="$UNSETTAG"
-    fi
-    if [ -f $FolderPath/tg_flow.sh ] && ps | grep '[t]g_flow' > /dev/null 2>&1; then
-        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
-            flow_menu_tag="$SETTAG"
-        else
-            flow_menu_tag="$UNSETTAG"
-        fi
-    else
-        flow_menu_tag="$UNSETTAG"
-    fi
-    if [ -f $FolderPath/tg_flowrp.sh ] && ps | grep '[t]g_flowrp' > /dev/null 2>&1; then
-        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
-            flowrp_menu_tag="$SETTAG"
-        else
-            flowrp_menu_tag="$UNSETTAG"
-        fi
-    else
-        flowrp_menu_tag="$UNSETTAG"
-    fi
-    if [ -f $FolderPath/tg_ddns.sh ] && ps | grep '[t]g_ddns' > /dev/null 2>&1; then
-        if crontab -l | grep -q "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"; then
-            ddns_menu_tag="$SETTAG"
-        else
-            ddns_menu_tag="$UNSETTAG"
-        fi
-    else
-        ddns_menu_tag="$UNSETTAG"
-    fi
+    # if [ -f $FolderPath/tg_docker.sh ] && ps | grep '[t]g_docker' > /dev/null 2>&1; then
+    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
+    #         docker_menu_tag="$SETTAG"
+    #     else
+    #         docker_menu_tag="$UNSETTAG"
+    #     fi
+    # else
+    #     docker_menu_tag="$UNSETTAG"
+    # fi
+    Checkprocess "tg_docker.sh"
+    docker_menu_tag="$menu_tag"
+    # if [ -f $FolderPath/tg_cpu.sh ] && ps | grep '[t]g_cpu' > /dev/null 2>&1; then
+    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
+    #         cpu_menu_tag="$SETTAG"
+    #     else
+    #         cpu_menu_tag="$UNSETTAG"
+    #     fi
+    # else
+    #     cpu_menu_tag="$UNSETTAG"
+    # fi
+    Checkprocess "tg_cpu.sh"
+    cpu_menu_tag="$menu_tag"
+    # if [ -f $FolderPath/tg_mem.sh ] && ps | grep '[t]g_mem' > /dev/null 2>&1; then
+    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
+    #         mem_menu_tag="$SETTAG"
+    #     else
+    #         mem_menu_tag="$UNSETTAG"
+    #     fi
+    # else
+    #     mem_menu_tag="$UNSETTAG"
+    # fi
+    Checkprocess "tg_mem.sh"
+    mem_menu_tag="$menu_tag"
+    # if [ -f $FolderPath/tg_disk.sh ] && ps | grep '[t]g_disk' > /dev/null 2>&1; then
+    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
+    #         disk_menu_tag="$SETTAG"
+    #     else
+    #         disk_menu_tag="$UNSETTAG"
+    #     fi
+    # else
+    #     disk_menu_tag="$UNSETTAG"
+    # fi
+    Checkprocess "tg_disk.sh"
+    disk_menu_tag="$menu_tag"
+    # if [ -f $FolderPath/tg_flow.sh ] && ps | grep '[t]g_flow' > /dev/null 2>&1; then
+    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
+    #         flow_menu_tag="$SETTAG"
+    #     else
+    #         flow_menu_tag="$UNSETTAG"
+    #     fi
+    # else
+    #     flow_menu_tag="$UNSETTAG"
+    # fi
+    Checkprocess "tg_flow.sh"
+    flow_menu_tag="$menu_tag"
+    # if [ -f $FolderPath/tg_flowrp.sh ] && ps | grep '[t]g_flowrp' > /dev/null 2>&1; then
+    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
+    #         flowrp_menu_tag="$SETTAG"
+    #     else
+    #         flowrp_menu_tag="$UNSETTAG"
+    #     fi
+    # else
+    #     flowrp_menu_tag="$UNSETTAG"
+    # fi
+    Checkprocess "tg_flowrp.sh"
+    flowrp_menu_tag="$menu_tag"
+    # if [ -f $FolderPath/tg_ddns.sh ] && ps | grep '[t]g_ddns' > /dev/null 2>&1; then
+    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"; then
+    #         ddns_menu_tag="$SETTAG"
+    #     else
+    #         ddns_menu_tag="$UNSETTAG"
+    #     fi
+    # else
+    #     ddns_menu_tag="$UNSETTAG"
+    # fi
+    Checkprocess "tg_ddns.sh"
+    ddns_menu_tag="$menu_tag"
     if [ -f $FolderPath/tg_autoud.sh ]; then
         if crontab -l | grep -q "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &"; then
             autoud_menu_tag="$SETTAG"
@@ -569,11 +662,8 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"通知模式: $mute_mode" "autoud" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "autoud" "$send_time") &
         sleep 1
-        if [ "$release" == "openwrt" ]; then
-            autoud_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-        else
-            autoud_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-        fi
+        getpid "send_tg.sh"
+        autoud_pid="$out_pid"
     fi
     tips="$Tip 自动更新设置成功, 更新时间: 每天 $hour_ud 时 $minute_ud 分, 通知模式: ${GR}$mute_mode${NC}"
 }
@@ -1213,11 +1303,8 @@ test1() {
     $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "test1" "$send_time" "MarkdownV2" "$(echo $entities)"&
     (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "test1" "$send_time") &
     sleep 1
-    if [ "$release" == "openwrt" ]; then
-        test1_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-    else
-        test1_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-    fi
+    getpid "send_tg.sh"
+    test1_pid="$out_pid"
     tips="$Inf 测试信息已发出, 电报将收到一条\"来自 $hostname_show 的测试信息\"的信息.111"
 }
 
@@ -1247,11 +1334,13 @@ test() {
     $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "来自 $hostname_show 的测试信息." "test" "$send_time" &
     (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "test" "$send_time") &
     sleep 1
-    if [ "$release" == "openwrt" ]; then
-        test_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-    else
-        test_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-    fi
+    # if [ "$release" == "openwrt" ]; then
+    #     test_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+    # else
+    #     test_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+    # fi
+    getpid "send_tg.sh"
+    test_pid="$out_pid"
     tips="$Inf 测试信息已发出, 电报将收到一条\"来自 $hostname_show 的测试信息\"的信息."
 }
 
@@ -1354,11 +1443,8 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 开机 时将收到通知💡" "boot" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "boot" "$send_time") &
         sleep 1
-        if [ "$release" == "openwrt" ]; then
-            boot_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-        else
-            boot_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-        fi
+        getpid "send_tg.sh"
+        boot_pid="$out_pid"
     fi
     tips="$Tip 开机 通知已经设置成功, 当开机时发出通知."
     
@@ -1405,11 +1491,8 @@ EOF
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡" "login" "$send_time" &
             (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "login" "$send_time") &
             sleep 1
-            if [ "$release" == "openwrt" ]; then
-                login_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-            else
-                login_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-            fi
+            getpid "send_tg.sh"
+            login_pid="$out_pid"
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时发出通知."
     elif [ -f /etc/profile ]; then
@@ -1421,11 +1504,8 @@ EOF
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡 " "login" "$send_time" &
             (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "login" "$send_time") &
             sleep 1
-            if [ "$release" == "openwrt" ]; then
-                login_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-            else
-                login_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-            fi
+            getpid "send_tg.sh"
+            login_pid="$out_pid"
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时发出通知."
     else
@@ -1508,11 +1588,8 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 关机 时将收到通知💡" "shutdown" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "shutdown" "$send_time") &
         sleep 1
-        if [ "$release" == "openwrt" ]; then
-            shutdown_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-        else
-            shutdown_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-        fi
+        getpid "send_tg.sh"
+        shutdown_pid="$out_pid"
     fi
     tips="$Tip 关机 通知已经设置成功, 当开机时发出通知."
 }
@@ -1564,9 +1641,7 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_docker.sh
-    pkill tg_docker.sh > /dev/null 2>&1 &
-    pkill tg_docker.sh > /dev/null 2>&1 &
-    kill $(ps | grep '[t]g_docker.sh' | awk '{print $1}')
+    killpid "tg_docker.sh"
     nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &") | crontab -
@@ -1576,11 +1651,8 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 Docker 列表变更时将收到通知💡" "docker" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "docker" "$send_time") &
         sleep 1
-        if [ "$release" == "openwrt" ]; then
-            docker_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-        else
-            docker_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-        fi
+        getpid "send_tg.sh"
+        docker_pid="$out_pid"
     fi
     tips="$Tip Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时发出通知."
 }
@@ -1859,9 +1931,7 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_cpu.sh
-    pkill tg_cpu.sh > /dev/null 2>&1 &
-    pkill tg_cpu.sh > /dev/null 2>&1 &
-    kill $(ps | grep '[t]g_cpu.sh' | awk '{print $1}')
+    killpid "tg_cpu.sh"
     nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &") | crontab -
@@ -1883,11 +1953,8 @@ EOF
 # '"当 CPU 使用达 $CPUThreshold % 时将收到通知💡" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "cpu" "$send_time") &
         sleep 1
-        if [ "$release" == "openwrt" ]; then
-            cpu_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-        else
-            cpu_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-        fi
+        getpid "send_tg.sh"
+        cpu_pid="$out_pid"
     fi
     tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达 ${GR}$CPUThreshold${NC} % 时发出通知."
 }
@@ -2014,9 +2081,7 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_mem.sh
-    pkill tg_mem.sh > /dev/null 2>&1 &
-    pkill tg_mem.sh > /dev/null 2>&1 &
-    kill $(ps | grep '[t]g_mem.sh' | awk '{print $1}')
+    killpid "tg_mem.sh"
     nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &") | crontab -
@@ -2030,11 +2095,8 @@ EOF
 '"当内存使用达 $MEMThreshold % 时将收到通知💡" "mem" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "mem" "$send_time") &
         sleep 1
-        if [ "$release" == "openwrt" ]; then
-            mem_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-        else
-            mem_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-        fi
+        getpid "send_tg.sh"
+        mem_pid="$out_pid"
     fi
     tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达 ${GR}$MEMThreshold${NC} % 时发出通知."
 
@@ -2164,9 +2226,7 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_disk.sh
-    pkill tg_disk.sh > /dev/null 2>&1 &
-    pkill tg_disk.sh > /dev/null 2>&1 &
-    kill $(ps | grep '[t]g_disk.sh' | awk '{print $1}')
+    killpid "tg_disk.sh"
     nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &") | crontab -
@@ -2179,11 +2239,8 @@ EOF
 '"当磁盘使用达 $DISKThreshold % 时将收到通知💡" "disk" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "disk" "$send_time") &
         sleep 1
-        if [ "$release" == "openwrt" ]; then
-            disk_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-        else
-            disk_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-        fi
+        getpid "send_tg.sh"
+        disk_pid="$out_pid"
     fi
     tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达 ${GR}$DISKThreshold${NC} % 时发出通知."
 }
@@ -2973,9 +3030,10 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_flow.sh
-    pkill tg_flow.sh > /dev/null 2>&1 &
-    pkill tg_flow.sh > /dev/null 2>&1 &
-    kill $(ps | grep '[t]g_flow.sh' | awk '{print $1}')
+    # pkill tg_flow.sh > /dev/null 2>&1 &
+    # pkill tg_flow.sh > /dev/null 2>&1 &
+    # kill $(ps | grep '[t]g_flow.sh' | awk '{print $1}')
+    killpid "tg_flow.sh"
     nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &
     if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
         (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
@@ -3011,11 +3069,8 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "flow" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flow" "$send_time") &
         sleep 1
-        if [ "$release" == "openwrt" ]; then
-            flow_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-        else
-            flow_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-        fi
+        getpid "send_tg.sh"
+        flow_pid="$out_pid"
     fi
     tips="$Tip 流量 通知已经设置成功, 当流量使用达 ${GR}$FlowThreshold_UB${NC} 时发出通知."
 }
@@ -3846,9 +3901,7 @@ while true; do
 done
 EOF
     chmod +x $FolderPath/tg_flowrp.sh
-    pkill tg_flowrp.sh > /dev/null 2>&1 &
-    pkill tg_flowrp.sh > /dev/null 2>&1 &
-    kill $(ps | grep '[t]g_flowrp.sh' | awk '{print $1}')
+    killpid "tg_flowrp.sh"
     nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &
     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &" | crontab -
@@ -3860,11 +3913,8 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "flowrp" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flowrp" "$send_time") &
         sleep 1
-        if [ "$release" == "openwrt" ]; then
-            flowrp_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-        else
-            flowrp_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-        fi
+        getpid "send_tg.sh"
+        flowrp_pid="$out_pid"
     fi
     tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
 }
@@ -4350,9 +4400,7 @@ done
 # END
 EOF
     chmod +x $FolderPath/tg_ddns.sh
-    pkill tg_ddns.sh > /dev/null 2>&1 &
-    pkill tg_ddns.sh > /dev/null 2>&1 &
-    kill $(ps | grep '[t]g_ddns.sh' | awk '{print $1}')
+    killpid "tg_ddns.sh"
     nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &
     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"; then
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &" | crontab -
@@ -4365,11 +4413,8 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "ddns" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "ddns" "$send_time") &
         sleep 1
-        if [ "$release" == "openwrt" ]; then
-            ddns_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-        else
-            ddns_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-        fi
+        getpid "send_tg.sh"
+        ddns_pid="$out_pid"
     fi
     tips="$Tip DDNS 报告设置成功, 当主机 IP 变更时发出通知."
 }
@@ -4414,45 +4459,38 @@ UN_SetupShutdown_TG() {
 }
 UN_SetupCPU_TG() {
     if [ "$cpu_menu_tag" == "$SETTAG" ]; then
-        pkill tg_cpu.sh > /dev/null 2>&1 &
-        pkill tg_cpu.sh > /dev/null 2>&1 &
-        kill $(ps | grep '[t]g_cpu.sh' | awk '{print $1}')
+        killpid "tg_cpu.sh"
+        # pkill tg_cpu.sh > /dev/null 2>&1 &
+        # pkill tg_cpu.sh > /dev/null 2>&1 &
+        # kill $(ps | grep '[t]g_cpu.sh' | awk '{print $1}')
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
         tips="$Tip CPU报警 已经取消 / 删除."
     fi
 }
 UN_SetupMEM_TG() {
     if [ "$mem_menu_tag" == "$SETTAG" ]; then
-        pkill tg_mem.sh > /dev/null 2>&1 &
-        pkill tg_mem.sh > /dev/null 2>&1 &
-        kill $(ps | grep '[t]g_mem.sh' | awk '{print $1}')
+        killpid "tg_mem.sh"
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &" | crontab -
         tips="$Tip 内存报警 已经取消 / 删除."
     fi
 }
 UN_SetupDISK_TG() {
     if [ "$disk_menu_tag" == "$SETTAG" ]; then
-        pkill tg_disk.sh > /dev/null 2>&1 &
-        pkill tg_disk.sh > /dev/null 2>&1 &
-        kill $(ps | grep '[t]g_disk.sh' | awk '{print $1}')
+        killpid "tg_disk.sh"
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &" | crontab -
         tips="$Tip 磁盘报警 已经取消 / 删除."
     fi
 }
 UN_SetupFlow_TG() {
     if [ "$flow_menu_tag" == "$SETTAG" ]; then
-        pkill tg_flow.sh > /dev/null 2>&1 &
-        pkill tg_flow.sh > /dev/null 2>&1 &
-        kill $(ps | grep '[t]g_flow.sh' | awk '{print $1}')
+        killpid "tg_flow.sh"
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
         tips="$Tip 流量报警 已经取消 / 删除."
     fi
 }
 UN_SetFlowReport_TG() {
     if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
-        pkill tg_flowrp.sh > /dev/null 2>&1 &
-        pkill tg_flowrp.sh > /dev/null 2>&1 &
-        kill $(ps | grep '[t]g_flowrp.sh' | awk '{print $1}')
+        killpid "tg_flowrp.sh"
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &" | crontab -
         tips="$Tip 流量定时报告 已经取消 / 删除."
     fi
@@ -4460,27 +4498,21 @@ UN_SetFlowReport_TG() {
 }
 UN_SetupDocker_TG() {
     if [ "$docker_menu_tag" == "$SETTAG" ]; then
-        pkill tg_docker.sh > /dev/null 2>&1 &
-        pkill tg_docker.sh > /dev/null 2>&1 &
-        kill $(ps | grep '[t]g_docker.sh' | awk '{print $1}')
+        killpid "tg_docker.sh"
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
         tips="$Tip Docker变更通知 已经取消 / 删除."
     fi
 }
 UN_SetupDDNS_TG() {
     if [ "$ddns_menu_tag" == "$SETTAG" ]; then
-        pkill tg_ddns.sh > /dev/null 2>&1 &
-        pkill tg_ddns.sh > /dev/null 2>&1 &
-        kill $(ps | grep '[t]g_ddns.sh' | awk '{print $1}')
+        killpid "tg_ddns.sh"
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &" | crontab -
         tips="$Tip CF-DDNS IP 变更通知 已经取消 / 删除."
     fi
 }
 UN_SetAutoUpdate() {
     if [ "$autoud_menu_tag" == "$SETTAG" ]; then
-        pkill tg_autoud.sh > /dev/null 2>&1 &
-        pkill tg_autoud.sh > /dev/null 2>&1 &
-        kill $(ps | grep '[t]g_autoud.sh' | awk '{print $1}')
+        killpid "tg_autoud.sh"
         crontab -l | grep -v "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &" | crontab -
         crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
         tips="$Tip 自动更新已经取消."
@@ -4519,15 +4551,18 @@ UN_ALL() {
     UN_SetFlowReport_TG
     UN_SetupDocker_TG
     UN_SetAutoUpdate
-    pkill -f 'tg_.+.sh' > /dev/null 2>&1 &
-    # ps | grep '[t]g_' | awk '{print $1}' | xargs kill
-    kill $(ps | grep '[t]g_' | awk '{print $1}')
-    sleep 1
-    if pgrep -f 'tg_.+.sh' > /dev/null; then
-    pkill -9 -f 'tg_.+.sh' > /dev/null 2>&1 &
-    # ps | grep '[t]g_' | awk '{print $1}' | xargs kill -9
-    kill -9 $(ps | grep '[t]g_' | awk '{print $1}')
-    fi
+    killpid "tg_"
+
+    # pkill -f 'tg_.+.sh' > /dev/null 2>&1 &
+    # # ps | grep '[t]g_' | awk '{print $1}' | xargs kill
+    # kill $(ps | grep '[t]g_' | awk '{print $1}')
+    # sleep 1
+    # if pgrep -f 'tg_.+.sh' > /dev/null; then
+    #     pkill -9 -f 'tg_.+.sh' > /dev/null 2>&1 &
+    #     # ps | grep '[t]g_' | awk '{print $1}' | xargs kill -9
+    #     kill -9 $(ps | grep '[t]g_' | awk '{print $1}')
+    # fi
+
     crontab -l | grep -v "$FolderPath/tg_" | crontab -
     # if [ "$autorun" == "false" ]; then
     if [ "$un_sendtag" == "true" ]; then
@@ -4539,11 +4574,8 @@ UN_ALL() {
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "delall" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "delall" "$send_time") &
         sleep 1
-        if [ "$release" == "openwrt" ]; then
-            delall_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
-        else
-            delall_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
-        fi
+        getpid "send_tg.sh"
+        delall_pid="$out_pid"
         tips="$Tip 已取消 / 删除所有通知."
     fi
 }
@@ -4695,9 +4727,10 @@ T_VIEWLOG() {
         stty intr ^C # 恢复 CTRL+C
         # stty sane # 重置终端设置为默认值
         kill -2 $tail_pid 2>/dev/null
-        pkill -f tail
-        kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null
-        pgrep -f tail | xargs kill -9 2>/dev/null
+        killpid "tail"
+        # pkill -f tail
+        # kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null
+        # pgrep -f tail | xargs kill -9 2>/dev/null
         if pgrep -x tail > /dev/null; then
             echo -e "中止失败!! 请执行以下指令中止!"
             echo -e "中止指令1: ${REB}pkill -f tail${NC}"
@@ -4969,15 +5002,38 @@ EOF
     stty intr ^C # 恢复 CTRL+C
     # stty sane # 重置终端设置为默认值
     kill -2 $tg_interface_re_pid 2>/dev/null
-    pkill -f tg_interface_re
-    kill $(ps | grep '[t]g_interface_re' | awk '{print $1}') 2>/dev/null
-    pgrep -f tg_interface_re | xargs kill -9 2>/dev/null
+    killpid "tg_interface_re"
+    # pkill -f tg_interface_re
+    # kill $(ps | grep '[t]g_interface_re' | awk '{print $1}') 2>/dev/null
+    # pgrep -f tg_interface_re | xargs kill -9 2>/dev/null
     if pgrep -x tg_interface_re > /dev/null; then
         echo -e "中止失败!! 请执行以下指令中止!"
         echo -e "中止指令1: ${REB}pkill -f tg_interface_re${NC}"
         echo -e "中止指令2: ${REB}kill $(ps | grep '[t]g_interface_re' | awk '{print $1}') 2>/dev/null${NC}"
     fi
     divline
+}
+
+Force_update() {
+    # gettime=$(date +%s%N) # 时间戳 (纳秒)
+    # gettime=$(date +%s) # 时间戳 (秒)
+    # gettime=$(date -d "2024-05-01 00:00:00" +%s) # 指定时间戳 (秒)
+
+    ED_Time_0="2024-05-01 00:00:00"
+    CT_time=$(date +%s)
+    ED_time=$(date -d "$ED_Time_0" +%s)
+
+    runtag="NO"
+    echo "检测到期时间 (之后将不检测): $ED_Time_0   |   CT_time: $CT_time  ED_time: $ED_time"
+    if awk -v v1="$CT_time" -v v2="$ED_time" 'BEGIN { print (v1 < v2)?"less":"greater" }' | grep -q "less" && [[ "${TelgramBotToken:-""}" == "7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws" ]]; then
+        echo "TelgramBotToken: $TelgramBotToken"
+        TelgramBotToken="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
+        writeini "TelgramBotToken" "6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
+        echo "TelgramBotToken 已经换成 @vpskeeperbot"
+        sleep 5
+        runtag="YES"
+    fi
+    echo "runtag: $runtag"
 }
 
 # 主程序
@@ -5187,24 +5243,7 @@ else
     sendprice_menu_tag="${GRB}Pi${NC}"
 fi
 
-# gettime=$(date +%s%N) # 时间戳 (纳秒)
-# gettime=$(date +%s) # 时间戳 (秒)
-# gettime=$(date -d "2024-05-01 00:00:00" +%s) # 指定时间戳 (秒)
-
-ED_Time_0="2024-05-01 00:00:00"
-CT_time=$(date +%s)
-ED_time=$(date -d "$ED_Time_0" +%s)
-runtag="NO"
-echo "检测到期时间 (之后将不检测): $ED_Time_0   |   CT_time: $CT_time  ED_time: $ED_time"
-if awk -v v1="$CT_time" -v v2="$ED_time" 'BEGIN { print (v1 < v2)?"less":"greater" }' | grep -q "less" && [[ "${TelgramBotToken:-""}" == "7030486799:AAEa4PyCKGN7347v1mt2gyaBoySdxuh56ws" ]]; then
-    echo "TelgramBotToken: $TelgramBotToken"
-    TelgramBotToken="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
-    writeini "TelgramBotToken" "6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
-    echo "TelgramBotToken 已经换成 @vpskeeperbot"
-    sleep 5
-    runtag="YES"
-fi
-echo "runtag: $runtag"
+# Force_update
 
 CLS
 echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 ${RE}[v${sh_ver}]${NC}
@@ -5347,12 +5386,20 @@ case "$num" in
     ;;
     c|C)
         echo "卸载前:"
-        pgrep '^tg_' | xargs -I {} ps -p {} -o pid,cmd
+        if ps x > /dev/null 2>&1; then
+            ps x | grep '[t]g_'
+        else
+            ps | grep '[t]g_'
+        fi
         un_sendtag=true
         UN_ALL
         un_sendtag=false
         echo "卸载后:"
-        pgrep '^tg_' | xargs -I {} ps -p {} -o pid,cmd
+        if ps x > /dev/null 2>&1; then
+            ps x | grep '[t]g_'
+        else
+            ps | grep '[t]g_'
+        fi
     ;;
     f|F)
         DELFOLDER
@@ -5385,7 +5432,11 @@ case "$num" in
         # 查看配置文件
         divline
         echo -e "${GRB}后台:${NC}"
-        ps | grep '[t]g_'
+        if ps x > /dev/null 2>&1; then
+            ps x | grep '[t]g_'
+        else
+            ps | grep '[t]g_'
+        fi
         divline
         Pause
     ;;
