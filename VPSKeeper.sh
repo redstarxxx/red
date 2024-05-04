@@ -5,7 +5,7 @@ export PATH
 #=======================================================
 #	System Required: CentOS/Debian/Ubuntu/OpenWRT
 #	Description: VPS keeper for telgram
-#	Version: 1.0.5
+#	Version: 1.0.6
 #	Author: tse
 #	Blog: https://vtse.eu.org
 #=======================================================
@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.0.5"
+sh_ver="1.0.6"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
