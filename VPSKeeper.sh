@@ -200,6 +200,7 @@ redup_array() {
 }
 
 # 去除数组@及其后面
+# interfaces_all=($(clear_array "${interfaces_all[@]}"))
 clear_array() {
     local array_in=("$@")
     local array_clear=""
@@ -207,7 +208,7 @@ clear_array() {
     for ((i=0; i<${#array_in[@]}; i++)); do
         array_clear=${array_in[$i]%@*}
         array_clear=${array_clear%:*}
-        array_out[$i]=$array_clear
+        array_out[$i]="$array_clear"
     done
     echo "${array_out[@]}"
 }
@@ -2609,6 +2610,9 @@ progress=""
 ratio=""
 $(declare -f Bytes_B_TGMK)
 $(declare -f Remove_B)
+$(declare -f redup_array)
+$(declare -f clear_array)
+$(declare -f sep_array)
 
 get_price() {
     local url="${ProxyURL}https://api.coingecko.com/api/v3/simple/price?ids=\${1}&vs_currencies=usd"
@@ -2653,27 +2657,34 @@ echo "统计接口: \${interfaces[@]}"
 for ((i = 0; i < \${#interfaces[@]}; i++)); do
     echo "\$((i+1)): \${interfaces[i]}"
 done
-for ((i = 0; i < \${#interfaces[@]}; i++)); do
-    show_interfaces+="\${interfaces[\$i]}"
-    if ((i < \${#interfaces[@]} - 1)); then
-        show_interfaces+=","
-    fi
-done
+# for ((i = 0; i < \${#interfaces[@]}; i++)); do
+#     show_interfaces+="\${interfaces[\$i]}"
+#     if ((i < \${#interfaces[@]} - 1)); then
+#         show_interfaces+=","
+#     fi
+# done
+show_interfaces=\$(sep_array interfaces ",")
 # 如果接口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
-for ((i=0; i<\${#interfaces[@]}; i++)); do
-    interface=\${interfaces[\$i]%@*}
-    interface=\${interface%:*}
-    interfaces[\$i]=\$interface
-done
+# for ((i=0; i<\${#interfaces[@]}; i++)); do
+#     interface=\${interfaces[\$i]%@*}
+#     interface=\${interface%:*}
+#     interfaces[\$i]=\$interface
+# done
+interfaces=(\$(clear_array "\${interfaces[@]}"))
 echo "纺计接口(处理后): \${interfaces[@]}"
 
-interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
+# 之前使用的是下面代码，统计网速时采用UP标记的接口，由于有些特殊名称的接口容易导致统计网速时出错，后改为与检测流量的接口相同.
+interfaces_up=(\${interfaces[@]})
+
+# interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # 如果接口名称中包含 '@' 或 ':'，则仅保留 '@' 或 ':' 之前的部分
-for ((i=0; i<\${#interfaces_up[@]}; i++)); do
-    interface=\${interfaces_up[\$i]%@*}
-    interface=\${interface%:*}
-    interfaces_up[\$i]=\$interface
-done
+# for ((i=0; i<\${#interfaces_up[@]}; i++)); do
+#     interface=\${interfaces_up[\$i]%@*}
+#     interface=\${interface%:*}
+#     interfaces_up[\$i]=\$interface
+# done
+# interfaces_up=(\$(redup_array "\${interfaces_up[@]}"))
+# interfaces_up=(\$(clear_array "\${interfaces_up[@]}"))
 echo "纺计网速接口(处理后): \${interfaces_up[@]}"
 
 # 定义数组
