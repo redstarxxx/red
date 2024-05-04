@@ -100,7 +100,6 @@ divline() {
 
 # 检测系统
 CheckSys() {
-    pscom="ps aux"
     if [[ -f /etc/redhat-release ]]; then
         release="centos"
     elif cat /etc/issue 2>/dev/null | grep -q -E -i "debian"; then
@@ -119,7 +118,6 @@ CheckSys() {
         release="centos"
     elif cat /proc/version 2>/dev/null | grep -q -E -i "openwrt"; then
         release="openwrt"
-        pscom="ps"
     else
         echo -e "$Err 系统不支持." >&2
         exit 1
@@ -279,7 +277,7 @@ CheckSetup() {
     else
         shutdown_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_docker.sh ] && ps aux | grep '[t]g_docker' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_docker.sh ] && ps | grep '[t]g_docker' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
             docker_menu_tag="$SETTAG"
         else
@@ -288,7 +286,7 @@ CheckSetup() {
     else
         docker_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_cpu.sh ] && ps aux | grep '[t]g_cpu' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_cpu.sh ] && ps | grep '[t]g_cpu' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
             cpu_menu_tag="$SETTAG"
         else
@@ -297,7 +295,7 @@ CheckSetup() {
     else
         cpu_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_mem.sh ] && ps aux | grep '[t]g_mem' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_mem.sh ] && ps | grep '[t]g_mem' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
             mem_menu_tag="$SETTAG"
         else
@@ -306,7 +304,7 @@ CheckSetup() {
     else
         mem_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_disk.sh ] && ps aux | grep '[t]g_disk' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_disk.sh ] && ps | grep '[t]g_disk' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
             disk_menu_tag="$SETTAG"
         else
@@ -315,7 +313,7 @@ CheckSetup() {
     else
         disk_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_flow.sh ] && ps aux | grep '[t]g_flow' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_flow.sh ] && ps | grep '[t]g_flow' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
             flow_menu_tag="$SETTAG"
         else
@@ -324,7 +322,7 @@ CheckSetup() {
     else
         flow_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_flowrp.sh ] && ps aux | grep '[t]g_flowrp' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_flowrp.sh ] && ps | grep '[t]g_flowrp' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
             flowrp_menu_tag="$SETTAG"
         else
@@ -333,7 +331,7 @@ CheckSetup() {
     else
         flowrp_menu_tag="$UNSETTAG"
     fi
-    if [ -f $FolderPath/tg_ddns.sh ] && ps aux | grep '[t]g_ddns' > /dev/null 2>&1; then
+    if [ -f $FolderPath/tg_ddns.sh ] && ps | grep '[t]g_ddns' > /dev/null 2>&1; then
         if crontab -l | grep -q "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"; then
             ddns_menu_tag="$SETTAG"
         else
@@ -406,9 +404,9 @@ validate_time_format() {
 }
 
 SetAutoUpdate() {
-    if [ ! -z "$autoud_pid" ] && ps -p $autoud_pid > /dev/null; then
+    if [ ! -z "$autoud_pid" ] && ps | grep -Eq "^\s*$autoud_pid\s" > /dev/null; then
         tips="$Err PID: $autoud_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -562,9 +560,9 @@ EOF
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "autoud" "$send_time") &
         sleep 1
         if [ "$release" == "openwrt" ]; then
-            autoud_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+            autoud_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
-            autoud_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+            autoud_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         fi
     fi
     tips="$Tip 自动更新设置成功, 更新时间: 每天 $hour_ud 时 $minute_ud 分, 通知模式: ${GR}$mute_mode${NC}"
@@ -1167,9 +1165,9 @@ ShowContents() {
 
 # 发送测试
 test1() {
-    if [ ! -z "$test1_pid" ] && ps -p $test1_pid > /dev/null; then
+    if [ ! -z "$test1_pid" ] && ps | grep -Eq "^\s*$test1_pid\s" > /dev/null; then
         tips="$Err PID: $test1_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1196,18 +1194,18 @@ test1() {
     (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "test1" "$send_time") &
     sleep 1
     if [ "$release" == "openwrt" ]; then
-        test1_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+        test1_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
     else
-        test1_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+        test1_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
     fi
     tips="$Inf 测试信息已发出, 电报将收到一条\"来自 $hostname_show 的测试信息\"的信息.111"
 }
 
 # 发送测试
 test() {
-    if [ ! -z "$test_pid" ] && ps -p $test_pid > /dev/null; then
+    if [ ! -z "$test_pid" ] && ps | grep -Eq "^\s*$test_pid\s" > /dev/null; then
         tips="$Err PID: $test_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1220,9 +1218,9 @@ test() {
     (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "test" "$send_time") &
     sleep 1
     if [ "$release" == "openwrt" ]; then
-        test_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+        test_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
     else
-        test_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+        test_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
     fi
     tips="$Inf 测试信息已发出, 电报将收到一条\"来自 $hostname_show 的测试信息\"的信息."
 }
@@ -1253,9 +1251,9 @@ ModifyHostname() {
 
 # 设置开机通知
 SetupBoot_TG() {
-    if [ ! -z "$boot_pid" ] && ps -p $boot_pid > /dev/null; then
+    if [ ! -z "$boot_pid" ] && ps | grep -Eq "^\s*$boot_pid\s" > /dev/null; then
         tips="$Err PID: $boot_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1317,9 +1315,9 @@ EOF
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "boot" "$send_time") &
         sleep 1
         if [ "$release" == "openwrt" ]; then
-            boot_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+            boot_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
-            boot_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+            boot_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         fi
     fi
     tips="$Tip 开机 通知已经设置成功, 当开机时发出通知."
@@ -1328,9 +1326,9 @@ EOF
 
 # 设置登陆通知
 SetupLogin_TG() {
-    if [ ! -z "$login_pid" ] && ps -p $login_pid > /dev/null; then
+    if [ ! -z "$login_pid" ] && ps | grep -Eq "^\s*$login_pid\s" > /dev/null; then
         tips="$Err PID: $login_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1358,9 +1356,9 @@ EOF
             (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "login" "$send_time") &
             sleep 1
             if [ "$release" == "openwrt" ]; then
-                login_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+                login_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
             else
-                login_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+                login_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
             fi
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时发出通知."
@@ -1374,9 +1372,9 @@ EOF
             (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "login" "$send_time") &
             sleep 1
             if [ "$release" == "openwrt" ]; then
-                login_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+                login_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
             else
-                login_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+                login_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
             fi
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时发出通知."
@@ -1387,9 +1385,9 @@ EOF
 
 # 设置关机通知
 SetupShutdown_TG() {
-    if [ ! -z "$shutdown_pid" ] && ps -p $shutdown_pid > /dev/null; then
+    if [ ! -z "$shutdown_pid" ] && ps | grep -Eq "^\s*$shutdown_pid\s" > /dev/null; then
         tips="$Err PID: $shutdown_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1451,9 +1449,9 @@ EOF
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "shutdown" "$send_time") &
         sleep 1
         if [ "$release" == "openwrt" ]; then
-            shutdown_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+            shutdown_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
-            shutdown_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+            shutdown_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         fi
     fi
     tips="$Tip 关机 通知已经设置成功, 当开机时发出通知."
@@ -1461,9 +1459,9 @@ EOF
 
 # 设置Dokcer通知
 SetupDocker_TG() {
-    if [ ! -z "$docker_pid" ] && ps -p $docker_pid > /dev/null; then
+    if [ ! -z "$docker_pid" ] && ps | grep -Eq "^\s*$docker_pid\s" > /dev/null; then
         tips="$Err PID: $docker_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if ! command -v docker &>/dev/null; then
         tips="$Err 未检测到 \"Docker\" 程序."
@@ -1509,9 +1507,9 @@ EOF
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "docker" "$send_time") &
         sleep 1
         if [ "$release" == "openwrt" ]; then
-            docker_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+            docker_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
-            docker_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+            docker_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         fi
     fi
     tips="$Tip Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时发出通知."
@@ -1665,9 +1663,9 @@ ratioandprogress() {
 
 # 设置CPU报警
 SetupCPU_TG() {
-    if [ ! -z "$cpu_pid" ] && ps -p $cpu_pid > /dev/null; then
+    if [ ! -z "$cpu_pid" ] && ps | grep -Eq "^\s*$cpu_pid\s" > /dev/null; then
         tips="$Err PID: $cpu_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1806,9 +1804,9 @@ EOF
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "cpu" "$send_time") &
         sleep 1
         if [ "$release" == "openwrt" ]; then
-            cpu_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+            cpu_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
-            cpu_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+            cpu_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         fi
     fi
     tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达 ${GR}$CPUThreshold${NC} % 时发出通知."
@@ -1816,9 +1814,9 @@ EOF
 
 # 设置内存报警
 SetupMEM_TG() {
-    if [ ! -z "$mem_pid" ] && ps -p $mem_pid > /dev/null; then
+    if [ ! -z "$mem_pid" ] && ps | grep -Eq "^\s*$mem_pid\s" > /dev/null; then
         tips="$Err PID: $mem_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1943,9 +1941,9 @@ EOF
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "mem" "$send_time") &
         sleep 1
         if [ "$release" == "openwrt" ]; then
-            mem_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+            mem_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
-            mem_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+            mem_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         fi
     fi
     tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达 ${GR}$MEMThreshold${NC} % 时发出通知."
@@ -1954,9 +1952,9 @@ EOF
 
 # 设置磁盘报警
 SetupDISK_TG() {
-    if [ ! -z "$disk_pid" ] && ps -p $disk_pid > /dev/null; then
+    if [ ! -z "$disk_pid" ] && ps | grep -Eq "^\s*$disk_pid\s" > /dev/null; then
         tips="$Err PID: $disk_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -2082,9 +2080,9 @@ EOF
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "disk" "$send_time") &
         sleep 1
         if [ "$release" == "openwrt" ]; then
-            disk_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+            disk_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
-            disk_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+            disk_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         fi
     fi
     tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达 ${GR}$DISKThreshold${NC} % 时发出通知."
@@ -2164,9 +2162,9 @@ sep_array() {
 
 # 设置流量报警
 SetupFlow_TG() {
-    if [ ! -z "$flow_pid" ] && ps -p $flow_pid > /dev/null; then
+    if [ ! -z "$flow_pid" ] && ps | grep -Eq "^\s*$flow_pid\s" > /dev/null; then
         tips="$Err PID: $flow_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -2904,18 +2902,18 @@ EOF
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flow" "$send_time") &
         sleep 1
         if [ "$release" == "openwrt" ]; then
-            flow_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+            flow_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
-            flow_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+            flow_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         fi
     fi
     tips="$Tip 流量 通知已经设置成功, 当流量使用达 ${GR}$FlowThreshold_UB${NC} 时发出通知."
 }
 
 SetFlowReport_TG() {
-    if [ ! -z "$flowrp_pid" ] && ps -p $flowrp_pid > /dev/null; then
+    if [ ! -z "$flowrp_pid" ] && ps | grep -Eq "^\s*$flowrp_pid\s" > /dev/null; then
         tips="$Err PID: $flowrp_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -3743,18 +3741,18 @@ EOF
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flowrp" "$send_time") &
         sleep 1
         if [ "$release" == "openwrt" ]; then
-            flowrp_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+            flowrp_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
-            flowrp_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+            flowrp_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         fi
     fi
     tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
 }
 
 SetupDDNS_TG() {
-    if [ ! -z "$ddns_pid" ] && ps -p $ddns_pid > /dev/null; then
+    if [ ! -z "$ddns_pid" ] && ps | grep -Eq "^\s*$ddns_pid\s" > /dev/null; then
         tips="$Err PID: $ddns_pid 正在发送中,请稍后..."
-        return
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -4238,9 +4236,9 @@ EOF
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "ddns" "$send_time") &
         sleep 1
         if [ "$release" == "openwrt" ]; then
-            ddns_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+            ddns_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
-            ddns_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+            ddns_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         fi
     fi
     tips="$Tip DDNS 报告设置成功, 当主机 IP 变更时发出通知."
@@ -4361,9 +4359,9 @@ UN_SetAutoUpdate() {
 
 UN_ALL() {
     if [ "$autorun" == "false" ]; then
-        if [ ! -z "$delall_pid" ] && ps -p $delall_pid > /dev/null; then
+        if [ ! -z "$delall_pid" ] && ps | grep -Eq "^\s*$delall_pid\s" > /dev/null; then
             tips="$Err PID: $delall_pid 正在发送中,请稍后..."
-            return
+            return 1
         fi
         writeini "SHUTDOWN_RT" "false"
         writeini "ProxyURL" ""
@@ -4402,9 +4400,9 @@ UN_ALL() {
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "delall" "$send_time") &
         sleep 1
         if [ "$release" == "openwrt" ]; then
-            delall_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
+            delall_pid=$(ps | grep '[s]end_tg' | tail -n 1 | awk '{print $1}')
         else
-            delall_pid=$($pscom | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
+            delall_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
         fi
         tips="$Tip 已取消 / 删除所有通知."
     fi
