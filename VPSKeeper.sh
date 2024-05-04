@@ -172,7 +172,7 @@ killpid() {
     if [ "$num_lines" -eq 0 ]; then
         return 1
     elif [ "$num_lines" -eq 1 ]; then
-        if command -v pkill; then
+        if command -v pkill &>/dev/null; then
             pkill "$process_name" > /dev/null 2>&1 &
             pkill "$process_name" > /dev/null 2>&1 &
         else
@@ -181,7 +181,7 @@ killpid() {
             kill "$out_pid" > /dev/null 2>&1 &
         fi
     else
-        if command -v pkill; then
+        if command -v pkill &>/dev/null; then
             pkill "$process_name" > /dev/null 2>&1 &
             pkill "$process_name" > /dev/null 2>&1 &
         else
