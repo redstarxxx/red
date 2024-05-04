@@ -4230,6 +4230,7 @@ while true; do
                 message+="GETIP 地址: \$GETURL"$'\n'
                 message+="服务器时间: \$current_date_send"
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+                echo \$N_IPV4 >> $FolderPath/IP4_history.txt
             fi
             only_onece="false"
         fi
@@ -4284,6 +4285,7 @@ while true; do
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
             O_IPV4=\$N_IPV4
             O_URL_IPV4=\$N_URL_IPV4
+            echo \$N_IPV4 >> $FolderPath/IP4_history.txt
             sleep 60
         else
             echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
@@ -4324,6 +4326,7 @@ while true; do
                 message+="GETIP 地址: \$GETURL"$'\n'
                 message+="服务器时间: \$current_date_send"
                 $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+                echo \$N_IPV6 >> $FolderPath/IP6_history.txt
             fi
             only_onece="false"
         fi
@@ -4378,6 +4381,7 @@ while true; do
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
             O_IPV6=\$N_IPV6
             O_URL_IPV6=\$N_URL_IPV6
+            echo \$N_IPV6 >> $FolderPath/IP6_history.txt
             sleep 60
         else
             echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
