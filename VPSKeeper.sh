@@ -174,16 +174,20 @@ killpid() {
     elif [ "$num_lines" -eq 1 ]; then
         if command -v pkill; then
             pkill "$process_name" > /dev/null 2>&1 &
+            pkill "$process_name" > /dev/null 2>&1 &
         else
             getpid "$process_name"
+            kill "$out_pid" > /dev/null 2>&1 &
             kill "$out_pid" > /dev/null 2>&1 &
         fi
     else
         if command -v pkill; then
             pkill "$process_name" > /dev/null 2>&1 &
+            pkill "$process_name" > /dev/null 2>&1 &
         else
             pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
             for pid in "${pids[@]}"; do
+                kill "$pid" > /dev/null 2>&1 &
                 kill "$pid" > /dev/null 2>&1 &
             done
         fi
