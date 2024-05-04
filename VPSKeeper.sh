@@ -5,7 +5,7 @@ export PATH
 #=======================================================
 #	System Required: CentOS/Debian/Ubuntu/OpenWRT
 #	Description: VPS keeper for telgram
-#	Version: 1.0.5
+#	Version: 1.0.6
 #	Author: tse
 #	Blog: https://vtse.eu.org
 #=======================================================
@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.0.5"
+sh_ver="1.0.6"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
@@ -42,7 +42,7 @@ ReportTime_de="00:00"
 AutoUpdateTime_de="01:01"
 
 # 输出版本号
-echo "脚本版本号: $sh_ver"
+# echo "脚本版本号: $sh_ver"
 
 # 写入ini文件
 writeini() {
@@ -5060,10 +5060,11 @@ Force_update() {
 }
 
 update_sh() {
-    ol_ver=$(curl -L -s --connect-timeout 5 https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh | grep "脚本版本号" | head -1 | awk -F '[: ]' '{print $3}')
+    ol_ver=$(curl -L -s --connect-timeout 5 https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh | grep "sh_ver=" | head -1 | awk -F '=|"' '{print $3}')
     if [ -n "$ol_ver" ]; then
         if [[ "$sh_ver" != "$ol_ver" ]]; then
-            curl -o VPSKeeper.sh https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh && chmod +x VPSKeeper.sh
+            # curl -o VPSKeeper.sh https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh && chmod +x VPSKeeper.sh
+            wget -N --no-check-certificate https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh && chmod +x VPSKeeper.sh
             echo -e "更新完成."
             exit 0
         else
