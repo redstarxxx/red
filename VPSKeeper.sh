@@ -404,9 +404,19 @@ validate_time_format() {
 }
 
 SetAutoUpdate() {
-    if [ ! -z "$autoud_pid" ] && ps | grep -Eq "^\s*$autoud_pid\s" > /dev/null; then
-        tips="$Err PID: $autoud_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$autoud_pid" ] && ps | grep -Eq "^\s*$autoud_pid\s" > /dev/null; then
+    if [ ! -z "$autoud_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$autoud_pid\s" > /dev/null; then
+                tips="$Err PID(x): $autoud_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$autoud_pid\s" > /dev/null; then
+                tips="$Err PID: $autoud_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1165,9 +1175,19 @@ ShowContents() {
 
 # 发送测试
 test1() {
-    if [ ! -z "$test1_pid" ] && ps | grep -Eq "^\s*$test1_pid\s" > /dev/null; then
-        tips="$Err PID: $test1_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$test1_pid" ] && ps | grep -Eq "^\s*$test1_pid\s" > /dev/null; then
+    if [ ! -z "$test1_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$test1_pid\s" > /dev/null; then
+                tips="$Err PID(x): $test1_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$test1_pid\s" > /dev/null; then
+                tips="$Err PID: $test1_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1203,9 +1223,19 @@ test1() {
 
 # 发送测试
 test() {
-    if [ ! -z "$test_pid" ] && ps | grep -Eq "^\s*$test_pid\s" > /dev/null; then
-        tips="$Err PID: $test_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$test_pid" ] && ps | grep -Eq "^\s*$test_pid\s" > /dev/null; then
+    if [ ! -z "$test_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$test_pid\s" > /dev/null; then
+                tips="$Err PID(x): $test_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$test_pid\s" > /dev/null; then
+                tips="$Err PID: $test_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1251,9 +1281,19 @@ ModifyHostname() {
 
 # 设置开机通知
 SetupBoot_TG() {
-    if [ ! -z "$boot_pid" ] && ps | grep -Eq "^\s*$boot_pid\s" > /dev/null; then
-        tips="$Err PID: $boot_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$boot_pid" ] && ps | grep -Eq "^\s*$boot_pid\s" > /dev/null; then
+    if [ ! -z "$boot_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$boot_pid\s" > /dev/null; then
+                tips="$Err PID(x): $boot_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$boot_pid\s" > /dev/null; then
+                tips="$Err PID: $boot_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1326,9 +1366,19 @@ EOF
 
 # 设置登陆通知
 SetupLogin_TG() {
-    if [ ! -z "$login_pid" ] && ps | grep -Eq "^\s*$login_pid\s" > /dev/null; then
-        tips="$Err PID: $login_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$login_pid" ] && ps | grep -Eq "^\s*$login_pid\s" > /dev/null; then
+    if [ ! -z "$login_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$login_pid\s" > /dev/null; then
+                tips="$Err PID(x): $login_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$login_pid\s" > /dev/null; then
+                tips="$Err PID: $login_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1385,9 +1435,19 @@ EOF
 
 # 设置关机通知
 SetupShutdown_TG() {
-    if [ ! -z "$shutdown_pid" ] && ps | grep -Eq "^\s*$shutdown_pid\s" > /dev/null; then
-        tips="$Err PID: $shutdown_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$shutdown_pid" ] && ps | grep -Eq "^\s*$shutdown_pid\s" > /dev/null; then
+    if [ ! -z "$shutdown_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$shutdown_pid\s" > /dev/null; then
+                tips="$Err PID(x): $shutdown_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$shutdown_pid\s" > /dev/null; then
+                tips="$Err PID: $shutdown_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1459,9 +1519,19 @@ EOF
 
 # 设置Dokcer通知
 SetupDocker_TG() {
-    if [ ! -z "$docker_pid" ] && ps | grep -Eq "^\s*$docker_pid\s" > /dev/null; then
-        tips="$Err PID: $docker_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$docker_pid" ] && ps | grep -Eq "^\s*$docker_pid\s" > /dev/null; then
+    if [ ! -z "$docker_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$docker_pid\s" > /dev/null; then
+                tips="$Err PID(x): $docker_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$docker_pid\s" > /dev/null; then
+                tips="$Err PID: $docker_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if ! command -v docker &>/dev/null; then
         tips="$Err 未检测到 \"Docker\" 程序."
@@ -1663,9 +1733,19 @@ ratioandprogress() {
 
 # 设置CPU报警
 SetupCPU_TG() {
-    if [ ! -z "$cpu_pid" ] && ps | grep -Eq "^\s*$cpu_pid\s" > /dev/null; then
-        tips="$Err PID: $cpu_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$cpu_pid" ] && ps | grep -Eq "^\s*$cpu_pid\s" > /dev/null; then
+    if [ ! -z "$cpu_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$cpu_pid\s" > /dev/null; then
+                tips="$Err PID(x): $cpu_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$cpu_pid\s" > /dev/null; then
+                tips="$Err PID: $cpu_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1814,9 +1894,19 @@ EOF
 
 # 设置内存报警
 SetupMEM_TG() {
-    if [ ! -z "$mem_pid" ] && ps | grep -Eq "^\s*$mem_pid\s" > /dev/null; then
-        tips="$Err PID: $mem_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$mem_pid" ] && ps | grep -Eq "^\s*$mem_pid\s" > /dev/null; then
+    if [ ! -z "$mem_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$mem_pid\s" > /dev/null; then
+                tips="$Err PID(x): $mem_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$mem_pid\s" > /dev/null; then
+                tips="$Err PID: $mem_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1952,9 +2042,19 @@ EOF
 
 # 设置磁盘报警
 SetupDISK_TG() {
-    if [ ! -z "$disk_pid" ] && ps | grep -Eq "^\s*$disk_pid\s" > /dev/null; then
-        tips="$Err PID: $disk_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$disk_pid" ] && ps | grep -Eq "^\s*$disk_pid\s" > /dev/null; then
+    if [ ! -z "$disk_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$disk_pid\s" > /dev/null; then
+                tips="$Err PID(x): $disk_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$disk_pid\s" > /dev/null; then
+                tips="$Err PID: $disk_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -2162,9 +2262,19 @@ sep_array() {
 
 # 设置流量报警
 SetupFlow_TG() {
-    if [ ! -z "$flow_pid" ] && ps | grep -Eq "^\s*$flow_pid\s" > /dev/null; then
-        tips="$Err PID: $flow_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$flow_pid" ] && ps | grep -Eq "^\s*$flow_pid\s" > /dev/null; then
+    if [ ! -z "$flow_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$flow_pid\s" > /dev/null; then
+                tips="$Err PID(x): $flow_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$flow_pid\s" > /dev/null; then
+                tips="$Err PID: $flow_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -2911,9 +3021,19 @@ EOF
 }
 
 SetFlowReport_TG() {
-    if [ ! -z "$flowrp_pid" ] && ps | grep -Eq "^\s*$flowrp_pid\s" > /dev/null; then
-        tips="$Err PID: $flowrp_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$flowrp_pid" ] && ps | grep -Eq "^\s*$flowrp_pid\s" > /dev/null; then
+    if [ ! -z "$flowrp_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$flowrp_pid\s" > /dev/null; then
+                tips="$Err PID(x): $flowrp_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$flowrp_pid\s" > /dev/null; then
+                tips="$Err PID: $flowrp_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -3750,9 +3870,19 @@ EOF
 }
 
 SetupDDNS_TG() {
-    if [ ! -z "$ddns_pid" ] && ps | grep -Eq "^\s*$ddns_pid\s" > /dev/null; then
-        tips="$Err PID: $ddns_pid 正在发送中,请稍后..."
-        return 1
+    # if [ ! -z "$ddns_pid" ] && ps | grep -Eq "^\s*$ddns_pid\s" > /dev/null; then
+    if [ ! -z "$ddns_pid" ]; then
+        if ps x > /dev/null 2>&1; then
+            if ps x | grep -Eq "^\s*$ddns_pid\s" > /dev/null; then
+                tips="$Err PID(x): $ddns_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        else
+            if ps | grep -Eq "^\s*$ddns_pid\s" > /dev/null; then
+                tips="$Err PID: $ddns_pid 正在发送中,请稍后..."
+                return 1
+            fi
+        fi
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -4359,9 +4489,19 @@ UN_SetAutoUpdate() {
 
 UN_ALL() {
     if [ "$autorun" == "false" ]; then
-        if [ ! -z "$delall_pid" ] && ps | grep -Eq "^\s*$delall_pid\s" > /dev/null; then
-            tips="$Err PID: $delall_pid 正在发送中,请稍后..."
-            return 1
+        # if [ ! -z "$delall_pid" ] && ps | grep -Eq "^\s*$delall_pid\s" > /dev/null; then
+        if [ ! -z "$delall_pid" ]; then
+            if ps x > /dev/null 2>&1; then
+                if ps x | grep -Eq "^\s*$delall_pid\s" > /dev/null; then
+                    tips="$Err PID(x): $delall_pid 正在发送中,请稍后..."
+                    return 1
+                fi
+            else
+                if ps | grep -Eq "^\s*$delall_pid\s" > /dev/null; then
+                    tips="$Err PID: $delall_pid 正在发送中,请稍后..."
+                    return 1
+                fi
+            fi
         fi
         writeini "SHUTDOWN_RT" "false"
         writeini "ProxyURL" ""
