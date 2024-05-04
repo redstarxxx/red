@@ -4184,7 +4184,6 @@ fi
 
 dellog_tag=1
 only_onece="true"
-
 while true; do
 
     N_IPV4=""
@@ -4407,7 +4406,7 @@ while true; do
         fi
     else
         echo "N_IPV4/6 获取失败 或 IP type 有误."
-        exit 1
+        # exit 1
     fi
     if [ "\$dellog_tag" == 200 ]; then
         > $FolderPath/tg_ddns.log
