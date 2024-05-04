@@ -41,6 +41,9 @@ FlowThresholdMAX_de="500GB"
 ReportTime_de="00:00"
 AutoUpdateTime_de="01:01"
 
+# 输出版本号
+echo "脚本版本号: $sh_ver"
+
 # 写入ini文件
 writeini() {
     if grep -q "^$1=" $ConfigFile; then
@@ -5056,6 +5059,21 @@ Force_update() {
     echo "runtag: $runtag"
 }
 
+update_sh() {
+    ol_ver=$(curl -L -s --connect-timeout 5 https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh | grep "脚本版本号" | head -1 | awk -F '[: ]' '{print $3}')
+    if [ -n "$ol_ver" ]; then
+        if [[ "$sh_ver" != "$ol_ver" ]]; then
+            curl -o VPSKeeper.sh https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh && chmod +x VPSKeeper.sh
+            echo -e "更新完成."
+            exit 0
+        else
+            echo -e "${GR}当前版本已是最新版本!${NC}"
+        fi
+    else
+        echo -e "${RE}脚本最新失败, 请检查网络连接!${NC}"
+    fi
+}
+
 # 主程序
 CheckAndCreateFolder
 CheckSys
@@ -5479,6 +5497,10 @@ case "$num" in
     ;;
     ss)
         T_NETSPEED
+    ;;
+    ud)
+        update_sh
+        Pause
     ;;
     x|X)
         exit 0
