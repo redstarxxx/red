@@ -169,7 +169,16 @@ killpid() {
     local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
 
     num_lines=$(ps | grep "$enclosed_name" | wc -l)
-    if [ "$num_lines" -gt 1 ]; then
+    if [ "$num_lines" -eq 0 ]; then
+        return 1
+    elif [ "$num_lines" -eq 1 ]; then
+        if command -v pkill; then
+            pkill "$process_name" > /dev/null 2>&1 &
+        else
+            getpid "$process_name"
+            kill "$out_pid" > /dev/null 2>&1 &
+        fi
+    else
         if command -v pkill; then
             pkill "$process_name" > /dev/null 2>&1 &
         else
@@ -177,13 +186,6 @@ killpid() {
             for pid in "${pids[@]}"; do
                 kill "$pid" > /dev/null 2>&1 &
             done
-        fi
-    else
-        if command -v pkill; then
-            pkill "$process_name" > /dev/null 2>&1 &
-        else
-            getpid "$process_name"
-            kill "$out_pid" > /dev/null 2>&1 &
         fi
     fi
 }
