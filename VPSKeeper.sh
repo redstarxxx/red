@@ -170,29 +170,57 @@ getpid() {
 killpid() {
     local process_name="$1"
     local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
-
-    num_lines=$(ps | grep "$enclosed_name" | wc -l)
-    if [ "$num_lines" -eq 0 ]; then
-        return 1
-    elif [ "$num_lines" -eq 1 ]; then
-        if command -v pkill &>/dev/null; then
-            pkill "$process_name" > /dev/null 2>&1 &
-            pkill "$process_name" > /dev/null 2>&1 &
+    for ((i=1; i<=5; i++)); do
+        if ps x > /dev/null 2>&1; then
+            if  ! ps x | grep "$enclosed_name" > /dev/null 2>&1; then
+                break
+            fi
         else
-            getpid "$process_name"
-            kill "$out_pid" > /dev/null 2>&1 &
-            kill "$out_pid" > /dev/null 2>&1 &
+            if  ! ps | grep "$enclosed_name" > /dev/null 2>&1; then
+                break
+            fi
+        fi
+        if ps x > /dev/null 2>&1; then
+            num_lines=$(ps x | grep "$enclosed_name" | wc -l)
+        else
+            num_lines=$(ps | grep "$enclosed_name" | wc -l)
+        fi
+        if [ "$num_lines" -eq 0 ]; then
+            return 1
+        elif [ "$num_lines" -eq 1 ]; then
+            if command -v pkill &>/dev/null; then
+                pkill "$process_name" > /dev/null 2>&1 &
+                pkill "$process_name" > /dev/null 2>&1 &
+            else
+                getpid "$process_name"
+                kill "$out_pid" > /dev/null 2>&1 &
+                kill "$out_pid" > /dev/null 2>&1 &
+            fi
+        else
+            if command -v pkill &>/dev/null; then
+                pkill "$process_name" > /dev/null 2>&1 &
+                pkill "$process_name" > /dev/null 2>&1 &
+            else
+                if ps x > /dev/null 2>&1; then
+                    pids=($(ps x | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+                else
+                    pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+                fi
+                for pid in "${pids[@]}"; do
+                    kill "$pid" > /dev/null 2>&1 &
+                    kill "$pid" > /dev/null 2>&1 &
+                done
+            fi
+        fi
+        sleep 0.5
+    done
+    if ps x > /dev/null 2>&1; then
+        if  ps x | grep "$enclosed_name" > /dev/null 2>&1; then
+            tips="$Err 中止失败, 请检查!"
         fi
     else
-        if command -v pkill &>/dev/null; then
-            pkill "$process_name" > /dev/null 2>&1 &
-            pkill "$process_name" > /dev/null 2>&1 &
-        else
-            pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
-            for pid in "${pids[@]}"; do
-                kill "$pid" > /dev/null 2>&1 &
-                kill "$pid" > /dev/null 2>&1 &
-            done
+        if  ps | grep "$enclosed_name" > /dev/null 2>&1; then
+            tips="$Err 中止失败, 请检查!"
         fi
     fi
 }
