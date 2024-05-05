@@ -4414,11 +4414,10 @@ while true; do
     fi
     if [ "\$dellog_tag" == 50 ]; then
         > $FolderPath/tg_ddns.log
-    else
-        current_date_send=\$(date +"%Y.%m.%d %T")
-        echo "\$current_date_send     LOG: \$dellog_tag / 200"
-        ((dellog_tag++))
     fi
+    current_date_send=\$(date +"%Y.%m.%d %T")
+    echo "\$current_date_send     LOG: \$dellog_tag / 200"
+    ((dellog_tag++))
     echo "----------------------------------------------------------"
 done
 # END
