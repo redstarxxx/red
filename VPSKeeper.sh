@@ -4189,6 +4189,7 @@ fi
 dellog_tag=1
 dellog_max=25
 only_onece="true"
+sleep_send="false"
 while true; do
 
     N_IPV4=""
@@ -4307,7 +4308,7 @@ while true; do
             O_IPV4=\$N_IPV4
             O_URL_IPV4=\$N_URL_IPV4
             echo \$N_IPV4 >> $FolderPath/IP4_history.txt
-            sleep 60
+            sleep_send="true"
         else
             echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
             echo "IP未改变." # 调试
@@ -4402,7 +4403,7 @@ while true; do
             O_IPV6=\$N_IPV6
             O_URL_IPV6=\$N_URL_IPV6
             echo \$N_IPV6 >> $FolderPath/IP6_history.txt
-            sleep 60
+            sleep_send="true"
         else
             echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
             echo "IP未改变." # 调试
@@ -4419,7 +4420,12 @@ while true; do
     fi
     ((dellog_tag++))
     echo "----------------------------------------------------------"
-    sleep 30
+    if [ "\$sleep_send" == "true" ]; then
+        sleep 120
+        sleep_send="false"
+    else
+        sleep 30
+    fi
 done
 # END
 EOF
