@@ -4310,7 +4310,6 @@ while true; do
         else
             echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
             echo "IP未改变." # 调试
-            sleep 15
         fi
     elif [ "\$iptype" == "AAAA" ] && [ ! -z "\$N_IPV6" ]; then
 
@@ -4406,19 +4405,19 @@ while true; do
         else
             echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
             echo "IP未改变." # 调试
-            sleep 15
         fi
     else
         echo "N_IPV4/6 获取失败 或 IP type 有误."
         # exit 1
     fi
-    if [ "\$dellog_tag" == 50 ]; then
+    if [ "\$dellog_tag" = 50 ]; then
         > $FolderPath/tg_ddns.log
     fi
     current_date_send=\$(date +"%Y.%m.%d %T")
     echo "\$current_date_send     LOG: \$dellog_tag / 50"
     ((dellog_tag++))
     echo "----------------------------------------------------------"
+    sleep 30
 done
 # END
 EOF
