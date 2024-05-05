@@ -4039,29 +4039,30 @@ action() {
     record_id="" # 无需更改
 
     while [ \$attempts -le \$max_attempts ]; do
-    response=\$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/\${zone_id}/dns_records?type=\${iptype}&name=\${record_name}.\${domain}" \
-        -H "X-Auth-Email: \${email}" \
-        -H "X-Auth-Key: \${api_key}" \
-        -H "Content-Type: application/json")
+        response=\$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/\${zone_id}/dns_records?type=\${iptype}&name=\${record_name}.\${domain}" \
+            -H "X-Auth-Email: \${email}" \
+            -H "X-Auth-Key: \${api_key}" \
+            -H "Content-Type: application/json")
+        echo "获取DNS记录API响应: \$response"
 
-    echo "获取DNS记录API响应: \$response"
-    record_id=\$(echo "\$response" | awk -F'"' '/id/{print \$6; exit}')
-    if [ -z "\$record_id" ]; then
-        echo "第 \$attempts 次获取DNS记录ID失败。"
-        if [ \$attempts -eq \$max_attempts ]; then
-            echo "获取DNS记录ID失败，请检查输入的信息是否正确。"
-            get_record_id="获取DNS记录ID失败!"
-            # get_record_id_tag="geterr"
-            return 1
+        record_id=\$(echo "\$response" | awk -F'"' '/id/{print \$6; exit}')
+
+        if [ -z "\$record_id" ]; then
+            echo "第 \$attempts 次获取DNS记录ID失败。"
+            if [ \$attempts -eq \$max_attempts ]; then
+                echo "获取DNS记录ID失败，请检查输入的信息是否正确。"
+                get_record_id="获取DNS记录ID失败!"
+                # get_record_id_tag="geterr"
+                return 1
+            else
+                attempts=\$((attempts+1))
+            fi
+            sleep 1
         else
-            attempts=\$((attempts+1))
+            echo "成功获取DNS记录ID: \$record_id"
+            get_record_id=""
+            break
         fi
-        sleep 1
-    else
-        echo "成功获取DNS记录ID: \$record_id"
-        get_record_id=""
-        break
-    fi
     done
     update_response=\$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/\${zone_id}/dns_records/\${record_id}" \
         -H "X-Auth-Email: \${email}" \
@@ -4411,7 +4412,7 @@ while true; do
         echo "N_IPV4/6 获取失败 或 IP type 有误."
         # exit 1
     fi
-    if [ "\$dellog_tag" == 200 ]; then
+    if [ "\$dellog_tag" == 50 ]; then
         > $FolderPath/tg_ddns.log
     else
         current_date_send=\$(date +"%Y.%m.%d %T")
