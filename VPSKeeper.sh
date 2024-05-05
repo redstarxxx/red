@@ -4410,8 +4410,9 @@ while true; do
         echo "N_IPV4/6 获取失败 或 IP type 有误."
         # exit 1
     fi
-    if [ "\$dellog_tag" = 50 ]; then
+    if [ "\$dellog_tag" -gt 50 ]; then
         > $FolderPath/tg_ddns.log
+        dellog_tag=1
     fi
     current_date_send=\$(date +"%Y.%m.%d %T")
     echo "\$current_date_send     LOG: \$dellog_tag / 50"
