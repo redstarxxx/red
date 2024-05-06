@@ -5497,8 +5497,9 @@ case "$num" in
         echo -e "lt    - 追踪查看log日志文件"
         echo -e "ld    - 删除log日志文件"
         echo -e "ss    - 实时网速"
-        echo -e "vb    - 查询后台执行中的 tg_ "
-        echo -e "vc    - 查询 crontab 中的 tg_ "
+        echo -e "vb    - 查询后台执行中的 tg_"
+        echo -e "vc    - 查询 crontab 中的 tg_"
+        echo -e "ud    - 手动更新脚本 (国内先设置代理)"
         divline
         Pause
     ;;
