@@ -145,7 +145,11 @@ getpid() {
     # echo "process_name: $process_name"
     # echo "enclosed_name: $enclosed_name"
     # num_lines=$(ps x | grep "$enclosed_name" | wc -l)
-    # tg_pid=$(ps x | grep "$enclosed_name" | tail -n 1 | awk '{print $1}') > /dev/null 2>&1
+    # NR属awk内置参数,好处便捷
+    # tg_pid=$(ps x | grep "$enclosed_name" | awk 'NR==1 {print $1}') > /dev/null 2>&1 # 取第一行
+    # head/tail属独立指令,好处更快更专,因为head/tail属于专用指令
+    # tg_pid=$(ps x | grep "$enclosed_name" | head -n 1 | awk '{print $1}') > /dev/null 2>&1 # 取第一行
+    # tg_pid=$(ps x | grep "$enclosed_name" | tail -n 1 | awk '{print $1}') > /dev/null 2>&1 # 取最后一行
     local tg_pids=()
     local tg_pid=""
 
