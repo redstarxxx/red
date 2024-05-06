@@ -235,8 +235,9 @@ delcrontab() {
 addcrontab() {
     local cronKW="$1"
     (crontab -l 2>/dev/null; echo "$cronKW") | crontab -
-    if [[ "$cronKW" == *"bash"* ]]; then
-        /etc/init.d/cron restart
+    # if [[ "$cronKW" == *"bash"* ]]; then
+    if [[ ! "$cronKW" == *"@reboot"* ]]; then
+        /etc/init.d/cron restart > /dev/null 2>&1
     fi
 }
 
