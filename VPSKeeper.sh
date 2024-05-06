@@ -5,7 +5,7 @@ export PATH
 #=======================================================
 #	System Required: CentOS/Debian/Ubuntu/OpenWRT
 #	Description: VPS keeper for telgram
-#	Version: 1.240506
+#	Version: $sh_ver
 #	Author: tse
 #	Blog: https://vtse.eu.org
 #=======================================================
