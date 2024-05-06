@@ -200,7 +200,7 @@ killpid() {
             fi
         else
             if command -v pkill &>/dev/null; then
-                # for ((i=0; i<=num_lines; i++)); do # 在(())里面的变量可以不需要$
+                # for ((i=0; i<=num_lines; i++)); do # 在(())里面的变量也可以不需要$
                 for ((i=0; i<=$num_lines; i++)); do
                     pkill "$process_name" > /dev/null 2>&1 &
                 done
@@ -338,6 +338,7 @@ Checkprocess() {
     local process_name="$1"
     local prefix_name="${process_name%%.*}"
     local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
+    local menu_tag=""
 
     if [ -f "$FolderPath"/"$process_name" ] && \
         crontab -l | grep -q "@reboot nohup "$FolderPath"/"$process_name" > "$FolderPath"/"$prefix_name".log 2>&1 &"; then
@@ -357,6 +358,7 @@ Checkprocess() {
     else
         menu_tag="$UNSETTAG"
     fi
+    echo "$menu_tag"
 }
 
 # 检测设置标记
@@ -412,74 +414,30 @@ CheckSetup() {
     # else
     #     docker_menu_tag="$UNSETTAG"
     # fi
-    Checkprocess "tg_docker.sh"
-    docker_menu_tag="$menu_tag"
-    # if [ -f $FolderPath/tg_cpu.sh ] && ps | grep '[t]g_cpu' > /dev/null 2>&1; then
-    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
-    #         cpu_menu_tag="$SETTAG"
-    #     else
-    #         cpu_menu_tag="$UNSETTAG"
-    #     fi
-    # else
-    #     cpu_menu_tag="$UNSETTAG"
-    # fi
-    Checkprocess "tg_cpu.sh"
-    cpu_menu_tag="$menu_tag"
-    # if [ -f $FolderPath/tg_mem.sh ] && ps | grep '[t]g_mem' > /dev/null 2>&1; then
-    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
-    #         mem_menu_tag="$SETTAG"
-    #     else
-    #         mem_menu_tag="$UNSETTAG"
-    #     fi
-    # else
-    #     mem_menu_tag="$UNSETTAG"
-    # fi
-    Checkprocess "tg_mem.sh"
-    mem_menu_tag="$menu_tag"
-    # if [ -f $FolderPath/tg_disk.sh ] && ps | grep '[t]g_disk' > /dev/null 2>&1; then
-    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
-    #         disk_menu_tag="$SETTAG"
-    #     else
-    #         disk_menu_tag="$UNSETTAG"
-    #     fi
-    # else
-    #     disk_menu_tag="$UNSETTAG"
-    # fi
-    Checkprocess "tg_disk.sh"
-    disk_menu_tag="$menu_tag"
-    # if [ -f $FolderPath/tg_flow.sh ] && ps | grep '[t]g_flow' > /dev/null 2>&1; then
-    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
-    #         flow_menu_tag="$SETTAG"
-    #     else
-    #         flow_menu_tag="$UNSETTAG"
-    #     fi
-    # else
-    #     flow_menu_tag="$UNSETTAG"
-    # fi
-    Checkprocess "tg_flow.sh"
-    flow_menu_tag="$menu_tag"
-    # if [ -f $FolderPath/tg_flowrp.sh ] && ps | grep '[t]g_flowrp' > /dev/null 2>&1; then
-    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
-    #         flowrp_menu_tag="$SETTAG"
-    #     else
-    #         flowrp_menu_tag="$UNSETTAG"
-    #     fi
-    # else
-    #     flowrp_menu_tag="$UNSETTAG"
-    # fi
-    Checkprocess "tg_flowrp.sh"
-    flowrp_menu_tag="$menu_tag"
-    # if [ -f $FolderPath/tg_ddns.sh ] && ps | grep '[t]g_ddns' > /dev/null 2>&1; then
-    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"; then
-    #         ddns_menu_tag="$SETTAG"
-    #     else
-    #         ddns_menu_tag="$UNSETTAG"
-    #     fi
-    # else
-    #     ddns_menu_tag="$UNSETTAG"
-    # fi
-    Checkprocess "tg_ddns.sh"
-    ddns_menu_tag="$menu_tag"
+
+    # Checkprocess "tg_docker.sh"
+    # docker_menu_tag="$menu_tag"
+    # Checkprocess "tg_cpu.sh"
+    # cpu_menu_tag="$menu_tag"
+    # Checkprocess "tg_mem.sh"
+    # mem_menu_tag="$menu_tag"
+    # Checkprocess "tg_disk.sh"
+    # disk_menu_tag="$menu_tag"
+    # Checkprocess "tg_flow.sh"
+    # flow_menu_tag="$menu_tag"
+    # Checkprocess "tg_flowrp.sh"
+    # flowrp_menu_tag="$menu_tag"
+    # Checkprocess "tg_ddns.sh"
+    # ddns_menu_tag="$menu_tag"
+
+    docker_menu_tag=$(Checkprocess "tg_docker.sh")
+    cpu_menu_tag=$(Checkprocess "tg_cpu.sh")
+    mem_menu_tag=$(Checkprocess "tg_mem.sh")
+    disk_menu_tag=$(Checkprocess "tg_disk.sh")
+    flow_menu_tag=$(Checkprocess "tg_flow.sh")
+    flowrp_menu_tag=$(Checkprocess "tg_flowrp.sh")
+    ddns_menu_tag=$(Checkprocess "tg_ddns.sh")
+
     if [ -f $FolderPath/tg_autoud.sh ]; then
         if crontab -l | grep -q "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &"; then
             autoud_menu_tag="$SETTAG"
