@@ -634,6 +634,7 @@ EOF
         crontab -l | grep -v "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &" | crontab -
     fi
     (crontab -l 2>/dev/null; echo "$cront bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &") | crontab -
+    /etc/init.d/cron restart > /dev/null 2>&1
     if [ "$autorun" == "false" ]; then
         echo -e "如果开启 ${REB}静音模式${NC} 更新时你将不会收到提醒通知, 是否要开启静音模式?"
         read -e -p "请输入你的选择 回车.(默认开启)   N.不开启: " choice
@@ -645,12 +646,14 @@ EOF
             crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
         fi
         (crontab -l 2>/dev/null; echo "$cront_next bash $FolderPath/VPSKeeper.sh \"auto\" 2>&1 &") | crontab -
+        /etc/init.d/cron restart > /dev/null 2>&1
         mute_mode="更新时通知"
     else
         if crontab -l | grep -q "bash $FolderPath/VPSKeeper.sh"; then
             crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
         fi
         (crontab -l 2>/dev/null; echo "$cront_next bash $FolderPath/VPSKeeper.sh \"auto\" \"mute\" 2>&1 &") | crontab -
+        /etc/init.d/cron restart > /dev/null 2>&1
         mute_mode="静音模式"
     fi
     if [ "$mute" == "false" ]; then
@@ -4428,13 +4431,41 @@ while true; do
 done
 # END
 EOF
+    cat <<EOF > "$FolderPath/tg_ddnskp.sh"
+#!/bin/bash
+
+####################################################################
+# DDNS 守护脚本
+
+FolderPath="$FolderPath"
+$(declare -f getpid)
+
+for ((i=0; i<3; i++)); do
+
+    ddnskp_pid=\$(getpid "tg_ddns.sh")
+
+    if [ -z "\$ddnskp_pid" ]; then
+        current_date=\$(date +"%Y.%m.%d %T")
+        echo "\$current_date : 后台未检查到 tg_ddns.sh 进程, 正在启动中..."
+        nohup \$FolderPath/tg_ddns.sh > \$FolderPath/tg_ddns.log 2>&1 &
+    fi
+
+sleep 3
+done
+EOF
     chmod +x $FolderPath/tg_ddns.sh
+    chmod +x $FolderPath/tg_ddnskp.sh
     killpid "tg_ddns.sh"
     nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &
     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"; then
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &" | crontab -
     fi
     (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &") | crontab -
+    if crontab -l | grep -q "bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &"; then
+        crontab -l | grep -v "bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &" | crontab -
+    fi
+    (crontab -l 2>/dev/null; echo "*/5 * * * * bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &") | crontab -
+    /etc/init.d/cron restart > /dev/null 2>&1
     if [ "$mute" == "false" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         # N_URL_IPV4=$(curl -s https://dns.google/resolve?name=$CFDDNS_DOMAIN_P.$CFDDNS_DOMAIN_S | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
@@ -4537,6 +4568,7 @@ UN_SetupDDNS_TG() {
     if [ "$ddns_menu_tag" == "$SETTAG" ]; then
         killpid "tg_ddns.sh"
         crontab -l | grep -v "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &" | crontab -
+        crontab -l | grep -v "bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &" | crontab -
         tips="$Tip CF-DDNS IP 变更通知 已经取消 / 删除."
     fi
 }
@@ -5086,6 +5118,7 @@ update_sh() {
 
 # 主程序
 CheckAndCreateFolder
+rm -f $FolderPath/send_tg*.log > /dev/null 2>&1
 CheckSys
 if [[ "$1" =~ ^[0-9]{5,}$ ]]; then
     ChatID_1="$1"
@@ -5290,6 +5323,11 @@ if [ -z $SendPrice ] || [ "$SendPrice" == "false" ]; then
 else
     sendprice_menu_tag="${GRB}Pi${NC}"
 fi
+if crontab -l | grep -q "bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &"; then
+    ddnskp_menu_tag="${GRB}K${NC}"
+else
+    ddnskp_menu_tag=""
+fi
 
 # Force_update
 
@@ -5307,8 +5345,8 @@ echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 ${RE}[v${sh_ver}]${NC
  ${GR}6. ${NC} 设置 ${GR}[磁盘报警]${NC} TG 通知 ${REB}阈值${NC} : $DISKThreshold_tag \t$disk_menu_tag
  ${GR}7. ${NC} 设置 ${GR}[流量报警]${NC} TG 通知 ${REB}阈值${NC} : $FlowThreshold_tag \t$flow_menu_tag
  ${GR}8. ${NC} 设置 ${GR}[流量定时报告]${NC} TG 通知 \t\t$flowrp_menu_tag${NC}
- ${GR}9. ${NC} 设置 ${GR}[Docker 变更]${NC} TG 通知 \t\t$docker_menu_tag${NC} ${REB}$reDockerSet${NC}
- ${GR}10.${NC} 设置 ${GR}[CF-DDNS IP 变更]${NC} TG 通知 \t\t$ddns_menu_tag
+ ${GR}9. ${NC} 设置 ${GR}[Docker 变更]${NC} TG 通知 \t\t$docker_menu_tag${NC}
+ ${GR}10.${NC} 设置 ${GR}[CF-DDNS IP 变更]${NC} TG 通知 $ddnskp_menu_tag \t\t$ddns_menu_tag
  ————————————————————————————————————————————————————————
  ${GR}t.${NC} 测试 - 发送一条信息用以检验参数设置
  ——————————————————————————————————————
