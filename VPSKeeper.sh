@@ -3963,6 +3963,7 @@ SetupDDNS_TG() {
     # if [ "$autorun" == "false" ]; then
     echo -en "请输入 DDNS 的 IP 格式: ${GR}4.${NC}IPv4 ${GR}6.${NC}IPv6 : "
     read -er input_iptype
+    if [ -z "$input_iptype" ]; then echo; fi
     if [ "$input_iptype" == "4" ]; then
         CFDDNS_IP_TYPE="A"
     elif [ "$input_iptype" == "6" ]; then
@@ -3973,6 +3974,7 @@ SetupDDNS_TG() {
     fi
     echo -en "请输入 CF 帐号名 (邮箱) : "
     read -er input_email
+    if [ -z "$input_email" ]; then echo; fi
     email_regex="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     if [ -z "$input_email" ] || [[ ! $input_email =~ $email_regex ]]; then
         tips="$Err 输入有误, 取消操作."
@@ -3983,6 +3985,7 @@ SetupDDNS_TG() {
     echo -en "请输入 CF Global API Key : "
     read -er input_apikey
     if [ -z "$input_apikey" ]; then
+        echo
         tips="$Err 输入有误, 取消操作."
         return 1
     else
@@ -3991,6 +3994,7 @@ SetupDDNS_TG() {
     echo -en "请输入 CF Zone ID : "
     read -er input_zoneid
     if [ -z "$input_zoneid" ]; then
+        echo
         tips="$Err 输入有误, 取消操作."
         return 1
     else
@@ -4000,6 +4004,7 @@ SetupDDNS_TG() {
     echo -en "( 如: abc.xxx.eu.org ) : "
     read -er input_domain
     if [ -z "$input_domain" ]; then
+        echo
         tips="$Err 输入有误, 取消操作."
         return 1
     else
@@ -4009,6 +4014,7 @@ SetupDDNS_TG() {
     echo -e "模式: ${GR}1.${NC}当自身IP发生变化时 ${GR}2.${NC}当与域名IP对比不匹配时"
     echo -en "请选择 DDNS 模式 ( 回车默认 1 ) : "
     read -er input_choice
+    if [ -z "$input_choice" ]; then echo; fi
     if [ "$input_choice" == "1" ] || [ -z "$input_choice" ]; then
         CFDDNS_MODE="1"
     elif [ "$input_choice" == "2" ]; then
@@ -4022,6 +4028,7 @@ SetupDDNS_TG() {
     echo -e "是否开启 DDNS 守护? ${GR}Y.${NC}开启 ${GR}N.${NC}不开启"
     echo -en "请选择 DDNS 模式 ( 回车默认 ${GR}开启${NC} ) : "
     read -er keeper_choice
+    if [ -z "$keeper_choice" ]; then echo; fi
     if [ "$keeper_choice" == "y" ] || [ "$keeper_choice" == "Y" ] || [ -z "$keeper_choice" ]; then
         CFDDNS_KEEPER="true"
     elif [ "$keeper_choice" == "n" ] || [ "$keeper_choice" == "N" ]; then
