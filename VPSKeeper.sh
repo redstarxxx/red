@@ -5101,7 +5101,7 @@ update_sh() {
             echo -e "脚本更新中..."
             # curl -o VPSKeeper.sh https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh && chmod +x VPSKeeper.sh
             wget -N --no-check-certificate "${ProxyURL}"https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh && chmod +x VPSKeeper.sh
-            echo -e "已更新完成, 请${GR}重新执行脚本${NC}."
+            echo -e "已更新完成, 请${GR}重新执行${NC}脚本."
             exit 0
         else
             tips="$Tip ${GR}当前版本已是最新版本!${NC}"
