@@ -5098,15 +5098,16 @@ update_sh() {
     ol_ver=$(curl -L -s --connect-timeout 5 "${ProxyURL}"https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh | grep "sh_ver=" | head -1 | awk -F '=|"' '{print $3}')
     if [ -n "$ol_ver" ]; then
         if [[ "$sh_ver" != "$ol_ver" ]]; then
+            echo -e "脚本更新中..."
             # curl -o VPSKeeper.sh https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh && chmod +x VPSKeeper.sh
             wget -N --no-check-certificate "${ProxyURL}"https://raw.githubusercontent.com/redstarxxx/shell/main/VPSKeeper.sh && chmod +x VPSKeeper.sh
-            echo -e "更新完成."
+            echo -e "已更新完成, 请${GR}重新执行脚本${NC}."
             exit 0
         else
-            echo -e "${GR}当前版本已是最新版本!${NC}"
+            tips="$Tip ${GR}当前版本已是最新版本!${NC}"
         fi
     else
-        echo -e "${RE}脚本最新失败, 请检查网络连接!${NC}"
+        tips="$Err ${RE}脚本最新失败, 请检查网络连接!${NC}"
     fi
 }
 
@@ -5537,7 +5538,6 @@ case "$num" in
     ;;
     ud)
         update_sh
-        Pause
     ;;
     x|X)
         exit 0
