@@ -170,7 +170,8 @@ getpid() {
 killpid() {
     local process_name="$1"
     local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
-    for ((i=1; i<=5; i++)); do
+
+    for ((i=1; i<=7; i++)); do
         if ps x > /dev/null 2>&1; then
             if  ! ps x | grep "$enclosed_name" > /dev/null 2>&1; then
                 break
@@ -186,7 +187,8 @@ killpid() {
             num_lines=$(ps | grep "$enclosed_name" | wc -l)
         fi
         if [ "$num_lines" -eq 0 ]; then
-            return 1
+            # return 1
+            break
         elif [ "$num_lines" -eq 1 ]; then
             if command -v pkill &>/dev/null; then
                 pkill "$process_name" > /dev/null 2>&1 &
@@ -198,12 +200,18 @@ killpid() {
             fi
         else
             if command -v pkill &>/dev/null; then
-                pkill "$process_name" > /dev/null 2>&1 &
+                for ((i=0; i<=$num_lines; i++)); do
+                    pkill "$process_name" > /dev/null 2>&1 &
+                done
                 pkill "$process_name" > /dev/null 2>&1 &
             else
                 if ps x > /dev/null 2>&1; then
+                    # pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
+                    # pids=($(ps x | grep "$enclosed_name" | awk '{print $1}'))
                     pids=($(ps x | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
                 else
+                    # pids=($(ps | grep "$process_name" | grep -v grep | awk '{print $1}'))
+                    # pids=($(ps | grep "$enclosed_name" | awk '{print $1}'))
                     pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
                 fi
                 for pid in "${pids[@]}"; do
