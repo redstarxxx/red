@@ -141,22 +141,18 @@ getpid() {
     local process_name="$1"
     # local pre_name="${filename%%.*}"
     # local ext_name="${filename##*.}"
-    local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
+    # local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
     # echo "process_name: $process_name"
     # echo "enclosed_name: $enclosed_name"
-    # num_lines=$(ps x | grep "$enclosed_name" | wc -l)
-    # NR属awk内置参数,好处便捷
-    # tg_pid=$(ps x | grep "$enclosed_name" | awk 'NR==1 {print $1}') > /dev/null 2>&1 # 取第一行
-    # head/tail属独立指令,好处更快更专,因为head/tail属于专用指令
-    # tg_pid=$(ps x | grep "$enclosed_name" | head -n 1 | awk '{print $1}') > /dev/null 2>&1 # 取第一行
-    # tg_pid=$(ps x | grep "$enclosed_name" | tail -n 1 | awk '{print $1}') > /dev/null 2>&1 # 取最后一行
     local tg_pids=()
     local tg_pid=""
 
     if ps x > /dev/null 2>&1; then
-        tg_pids=($(ps x | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+        # tg_pids=($(ps x | grep "$enclosed_name" | awk '{print $1}'))
+        tg_pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
     else
-        tg_pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+        # tg_pids=($(ps | grep "$enclosed_name" | awk '{print $1}'))
+        tg_pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
     fi
     num_pid=${#tg_pids[@]}
 
@@ -170,25 +166,25 @@ getpid() {
 
 killpid() {
     local process_name="$1"
-    local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
+    # local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
     local tg_pids=()
     local tg_pid=""
 
     for ((i=1; i<=7; i++)); do
         if ps x > /dev/null 2>&1; then
-            if  ! ps x | grep "$enclosed_name" > /dev/null 2>&1; then
+            if  ! ps x | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
                 break
             fi
         else
-            if  ! ps | grep "$enclosed_name" > /dev/null 2>&1; then
+            if  ! ps | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
                 break
             fi
         fi
 
         if ps x > /dev/null 2>&1; then
-            tg_pids=($(ps x | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+            tg_pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
         else
-            tg_pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+            tg_pids=($(ps | grep "$process_name" | grep -v grep | awk '{print $1}'))
         fi
         num_pid=${#tg_pids[@]}
 
@@ -219,11 +215,11 @@ killpid() {
         sleep 0.5
     done
     if ps x > /dev/null 2>&1; then
-        if  ps x | grep "$enclosed_name" > /dev/null 2>&1; then
+        if  ps x | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
             tips="$Err 中止失败, 请检查!"
         fi
     else
-        if  ps | grep "$enclosed_name" > /dev/null 2>&1; then
+        if  ps | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
             tips="$Err 中止失败, 请检查!"
         fi
     fi
@@ -332,19 +328,19 @@ StatisticsMode_ST_de="SE"
 Checkprocess() {
     local process_name="$1"
     local prefix_name="${process_name%%.*}"
-    local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
+    # local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
     local menu_tag=""
 
     if [ -f "$FolderPath"/"$process_name" ] && \
         crontab -l | grep -q "@reboot nohup "$FolderPath"/"$process_name" > "$FolderPath"/"$prefix_name".log 2>&1 &"; then
         if ps x > /dev/null 2>&1; then
-            if  ps x | grep "$enclosed_name" > /dev/null 2>&1; then
+            if  ps x | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
                 menu_tag="$SETTAG"
             else
                 menu_tag="$UNSETTAG"
             fi
         else
-            if ps | grep "$enclosed_name" > /dev/null 2>&1; then
+            if ps | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
                 menu_tag="$SETTAG"
             else
                 menu_tag="$UNSETTAG"
@@ -5486,9 +5482,11 @@ case "$num" in
         divline
         echo -e "${GRB}后台:${NC}"
         if ps x > /dev/null 2>&1; then
-            ps x | grep '[t]g_'
+            # ps x | grep '[t]g_'
+            ps x | grep 'tg_' | grep -v grep
         else
-            ps | grep '[t]g_'
+            # ps | grep '[t]g_'
+            ps | grep 'tg_' | grep -v grep
         fi
         divline
         Pause
@@ -5497,7 +5495,8 @@ case "$num" in
         # 查看配置文件
         divline
         echo -e "${GRB}Crontab:${NC}"
-        crontab -l | grep '[t]g_'
+        # crontab -l | grep '[t]g_'
+        crontab -l | grep 'tg_' | grep -v grep
         divline
         Pause
     ;;
