@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.240506.2"
+sh_ver="1.240506.3"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
@@ -225,6 +225,21 @@ killpid() {
     fi
 }
 
+# Crontab 相关操作
+delcrontab() {
+    local cronKW="$1"
+    if crontab -l | grep -q "$cronKW"; then
+        crontab -l | grep -v "$cronKW" | crontab -
+    fi
+}
+addcrontab() {
+    local cronKW="$1"
+    (crontab -l 2>/dev/null; echo "$cronKW") | crontab -
+    if [[ "$cronKW" == *"bash"* ]]; then
+        /etc/init.d/cron restart
+    fi
+}
+
 # 数组去重处理
 # interfaces=($(redup_array "${interfaces[@]}"))
 redup_array() {
@@ -332,7 +347,7 @@ Checkprocess() {
     local menu_tag=""
 
     if [ -f "$FolderPath"/"$process_name" ] && \
-        crontab -l | grep -q "@reboot nohup "$FolderPath"/"$process_name" > "$FolderPath"/"$prefix_name".log 2>&1 &"; then
+        crontab -l | grep -q ""$FolderPath"/"$process_name""; then
         if ps x > /dev/null 2>&1; then
             if  ps x | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
                 menu_tag="$SETTAG"
@@ -397,7 +412,7 @@ CheckSetup() {
         shutdown_menu_tag="$UNSETTAG"
     fi
     # if [ -f $FolderPath/tg_docker.sh ] && ps | grep '[t]g_docker' > /dev/null 2>&1; then
-    #     if crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
+    #     if crontab -l | grep -q "$FolderPath/tg_docker.sh"; then
     #         docker_menu_tag="$SETTAG"
     #     else
     #         docker_menu_tag="$UNSETTAG"
@@ -430,7 +445,7 @@ CheckSetup() {
     ddns_menu_tag=$(Checkprocess "tg_ddns.sh")
 
     if [ -f $FolderPath/tg_autoud.sh ]; then
-        if crontab -l | grep -q "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &"; then
+        if crontab -l | grep -q "$FolderPath/tg_autoud.sh"; then
             autoud_menu_tag="$SETTAG"
         else
             autoud_menu_tag="$UNSETTAG"
@@ -630,11 +645,8 @@ if [ -f "$FolderPath/VPSKeeper_old.sh" ]; then
 fi
 EOF
     chmod +x $FolderPath/tg_autoud.sh
-    if crontab -l | grep -q "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &"; then
-        crontab -l | grep -v "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &" | crontab -
-    fi
-    (crontab -l 2>/dev/null; echo "$cront bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &") | crontab -
-    /etc/init.d/cron restart > /dev/null 2>&1
+    delcrontab "$FolderPath/tg_autoud.sh"
+    addcrontab "$cront bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &"
     if [ "$autorun" == "false" ]; then
         echo -e "如果开启 ${REB}静音模式${NC} 更新时你将不会收到提醒通知, 是否要开启静音模式?"
         read -e -p "请输入你的选择 回车.(默认开启)   N.不开启: " choice
@@ -642,18 +654,12 @@ EOF
         choice=""
     fi
     if [ "$choice" == "N" ] || [ "$choice" == "n" ]; then
-        if crontab -l | grep -q "bash $FolderPath/VPSKeeper.sh"; then
-            crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
-        fi
-        (crontab -l 2>/dev/null; echo "$cront_next bash $FolderPath/VPSKeeper.sh \"auto\" 2>&1 &") | crontab -
-        /etc/init.d/cron restart > /dev/null 2>&1
+        delcrontab "$FolderPath/VPSKeeper.sh"
+        addcrontab "$cront_next bash $FolderPath/VPSKeeper.sh \"auto\" 2>&1 &"
         mute_mode="更新时通知"
     else
-        if crontab -l | grep -q "bash $FolderPath/VPSKeeper.sh"; then
-            crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
-        fi
-        (crontab -l 2>/dev/null; echo "$cront_next bash $FolderPath/VPSKeeper.sh \"auto\" \"mute\" 2>&1 &") | crontab -
-        /etc/init.d/cron restart > /dev/null 2>&1
+        delcrontab "$FolderPath/VPSKeeper.sh"
+        addcrontab "$cront_next bash $FolderPath/VPSKeeper.sh \"auto\" \"mute\" 2>&1 &"
         mute_mode="静音模式"
     fi
     if [ "$mute" == "false" ]; then
@@ -1649,9 +1655,8 @@ EOF
     chmod +x $FolderPath/tg_docker.sh
     killpid "tg_docker.sh"
     nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &
-    if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"; then
-        (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &") | crontab -
-    fi
+    delcrontab "$FolderPath/tg_docker.sh"
+    addcrontab "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &"
     if [ "$mute" == "false" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 Docker 列表变更时将收到通知💡" "docker" "$send_time" &
@@ -1940,9 +1945,8 @@ EOF
     chmod +x $FolderPath/tg_cpu.sh
     killpid "tg_cpu.sh"
     nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &
-    if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"; then
-        (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &") | crontab -
-    fi
+    delcrontab "$FolderPath/tg_cpu.sh"
+    addcrontab "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &"
     if [ "$mute" == "false" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: CPU 报警通知⚙️"'
@@ -2091,9 +2095,8 @@ EOF
     chmod +x $FolderPath/tg_mem.sh
     killpid "tg_mem.sh"
     nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &
-    if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"; then
-        (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &") | crontab -
-    fi
+    delcrontab "$FolderPath/tg_mem.sh"
+    addcrontab "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &"
     if [ "$mute" == "false" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 内存 报警通知⚙️"'
@@ -2237,9 +2240,8 @@ EOF
     chmod +x $FolderPath/tg_disk.sh
     killpid "tg_disk.sh"
     nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &
-    if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"; then
-        (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &") | crontab -
-    fi
+    delcrontab "$FolderPath/tg_disk.sh"
+    addcrontab "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &"
     if [ "$mute" == "false" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 磁盘 报警通知⚙️"'
@@ -3055,9 +3057,8 @@ EOF
     # kill $(ps | grep '[t]g_flow.sh' | awk '{print $1}')
     killpid "tg_flow.sh"
     nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &
-    if ! crontab -l | grep -q "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"; then
-        (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &") | crontab -
-    fi
+    delcrontab "$FolderPath/tg_flow.sh"
+    addcrontab "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &"
 #     cat <<EOF > $FolderPath/tg_interface_re.sh
 #     # 内容已经移位.
 # EOF
@@ -3924,10 +3925,8 @@ EOF
     chmod +x $FolderPath/tg_flowrp.sh
     killpid "tg_flowrp.sh"
     nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &
-    if crontab -l | grep -q "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"; then
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &" | crontab -
-    fi
-    (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &") | crontab -
+    delcrontab "$FolderPath/tg_flowrp.sh"
+    addcrontab "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"
     if [ "$mute" == "false" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         message="流量定时报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"报告接口: $show_interfaces_RP"$'\n'"报告模式: $StatisticsMode_RP"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分📈"
@@ -4017,6 +4016,21 @@ SetupDDNS_TG() {
         tips="$Err 输入有误, 取消操作."
         return 1
     fi
+
+    echo -e "当 DDNS 进程无故被中止时, DDNS 守护将会为你打开进程, 以确保 DDNS 持续运行."
+    echo -e "是否开启 DDNS 守护? ${GR}Y.${NC}开启 ${GR}N.${NC}不开启"
+    echo -en "请选择 DDNS 模式 ( 回车默认 ${GR}开启${NC} ) : "
+    read -er keeper_choice
+    if [ "$keeper_choice" == "y" ] || [ "$keeper_choice" == "Y" ] || [ -z "$keeper_choice" ]; then
+        CFDDNS_KEEPER="true"
+    elif [ "$keeper_choice" == "n" ] || [ "$keeper_choice" == "N" ]; then
+        CFDDNS_KEEPER="false"
+    else
+        tips="$Err 输入有误, 取消操作."
+        return 1
+    fi
+
+
     cat <<EOF > "$FolderPath/tg_ddns.sh"
 #!/bin/bash
 
@@ -4431,7 +4445,14 @@ while true; do
 done
 # END
 EOF
-    cat <<EOF > "$FolderPath/tg_ddnskp.sh"
+    chmod +x $FolderPath/tg_ddns.sh
+    killpid "tg_ddns.sh"
+    nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &
+    delcrontab "$FolderPath/tg_ddns.sh"
+    addcrontab "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"
+
+    if [ "$CFDDNS_KEEPER" == "true"  ]; then
+        cat <<EOF > "$FolderPath/tg_ddnskp.sh"
 #!/bin/bash
 
 ####################################################################
@@ -4453,19 +4474,11 @@ for ((i=0; i<3; i++)); do
 sleep 3
 done
 EOF
-    chmod +x $FolderPath/tg_ddns.sh
-    chmod +x $FolderPath/tg_ddnskp.sh
-    killpid "tg_ddns.sh"
-    nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &
-    if crontab -l | grep -q "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"; then
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &" | crontab -
+        chmod +x $FolderPath/tg_ddnskp.sh
+        delcrontab "$FolderPath/tg_ddnskp.sh"
+        addcrontab "*/3 * * * * bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &"
     fi
-    (crontab -l 2>/dev/null; echo "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &") | crontab -
-    if crontab -l | grep -q "bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &"; then
-        crontab -l | grep -v "bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &" | crontab -
-    fi
-    (crontab -l 2>/dev/null; echo "*/5 * * * * bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &") | crontab -
-    /etc/init.d/cron restart > /dev/null 2>&1
+
     if [ "$mute" == "false" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         # N_URL_IPV4=$(curl -s https://dns.google/resolve?name=$CFDDNS_DOMAIN_P.$CFDDNS_DOMAIN_S | grep -oE "\\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | head -n 1)
@@ -4524,35 +4537,35 @@ UN_SetupCPU_TG() {
         # pkill tg_cpu.sh > /dev/null 2>&1 &
         # pkill tg_cpu.sh > /dev/null 2>&1 &
         # kill $(ps | grep '[t]g_cpu.sh' | awk '{print $1}')
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_cpu.sh > $FolderPath/tg_cpu.log 2>&1 &" | crontab -
+        crontab -l | grep -v "$FolderPath/tg_cpu.sh" | crontab -
         tips="$Tip CPU报警 已经取消 / 删除."
     fi
 }
 UN_SetupMEM_TG() {
     if [ "$mem_menu_tag" == "$SETTAG" ]; then
         killpid "tg_mem.sh"
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_mem.sh > $FolderPath/tg_mem.log 2>&1 &" | crontab -
+        crontab -l | grep -v "$FolderPath/tg_mem.sh" | crontab -
         tips="$Tip 内存报警 已经取消 / 删除."
     fi
 }
 UN_SetupDISK_TG() {
     if [ "$disk_menu_tag" == "$SETTAG" ]; then
         killpid "tg_disk.sh"
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_disk.sh > $FolderPath/tg_disk.log 2>&1 &" | crontab -
+        crontab -l | grep -v "$FolderPath/tg_disk.sh" | crontab -
         tips="$Tip 磁盘报警 已经取消 / 删除."
     fi
 }
 UN_SetupFlow_TG() {
     if [ "$flow_menu_tag" == "$SETTAG" ]; then
         killpid "tg_flow.sh"
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_flow.sh > $FolderPath/tg_flow.log 2>&1 &" | crontab -
+        crontab -l | grep -v "$FolderPath/tg_flow.sh" | crontab -
         tips="$Tip 流量报警 已经取消 / 删除."
     fi
 }
 UN_SetFlowReport_TG() {
     if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
         killpid "tg_flowrp.sh"
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &" | crontab -
+        crontab -l | grep -v "$FolderPath/tg_flowrp.sh" | crontab -
         tips="$Tip 流量定时报告 已经取消 / 删除."
     fi
 
@@ -4560,23 +4573,23 @@ UN_SetFlowReport_TG() {
 UN_SetupDocker_TG() {
     if [ "$docker_menu_tag" == "$SETTAG" ]; then
         killpid "tg_docker.sh"
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_docker.sh > $FolderPath/tg_docker.log 2>&1 &" | crontab -
+        crontab -l | grep -v "$FolderPath/tg_docker.sh" | crontab -
         tips="$Tip Docker变更通知 已经取消 / 删除."
     fi
 }
 UN_SetupDDNS_TG() {
     if [ "$ddns_menu_tag" == "$SETTAG" ]; then
         killpid "tg_ddns.sh"
-        crontab -l | grep -v "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &" | crontab -
-        crontab -l | grep -v "bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &" | crontab -
+        crontab -l | grep -v "$FolderPath/tg_ddns.sh" | crontab -
+        crontab -l | grep -v "$FolderPath/tg_ddnskp.sh" | crontab -
         tips="$Tip CF-DDNS IP 变更通知 已经取消 / 删除."
     fi
 }
 UN_SetAutoUpdate() {
     if [ "$autoud_menu_tag" == "$SETTAG" ]; then
         killpid "tg_autoud.sh"
-        crontab -l | grep -v "bash $FolderPath/tg_autoud.sh > $FolderPath/tg_autoud.log 2>&1 &" | crontab -
-        crontab -l | grep -v "bash $FolderPath/VPSKeeper.sh" | crontab -
+        crontab -l | grep -v "$FolderPath/tg_autoud.sh" | crontab -
+        crontab -l | grep -v "$FolderPath/VPSKeeper.sh" | crontab -
         tips="$Tip 自动更新已经取消."
     fi
 }
@@ -5323,7 +5336,7 @@ if [ -z $SendPrice ] || [ "$SendPrice" == "false" ]; then
 else
     sendprice_menu_tag="${GRB}Pi${NC}"
 fi
-if crontab -l | grep -q "bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &"; then
+if crontab -l | grep -q "$FolderPath/tg_ddnskp.sh"; then
     ddnskp_menu_tag="${GRB}K${NC}"
 else
     ddnskp_menu_tag=""
