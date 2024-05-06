@@ -4096,9 +4096,16 @@ action() {
         date
     fi
 }
-
-customizeURL="\${1}"
-echo "自定URL\${1}: \$customizeURL"
+if [ "\${1}" == "re" ]; then
+    revive="true"
+else
+    revive="false"
+    URL_regex="^(http|https)://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/*)?$"
+    if [[ "\${1}" =~ "\$URL_regex" ]]; then
+        customizeURL="\${1}"
+        echo "自定URL\${1}: \$customizeURL"
+    fi
+fi
 getipurl4=('ip.sb' 'ip.gs' 'ifconfig.io' 'ipinfo.io/ip' 'ifconfig.me' 'icanhazip.com' 'ipecho.net/plain')
 getipurl42=('ip.sb' 'ip.gs' 'ifconfig.io' 'ipinfo.io/ip' 'ifconfig.me' 'icanhazip.com' 'ipecho.net/plain')
 getipurl6=('ip.sb' 'ip.gs' 'ifconfig.io' 'ifconfig.me' 'ipecho.net/plain' 'ipv6.icanhazip.com')
@@ -4256,15 +4263,20 @@ while true; do
                 echo "首次执行 DDNS 失败!"
             else
                 current_date_send=\$(date +"%Y.%m.%d %T")
-                message="首次执行 DDNS \$show_ddns_mode"$'\n'
+                if [ "\$revive" == "true" ]; then
+                    message="复活执行 DDNS \$show_ddns_mode"$'\n'
+                else
+                    message="首次执行 DDNS \$show_ddns_mode"$'\n'
+                fi
                 message+="主机名: $hostname_show"$'\n'
                 message+="URL: \$record_name.\$domain"$'\n'
-                if [ "\$ddns_mode" == "1" ]; then
-                    message+="更新前IP地址: \$O_IPV4"$'\n'
-                elif [ "\$ddns_mode" == "2" ]; then
-                    message+="更新前IP地址: \$O_URL_IPV4"$'\n'
-                fi
-                message+="更新后IP地址: \$N_IPV4"$'\n'
+                # if [ "\$ddns_mode" == "1" ]; then
+                #     message+="更新前IP地址: \$O_IPV4"$'\n'
+                # elif [ "\$ddns_mode" == "2" ]; then
+                #     message+="更新前IP地址: \$O_URL_IPV4"$'\n'
+                # fi
+                # message+="更新后IP地址: \$N_IPV4"$'\n'
+                message+="当前IP地址: \$N_IPV4"$'\n'
                 message+="───────────────"$'\n'
                 message+="GETIP 地址: \$GETURL"$'\n'
                 message+="服务器时间: \$current_date_send"
@@ -4351,15 +4363,20 @@ while true; do
                 echo "首次执行 DDNS 失败!"
             else
                 current_date_send=\$(date +"%Y.%m.%d %T")
-                message="首次执行 DDNS \$show_ddns_mode"$'\n'
+                if [ "\$revive" == "true" ]; then
+                    message="复活执行 DDNS \$show_ddns_mode"$'\n'
+                else
+                    message="首次执行 DDNS \$show_ddns_mode"$'\n'
+                fi
                 message+="主机名: $hostname_show"$'\n'
                 message+="URL: \$record_name.\$domain"$'\n'
-                if [ "\$ddns_mode" == "1" ]; then
-                    message+="更新前IP地址: \$O_IPV6"$'\n'
-                elif [ "\$ddns_mode" == "2" ]; then
-                    message+="更新前IP地址: \$O_URL_IPV6"$'\n'
-                fi
-                message+="更新后IP地址: \$N_IPV6"$'\n'
+                # if [ "\$ddns_mode" == "1" ]; then
+                #     message+="更新前IP地址: \$O_IPV6"$'\n'
+                # elif [ "\$ddns_mode" == "2" ]; then
+                #     message+="更新前IP地址: \$O_URL_IPV6"$'\n'
+                # fi
+                # message+="更新后IP地址: \$N_IPV6"$'\n'
+                message+="当前IP地址: \$N_IPV6"$'\n'
                 message+="───────────────"$'\n'
                 message+="GETIP 地址: \$GETURL"$'\n'
                 message+="服务器时间: \$current_date_send"
@@ -4469,7 +4486,7 @@ for ((i=0; i<3; i++)); do
     if [ -z "\$ddnskp_pid" ]; then
         current_date=\$(date +"%Y.%m.%d %T")
         echo "\$current_date : 后台未检查到 tg_ddns.sh 进程, 正在启动中..."
-        nohup \$FolderPath/tg_ddns.sh > \$FolderPath/tg_ddns.log 2>&1 &
+        nohup \$FolderPath/tg_ddns.sh "re" > \$FolderPath/tg_ddns.log 2>&1 &
     fi
 
 sleep 3
