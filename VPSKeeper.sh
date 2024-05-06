@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.240506.1"
+sh_ver="1.240506.2"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
@@ -152,7 +152,7 @@ getpid() {
         tg_pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
     else
         # tg_pids=($(ps | grep "$enclosed_name" | awk '{print $1}'))
-        tg_pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
+        tg_pids=($(ps | grep "$process_name" | grep -v grep | awk '{print $1}'))
     fi
     num_pid=${#tg_pids[@]}
 
