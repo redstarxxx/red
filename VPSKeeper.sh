@@ -200,6 +200,7 @@ killpid() {
             fi
         else
             if command -v pkill &>/dev/null; then
+                # for ((i=0; i<=num_lines; i++)); do # 在(())里面的变量可以不需要$
                 for ((i=0; i<=$num_lines; i++)); do
                     pkill "$process_name" > /dev/null 2>&1 &
                 done
