@@ -144,27 +144,34 @@ getpid() {
     local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
     # echo "process_name: $process_name"
     # echo "enclosed_name: $enclosed_name"
+    local out_pid=""
 
-    num_lines=$(ps | grep "$enclosed_name" | wc -l)
-    if [ "$num_lines" -gt 1 ]; then
+    if ps x > /dev/null 2>&1; then
+        num_lines=$(ps x | grep "$enclosed_name" | wc -l)
+    else
+        num_lines=$(ps | grep "$enclosed_name" | wc -l)
+    fi
+
+    if [ "$num_lines" -eq 0 ]; then
+        out_pid=""
+    elif [ "$num_lines" -eq 1 ]; then
         if ps x > /dev/null 2>&1; then
-            out_pids=($(ps x | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
-            out_pid=${out_pids[0]}
+            out_pid=$(ps x | grep "$enclosed_name" | grep -v grep | awk '{print $1}')
         else
-            out_pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
-            out_pid=${out_pids[0]}
+            out_pid=$(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}')
         fi
     else
         if ps x > /dev/null 2>&1; then
-            out_pid=$(ps x | grep "$enclosed_name" | tail -n 1 | awk '{print $1}') > /dev/null 2>&1
+            # out_pid=$(ps x | grep "$enclosed_name" | tail -n 1 | awk '{print $1}') > /dev/null 2>&1
+            out_pids=($(ps x | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+            out_pid=${out_pids[0]}
         else
-            out_pid=$(ps | grep "$enclosed_name" | tail -n 1 | awk '{print $1}') > /dev/null 2>&1
+            # out_pid=$(ps | grep "$enclosed_name" | tail -n 1 | awk '{print $1}') > /dev/null 2>&1
+            out_pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+            out_pid=${out_pids[0]}
         fi
     fi
-    # if [ -z "$out_pid" ] || ! [[ "$out_pid" =~ ^[0-9]+$ ]]; then
-    #     echo "获取PID失败: '$process_name'" >&2
-    # fi
-    # echo "$out_pid"
+    echo "$out_pid"
 }
 
 killpid() {
@@ -194,30 +201,35 @@ killpid() {
                 pkill "$process_name" > /dev/null 2>&1 &
                 pkill "$process_name" > /dev/null 2>&1 &
             else
-                getpid "$process_name"
-                kill "$out_pid" > /dev/null 2>&1 &
-                kill "$out_pid" > /dev/null 2>&1 &
+                # getpid "$process_name"
+                if ps x > /dev/null 2>&1; then
+                    tg_pid=$(ps x | grep "$enclosed_name" | grep -v grep | awk '{print $1}')
+                else
+                    tg_pid=$(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}')
+                fi
+                kill "$tg_pid" > /dev/null 2>&1 &
+                kill "$tg_pid" > /dev/null 2>&1 &
             fi
         else
             if command -v pkill &>/dev/null; then
-                # for ((i=0; i<=num_lines; i++)); do # 在(())里面的变量也可以不需要$
-                for ((i=0; i<=$num_lines; i++)); do
+                # for ((i=0; i<=$num_lines; i++)); do # 在(())里面的变量也可以不需要$
+                for ((i=0; i<=num_lines; i++)); do
                     pkill "$process_name" > /dev/null 2>&1 &
                 done
                 pkill "$process_name" > /dev/null 2>&1 &
             else
                 if ps x > /dev/null 2>&1; then
-                    # pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
-                    # pids=($(ps x | grep "$enclosed_name" | awk '{print $1}'))
-                    pids=($(ps x | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+                    # tg_pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
+                    # tg_pids=($(ps x | grep "$enclosed_name" | awk '{print $1}'))
+                    tg_pids=($(ps x | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
                 else
-                    # pids=($(ps | grep "$process_name" | grep -v grep | awk '{print $1}'))
-                    # pids=($(ps | grep "$enclosed_name" | awk '{print $1}'))
-                    pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
+                    # tg_pids=($(ps | grep "$process_name" | grep -v grep | awk '{print $1}'))
+                    # tg_pids=($(ps | grep "$enclosed_name" | awk '{print $1}'))
+                    tg_pids=($(ps | grep "$enclosed_name" | grep -v grep | awk '{print $1}'))
                 fi
-                for pid in "${pids[@]}"; do
-                    kill "$pid" > /dev/null 2>&1 &
-                    kill "$pid" > /dev/null 2>&1 &
+                for tg_pid in "${tg_pids[@]}"; do
+                    kill "$tg_pid" > /dev/null 2>&1 &
+                    kill "$tg_pid" > /dev/null 2>&1 &
                 done
             fi
         fi
@@ -667,8 +679,9 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "自动更新脚本设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"更新时间: 每天 $hour_ud 时 $minute_ud 分"$'\n'"通知模式: $mute_mode" "autoud" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "autoud" "$send_time") &
         sleep 1
-        getpid "send_tg.sh"
-        autoud_pid="$out_pid"
+        # getpid "send_tg.sh"
+        # autoud_pid="$out_pid"
+        autoud_pid=$(getpid "send_tg.sh")
     fi
     tips="$Tip 自动更新设置成功, 更新时间: 每天 $hour_ud 时 $minute_ud 分, 通知模式: ${GR}$mute_mode${NC}"
 }
@@ -1308,8 +1321,9 @@ test1() {
     $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "test1" "$send_time" "MarkdownV2" "$(echo $entities)"&
     (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "test1" "$send_time") &
     sleep 1
-    getpid "send_tg.sh"
-    test1_pid="$out_pid"
+    # getpid "send_tg.sh"
+    # test1_pid="$out_pid"
+    test1_pid=$(getpid "send_tg.sh")
     tips="$Inf 测试信息已发出, 电报将收到一条\"来自 $hostname_show 的测试信息\"的信息.111"
 }
 
@@ -1344,8 +1358,9 @@ test() {
     # else
     #     test_pid=$(ps aux | grep '[s]end_tg' | tail -n 1 | awk '{print $2}')
     # fi
-    getpid "send_tg.sh"
-    test_pid="$out_pid"
+    # getpid "send_tg.sh"
+    # test_pid="$out_pid"
+    test_pid=$(getpid "send_tg.sh")
     tips="$Inf 测试信息已发出, 电报将收到一条\"来自 $hostname_show 的测试信息\"的信息."
 }
 
@@ -1448,8 +1463,9 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 开机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 开机 时将收到通知💡" "boot" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "boot" "$send_time") &
         sleep 1
-        getpid "send_tg.sh"
-        boot_pid="$out_pid"
+        # getpid "send_tg.sh"
+        # boot_pid="$out_pid"
+        boot_pid=$(getpid "send_tg.sh")
     fi
     tips="$Tip 开机 通知已经设置成功, 当开机时发出通知."
     
@@ -1496,8 +1512,9 @@ EOF
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡" "login" "$send_time" &
             (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "login" "$send_time") &
             sleep 1
-            getpid "send_tg.sh"
-            login_pid="$out_pid"
+            # getpid "send_tg.sh"
+            # login_pid="$out_pid"
+            login_pid=$(getpid "send_tg.sh")
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时发出通知."
     elif [ -f /etc/profile ]; then
@@ -1509,8 +1526,9 @@ EOF
             $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 登陆 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 登陆 时将收到通知💡 " "login" "$send_time" &
             (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "login" "$send_time") &
             sleep 1
-            getpid "send_tg.sh"
-            login_pid="$out_pid"
+            # getpid "send_tg.sh"
+            # login_pid="$out_pid"
+            login_pid=$(getpid "send_tg.sh")
         fi
         tips="$Tip 登陆 通知已经设置成功, 当登陆时发出通知."
     else
@@ -1593,8 +1611,9 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: 关机 通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 关机 时将收到通知💡" "shutdown" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "shutdown" "$send_time") &
         sleep 1
-        getpid "send_tg.sh"
-        shutdown_pid="$out_pid"
+        # getpid "send_tg.sh"
+        # shutdown_pid="$out_pid"
+        shutdown_pid=$(getpid "send_tg.sh")
     fi
     tips="$Tip 关机 通知已经设置成功, 当开机时发出通知."
 }
@@ -1656,8 +1675,9 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "设置成功: Docker 变更通知⚙️"$'\n'"主机名: $hostname_show"$'\n'"当 Docker 列表变更时将收到通知💡" "docker" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "docker" "$send_time") &
         sleep 1
-        getpid "send_tg.sh"
-        docker_pid="$out_pid"
+        # getpid "send_tg.sh"
+        # docker_pid="$out_pid"
+        docker_pid=$(getpid "send_tg.sh")
     fi
     tips="$Tip Docker 通知已经设置成功, 当 Dokcer 挂载发生变化时发出通知."
 }
@@ -1958,8 +1978,9 @@ EOF
 # '"当 CPU 使用达 $CPUThreshold % 时将收到通知💡" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "cpu" "$send_time") &
         sleep 1
-        getpid "send_tg.sh"
-        cpu_pid="$out_pid"
+        # getpid "send_tg.sh"
+        # cpu_pid="$out_pid"
+        cpu_pid=$(getpid "send_tg.sh")
     fi
     tips="$Tip CPU 通知已经设置成功, 当 CPU 使用率达 ${GR}$CPUThreshold${NC} % 时发出通知."
 }
@@ -2100,8 +2121,9 @@ EOF
 '"当内存使用达 $MEMThreshold % 时将收到通知💡" "mem" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "mem" "$send_time") &
         sleep 1
-        getpid "send_tg.sh"
-        mem_pid="$out_pid"
+        # getpid "send_tg.sh"
+        # mem_pid="$out_pid"
+        mem_pid=$(getpid "send_tg.sh")
     fi
     tips="$Tip 内存 通知已经设置成功, 当 内存 使用率达 ${GR}$MEMThreshold${NC} % 时发出通知."
 
@@ -2244,8 +2266,9 @@ EOF
 '"当磁盘使用达 $DISKThreshold % 时将收到通知💡" "disk" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "disk" "$send_time") &
         sleep 1
-        getpid "send_tg.sh"
-        disk_pid="$out_pid"
+        # getpid "send_tg.sh"
+        # disk_pid="$out_pid"
+        disk_pid=$(getpid "send_tg.sh")
     fi
     tips="$Tip 磁盘 通知已经设置成功, 当 磁盘 使用率达 ${GR}$DISKThreshold${NC} % 时发出通知."
 }
@@ -3084,8 +3107,9 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "flow" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flow" "$send_time") &
         sleep 1
-        getpid "send_tg.sh"
-        flow_pid="$out_pid"
+        # getpid "send_tg.sh"
+        # flow_pid="$out_pid"
+        flow_pid=$(getpid "send_tg.sh")
     fi
     tips="$Tip 流量 通知已经设置成功, 当流量使用达 ${GR}$FlowThreshold_UB${NC} 时发出通知."
 }
@@ -3928,8 +3952,9 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "flowrp" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flowrp" "$send_time") &
         sleep 1
-        getpid "send_tg.sh"
-        flowrp_pid="$out_pid"
+        # getpid "send_tg.sh"
+        # flowrp_pid="$out_pid"
+        flowrp_pid=$(getpid "send_tg.sh")
     fi
     tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
 }
@@ -4438,8 +4463,9 @@ EOF
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "ddns" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "ddns" "$send_time") &
         sleep 1
-        getpid "send_tg.sh"
-        ddns_pid="$out_pid"
+        # getpid "send_tg.sh"
+        # ddns_pid="$out_pid"
+        ddns_pid=$(getpid "send_tg.sh")
     fi
     tips="$Tip DDNS 报告设置成功, 当主机 IP 变更时发出通知."
 }
@@ -4599,8 +4625,9 @@ UN_ALL() {
         $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "delall" "$send_time" &
         (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "delall" "$send_time") &
         sleep 1
-        getpid "send_tg.sh"
-        delall_pid="$out_pid"
+        # getpid "send_tg.sh"
+        # delall_pid="$out_pid"
+        delall_pid=$(getpid "send_tg.sh")
         tips="$Tip 已取消 / 删除所有通知."
     fi
 }
