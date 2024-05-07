@@ -344,19 +344,19 @@ StatisticsMode_ST_de="SE"
 Checkprocess() {
     local process_name="$1"
     local prefix_name="${process_name%%.*}"
+    local fullname=""$FolderPath"/"$process_name""
     # local enclosed_name='['"${process_name:0:1}"']'"${process_name:1}"
     local menu_tag=""
 
-    if [ -f "$FolderPath"/"$process_name" ] && \
-        crontab -l | grep -q ""$FolderPath"/"$process_name""; then
+    if [ -f "$fullname" ] && crontab -l | grep -q "$fullname"; then
         if ps x > /dev/null 2>&1; then
-            if  ps x | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
+            if  ps x | grep "$fullname" | grep -v grep > /dev/null 2>&1; then
                 menu_tag="$SETTAG"
             else
                 menu_tag="$UNSETTAG"
             fi
         else
-            if ps | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
+            if ps | grep "$fullname" | grep -v grep > /dev/null 2>&1; then
                 menu_tag="$SETTAG"
             else
                 menu_tag="$UNSETTAG"
@@ -3099,7 +3099,6 @@ EOF
 }
 
 SetFlowReport_TG() {
-    # if [ ! -z "$flrp_pid" ] && ps | grep -Eq "^\s*$flrp_pid\s" > /dev/null; then
     if [ ! -z "$flrp_pid" ]; then
         if ps x > /dev/null 2>&1; then
             if ps x | grep -Eq "^\s*$flrp_pid\s" > /dev/null; then
