@@ -4760,10 +4760,15 @@ DELLOGFILE() {
     divline
     echo -e "${REB}删除记录:${NC}"
     for file in "${LogFiles[@]}"; do
-        echo -e "${REB}$logn${NC}  $file"
+        # echo -e " ${REB}$logn${NC} \t$file"
+        if ((logn % 2 == 0)); then
+            echo -e " ${REB}$logn \t$file${NC}"
+        else
+            echo -e " ${RE}$logn \t$file${NC}"
+        fi
         ((logn++))
     done
-    echo -e "${REB}A${NC}  清空所有 *log 文件!"
+    echo -e " ${REB}A${NC} \t${REB}清空所有 *log 文件!${NC}"
     divline
     read -e -p "请输入要 [清空] 的文件序号 : " lognum
     if [ "$lognum" == "A" ] || [ "$lognum" == "a" ]; then
@@ -4786,19 +4791,28 @@ VIEWLOG() {
     divline
     echo -e "${GRB}查看log:${NC}"
     for file in "${LogFiles[@]}"; do
-        echo -e "${GR}$logn${NC}  $file"
+        # echo -e " ${GR}$logn${NC} \t$file"
+        if ((logn % 2 == 0)); then
+            echo -e " ${GR}$logn \t$file${NC}"
+        else
+            echo -e " $logn \t$file"
+        fi
         ((logn++))
     done
     divline
     read -e -p "请输入要 [查看] 的文件序号 : " lognum
-    if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ] || [ "$lognum" -eq 0 ]; then
-        tips="$Tip 输入有误 或 未找到对应的文件!"
+    if [[ "$lognum" =~ ^[0-9]+$ ]]; then
+        if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ "$lognum" -eq 0 ]; then
+            tips="$Tip 输入有误 或 未找到对应的文件!"
+        else
+            divline
+            echo -e "${GR}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
+            cat ${LogFiles[$((lognum-1))]}
+            divline
+            Pause
+        fi
     else
-        divline
-        echo -e "${GR}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
-        cat ${LogFiles[$((lognum-1))]}
-        divline
-        Pause
+        tips="$Tip 必须输入对应的数字序号!"
     fi
 }
 
@@ -4809,35 +4823,44 @@ T_VIEWLOG() {
     divline
     echo -e "${GRB}跟踪log:${NC}"
     for file in "${LogFiles[@]}"; do
-        echo -e "${GR}$logn${NC}  $file"
+        # echo -e " ${GR}$logn${NC} \t$file"
+        if ((logn % 2 == 0)); then
+            echo -e " $logn \t$file"
+        else
+            echo -e " ${GR}$logn \t$file${NC}"
+        fi
         ((logn++))
     done
     divline
     echo -e "${RE}注意${NC}:  ${REB}按任意键中止${NC}"
     read -e -p "请输入要 [查看] 的文件序号 : " lognum
-    if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ -z "$lognum" ] || [ "$lognum" -eq 0 ]; then
-        tips="$Tip 输入有误 或 未找到对应的文件!"
-    else
-        stty intr ^- # 禁用 CTRL+C
-        divline
-        echo -e "${GR}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
-        tail -f ${LogFiles[$((lognum-1))]} &
-        tail_pid=$!
-        read -n 1 -s -r -p ""
-        stty intr ^C # 恢复 CTRL+C
-        # stty sane # 重置终端设置为默认值
-        kill -2 $tail_pid 2>/dev/null
-        killpid "tail"
-        # pkill -f tail
-        # kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null
-        # pgrep -f tail | xargs kill -9 2>/dev/null
-        if pgrep -x tail > /dev/null; then
-            echo -e "中止失败!! 请执行以下指令中止!"
-            echo -e "中止指令1: ${REB}pkill -f tail${NC}"
-            echo -e "中止指令2: ${REB}kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null${NC}"
+    if [[ "$lognum" =~ ^[0-9]+$ ]]; then
+        if [[ -z "${LogFiles[$((lognum-1))]}" ]] || [ "$lognum" -eq 0 ]; then
+            tips="$Tip 输入有误 或 未找到对应的文件!"
+        else
+            stty intr ^- # 禁用 CTRL+C
+            divline
+            echo -e "${GR}${LogFiles[$((lognum-1))]} 内容如下:${NC}"
+            tail -f ${LogFiles[$((lognum-1))]} &
+            tail_pid=$!
+            read -n 1 -s -r -p ""
+            stty intr ^C # 恢复 CTRL+C
+            # stty sane # 重置终端设置为默认值
+            kill -2 $tail_pid 2>/dev/null
+            killpid "tail"
+            # pkill -f tail
+            # kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null
+            # pgrep -f tail | xargs kill -9 2>/dev/null
+            if pgrep -x tail > /dev/null; then
+                echo -e "中止失败!! 请执行以下指令中止!"
+                echo -e "中止指令1: ${REB}pkill -f tail${NC}"
+                echo -e "中止指令2: ${REB}kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null${NC}"
+            fi
+            divline
+            Pause
         fi
-        divline
-        Pause
+    else
+        tips="$Tip 必须输入对应的数字序号!"
     fi
 }
 
@@ -5560,8 +5583,10 @@ case "$num" in
         if ps x > /dev/null 2>&1; then
             # ps x | grep '[t]g_'
             ps x | grep 'tg_' | grep -v grep
+            # ps x | grep 'tg_' | grep -v grep | awk '{print $1}'
+            # ps x | grep 'tg_' | grep -v grep | awk '{print $NF}'
+            # ps x | awk '/tg_/ && !/awk/ && !/grep/ {print "   " $1 "\t" $NF}'
         else
-            # ps | grep '[t]g_'
             ps | grep 'tg_' | grep -v grep
         fi
         divline
