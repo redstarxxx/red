@@ -5156,6 +5156,7 @@ update_sh() {
 # 主程序
 CheckAndCreateFolder
 rm -f $FolderPath/send_tg*.log > /dev/null 2>&1
+rm -f $FolderPath/tg_flowrp.log > /dev/null 2>&1
 CheckSys
 if [[ "$1" =~ ^[0-9]{5,}$ ]]; then
     ChatID_1="$1"
