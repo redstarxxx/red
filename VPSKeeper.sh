@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.240506.3"
+sh_ver="1.240507.1"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
@@ -432,8 +432,8 @@ CheckSetup() {
     # disk_menu_tag="$menu_tag"
     # Checkprocess "tg_flow.sh"
     # flow_menu_tag="$menu_tag"
-    # Checkprocess "tg_flowrp.sh"
-    # flowrp_menu_tag="$menu_tag"
+    # Checkprocess "tg_flrp.sh"
+    # flrp_menu_tag="$menu_tag"
     # Checkprocess "tg_ddns.sh"
     # ddns_menu_tag="$menu_tag"
 
@@ -442,7 +442,7 @@ CheckSetup() {
     mem_menu_tag=$(Checkprocess "tg_mem.sh")
     disk_menu_tag=$(Checkprocess "tg_disk.sh")
     flow_menu_tag=$(Checkprocess "tg_flow.sh")
-    flowrp_menu_tag=$(Checkprocess "tg_flowrp.sh")
+    flrp_menu_tag=$(Checkprocess "tg_flrp.sh")
     ddns_menu_tag=$(Checkprocess "tg_ddns.sh")
 
     if [ -f $FolderPath/tg_autoud.sh ]; then
@@ -3099,16 +3099,16 @@ EOF
 }
 
 SetFlowReport_TG() {
-    # if [ ! -z "$flowrp_pid" ] && ps | grep -Eq "^\s*$flowrp_pid\s" > /dev/null; then
-    if [ ! -z "$flowrp_pid" ]; then
+    # if [ ! -z "$flrp_pid" ] && ps | grep -Eq "^\s*$flrp_pid\s" > /dev/null; then
+    if [ ! -z "$flrp_pid" ]; then
         if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$flowrp_pid\s" > /dev/null; then
-                tips="$Err PID(x): $flowrp_pid 正在发送中,请稍后..."
+            if ps x | grep -Eq "^\s*$flrp_pid\s" > /dev/null; then
+                tips="$Err PID(x): $flrp_pid 正在发送中,请稍后..."
                 return 1
             fi
         else
-            if ps | grep -Eq "^\s*$flowrp_pid\s" > /dev/null; then
-                tips="$Err PID: $flowrp_pid 正在发送中,请稍后..."
+            if ps | grep -Eq "^\s*$flrp_pid\s" > /dev/null; then
+                tips="$Err PID: $flrp_pid 正在发送中,请稍后..."
                 return 1
             fi
         fi
@@ -3282,7 +3282,7 @@ SetFlowReport_TG() {
         FlowThresholdMAX=${FlowThresholdMAX%TB}
         FlowThresholdMAX=$(awk -v value=$FlowThresholdMAX 'BEGIN { printf "%.1f", value * 1024 * 1024 }')
     fi
-    cat <<EOF > "$FolderPath/tg_flowrp.sh"
+    cat <<EOF > "$FolderPath/tg_flrp.sh"
 #!/bin/bash
 
 $(declare -f create_progress_bar)
@@ -3923,20 +3923,20 @@ while true; do
     echo "------------------------------------------------------"
 done
 EOF
-    chmod +x $FolderPath/tg_flowrp.sh
-    killpid "tg_flowrp.sh"
-    nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &
-    delcrontab "$FolderPath/tg_flowrp.sh"
-    addcrontab "@reboot nohup $FolderPath/tg_flowrp.sh > $FolderPath/tg_flowrp.log 2>&1 &"
+    chmod +x $FolderPath/tg_flrp.sh
+    killpid "tg_flrp.sh"
+    nohup $FolderPath/tg_flrp.sh > $FolderPath/tg_flrp.log 2>&1 &
+    delcrontab "$FolderPath/tg_flrp.sh"
+    addcrontab "@reboot nohup $FolderPath/tg_flrp.sh > $FolderPath/tg_flrp.log 2>&1 &"
     if [ "$mute" == "false" ]; then
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         message="流量定时报告设置成功 ⚙️"$'\n'"主机名: $hostname_show"$'\n'"报告接口: $show_interfaces_RP"$'\n'"报告模式: $StatisticsMode_RP"$'\n'"报告时间: 每天 $hour_rp 时 $minute_rp 分📈"
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "flowrp" "$send_time" &
-        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flowrp" "$send_time") &
+        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "$message" "flrp" "$send_time" &
+        (sleep 15 && $FolderPath/del_lm_tg.sh "$TelgramBotToken" "$ChatID_1" "flrp" "$send_time") &
         sleep 1
         # getpid "send_tg.sh"
-        # flowrp_pid="$tg_pid"
-        flowrp_pid=$(getpid "send_tg.sh")
+        # flrp_pid="$tg_pid"
+        flrp_pid=$(getpid "send_tg.sh")
     fi
     tips="$Tip 流量定时报告设置成功, 报告时间: 每天 $hour_rp 时 $minute_rp 分 ($input_time)"
 }
@@ -4588,9 +4588,9 @@ UN_SetupFlow_TG() {
     fi
 }
 UN_SetFlowReport_TG() {
-    if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
-        killpid "tg_flowrp.sh"
-        crontab -l | grep -v "$FolderPath/tg_flowrp.sh" | crontab -
+    if [ "$flrp_menu_tag" == "$SETTAG" ]; then
+        killpid "tg_flrp.sh"
+        crontab -l | grep -v "$FolderPath/tg_flrp.sh" | crontab -
         tips="$Tip 流量定时报告 已经取消 / 删除."
     fi
 
@@ -5254,7 +5254,7 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
 
     mute=true
     Setuped=false
-    if [ "$boot_menu_tag" == "$SETTAG" ] || [ "$login_menu_tag" == "$SETTAG" ] || [ "$shutdown_menu_tag" == "$SETTAG" ] || [ "$cpu_menu_tag" == "$SETTAG" ] || [ "$mem_menu_tag" == "$SETTAG" ] || [ "$disk_menu_tag" == "$SETTAG" ] || [ "$flow_menu_tag" == "$SETTAG" ] || [ "$flowrp_menu_tag" == "$SETTAG" ] || [ "$docker_menu_tag" == "$SETTAG" ] || [ "$autoud_menu_tag" == "$SETTAG" ]; then
+    if [ "$boot_menu_tag" == "$SETTAG" ] || [ "$login_menu_tag" == "$SETTAG" ] || [ "$shutdown_menu_tag" == "$SETTAG" ] || [ "$cpu_menu_tag" == "$SETTAG" ] || [ "$mem_menu_tag" == "$SETTAG" ] || [ "$disk_menu_tag" == "$SETTAG" ] || [ "$flow_menu_tag" == "$SETTAG" ] || [ "$flrp_menu_tag" == "$SETTAG" ] || [ "$docker_menu_tag" == "$SETTAG" ] || [ "$autoud_menu_tag" == "$SETTAG" ]; then
         Setuped=true
     fi
     if [ "$boot_menu_tag" == "$SETTAG" ]; then
@@ -5278,7 +5278,7 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
     if [ "$flow_menu_tag" == "$SETTAG" ]; then
         SetupFlow_TG
     fi
-    if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
+    if [ "$flrp_menu_tag" == "$SETTAG" ]; then
         SetFlowReport_TG
     fi
     if [ "$docker_menu_tag" == "$SETTAG" ]; then
@@ -5290,7 +5290,7 @@ if [ "$1" == "auto" ] || [ "$2" == "auto" ] || [ "$3" == "auto" ]; then
     # mute=false
 
     if [ "$1" != "mute" ] && [ "$2" != "mute" ] && [ "$3" != "mute" ]; then
-        if [[ "$boot_menu_tag" == "$SETTAG" || "$login_menu_tag" == "$SETTAG" || "$shutdown_menu_tag" == "$SETTAG" || "$cpu_menu_tag" == "$SETTAG" || "$mem_menu_tag" == "$SETTAG" || "$disk_menu_tag" == "$SETTAG" || "$flow_menu_tag" == "$SETTAG" || "$flowrp_menu_tag" == "$SETTAG" || "$docker_menu_tag" == "$SETTAG" || "$autoud_menu_tag" == "$SETTAG" ]] && [[ "$Setuped" ]]; then
+        if [[ "$boot_menu_tag" == "$SETTAG" || "$login_menu_tag" == "$SETTAG" || "$shutdown_menu_tag" == "$SETTAG" || "$cpu_menu_tag" == "$SETTAG" || "$mem_menu_tag" == "$SETTAG" || "$disk_menu_tag" == "$SETTAG" || "$flow_menu_tag" == "$SETTAG" || "$flrp_menu_tag" == "$SETTAG" || "$docker_menu_tag" == "$SETTAG" || "$autoud_menu_tag" == "$SETTAG" ]] && [[ "$Setuped" ]]; then
             current_date_send=$(date +"%Y.%m.%d %T")
             message="VPSKeeper 脚本已更新 ♻️"$'\n'
             message+="主机名: $hostname_show"$'\n'
@@ -5382,7 +5382,7 @@ echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 ${RE}[v${sh_ver}]${NC
  ${GR}5. ${NC} 设置 ${GR}[内存报警]${NC} TG 通知 ${REB}阈值${NC} : $MEMThreshold_tag \t$mem_menu_tag
  ${GR}6. ${NC} 设置 ${GR}[磁盘报警]${NC} TG 通知 ${REB}阈值${NC} : $DISKThreshold_tag \t$disk_menu_tag
  ${GR}7. ${NC} 设置 ${GR}[流量报警]${NC} TG 通知 ${REB}阈值${NC} : $FlowThreshold_tag \t$flow_menu_tag
- ${GR}8. ${NC} 设置 ${GR}[流量定时报告]${NC} TG 通知 \t\t$flowrp_menu_tag${NC}
+ ${GR}8. ${NC} 设置 ${GR}[流量定时报告]${NC} TG 通知 \t\t$flrp_menu_tag${NC}
  ${GR}9. ${NC} 设置 ${GR}[Docker 变更]${NC} TG 通知 \t\t$docker_menu_tag${NC}
  ${GR}10.${NC} 设置 ${GR}[CF-DDNS IP 变更]${NC} TG 通知 $ddnskp_menu_tag \t\t$ddns_menu_tag
  ————————————————————————————————————————————————————————
@@ -5472,7 +5472,7 @@ case "$num" in
     ;;
     8)
         CheckAndCreateFolder
-        if [ "$flowrp_menu_tag" == "$SETTAG" ]; then
+        if [ "$flrp_menu_tag" == "$SETTAG" ]; then
             UN_SetFlowReport_TG
         else
             SetFlowReport_TG
