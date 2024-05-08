@@ -4580,9 +4580,10 @@ UN_SetupDDNS_TG() {
         systemctl disable tg_ddnskp.service > /dev/null 2>&1
         systemctl stop tg_ddtimer.timer > /dev/null 2>&1
         systemctl disable tg_ddtimer.timer > /dev/null 2>&1
-        sleep 1
+        sleep 1.5
         rm -f /etc/systemd/system/tg_ddnskp.service
         rm -f /etc/systemd/system/tg_ddtimer.timer
+        rm -f /etc/systemd/system/tg_ddrun.service
         killpid "tg_ddkpnh.sh"
         tips="$Tip CF-DDNS IP 变更通知 已经取消 / 删除."
     fi
