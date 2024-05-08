@@ -4443,6 +4443,34 @@ EOF
 # EOF
 #         systemctl daemon-reload
 #         systemctl enable tg_ddnskp.service > /dev/null
+
+
+        cat > /etc/systemd/system/tg_ddrun.service << EOF
+[Unit]
+Description=Your Script Description
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+        cat > /etc/systemd/system/tg_ddtimer.timer << EOF
+[Unit]
+Description=Your Timer Description
+
+[Timer]
+OnUnitActiveSec=10min
+Unit=tg_ddrun.service
+
+[Install]
+WantedBy=timers.target
+EOF
+        systemctl daemon-reload
+        systemctl start tg_ddtimer.timer
+        systemctl enable tg_ddtimer.timer
     fi
 
     if [ "$mute" == "false" ]; then
@@ -4550,8 +4578,11 @@ UN_SetupDDNS_TG() {
         crontab -l | grep -v "$FolderPath/tg_ddnskp.sh" | crontab -
         systemctl stop tg_ddnskp.service > /dev/null 2>&1
         systemctl disable tg_ddnskp.service > /dev/null 2>&1
+        systemctl stop tg_ddtimer.timer > /dev/null 2>&1
+        systemctl disable tg_ddtimer.timer > /dev/null 2>&1
         sleep 1
         rm -f /etc/systemd/system/tg_ddnskp.service
+        rm -f /etc/systemd/system/tg_ddtimer.timer
         killpid "tg_ddkpnh.sh"
         tips="$Tip CF-DDNS IP 变更通知 已经取消 / 删除."
     fi
