@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.240507.2"
+sh_ver="1.240508.1"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
