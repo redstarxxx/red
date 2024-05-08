@@ -147,13 +147,14 @@ getpid() {
     local tg_pids=()
     local tg_pid=""
 
-    if ps x > /dev/null 2>&1; then
-        # tg_pids=($(ps x | grep "$enclosed_name" | awk '{print $1}'))
-        tg_pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
-    else
-        # tg_pids=($(ps | grep "$enclosed_name" | awk '{print $1}'))
-        tg_pids=($(ps | grep "$process_name" | grep -v grep | awk '{print $1}'))
-    fi
+    # if ps x > /dev/null 2>&1; then
+    #     # tg_pids=($(ps x | grep "$enclosed_name" | awk '{print $1}'))
+    #     tg_pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
+    # else
+    #     # tg_pids=($(ps | grep "$enclosed_name" | awk '{print $1}'))
+    #     tg_pids=($(ps | grep "$process_name" | grep -v grep | awk '{print $1}'))
+    # fi
+    tg_pids=($(pgrep -a "$process_name" | grep -v grep | awk '{print $1}'))
     num_pid=${#tg_pids[@]}
 
     if [ "$num_pid" -eq 0 ]; then
@@ -171,21 +172,25 @@ killpid() {
     local tg_pid=""
 
     for ((i=1; i<=7; i++)); do
-        if ps x > /dev/null 2>&1; then
-            if  ! ps x | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
-                break
-            fi
-        else
-            if  ! ps | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
-                break
-            fi
+        # if ps x > /dev/null 2>&1; then
+        #     if  ! ps x | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
+        #         break
+        #     fi
+        # else
+        #     if  ! ps | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
+        #         break
+        #     fi
+        # fi
+        if ! pgrep -a "$process_name" | grep -v grep > /dev/null 2>&1; then
+            break
         fi
 
-        if ps x > /dev/null 2>&1; then
-            tg_pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
-        else
-            tg_pids=($(ps | grep "$process_name" | grep -v grep | awk '{print $1}'))
-        fi
+        # if ps x > /dev/null 2>&1; then
+        #     tg_pids=($(ps x | grep "$process_name" | grep -v grep | awk '{print $1}'))
+        # else
+        #     tg_pids=($(ps | grep "$process_name" | grep -v grep | awk '{print $1}'))
+        # fi
+        tg_pids=($(pgrep -a "$process_name" | grep -v grep | awk '{print $1}'))
         num_pid=${#tg_pids[@]}
 
         if [ "$num_pid" -eq 0 ]; then
@@ -214,14 +219,17 @@ killpid() {
         fi
         sleep 0.5
     done
-    if ps x > /dev/null 2>&1; then
-        if  ps x | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
-            tips="$Err 中止失败, 请检查!"
-        fi
-    else
-        if  ps | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
-            tips="$Err 中止失败, 请检查!"
-        fi
+    # if ps x > /dev/null 2>&1; then
+    #     if  ps x | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
+    #         tips="$Err 中止失败, 请检查!"
+    #     fi
+    # else
+    #     if  ps | grep "$process_name" | grep -v grep > /dev/null 2>&1; then
+    #         tips="$Err 中止失败, 请检查!"
+    #     fi
+    # fi
+    if pgrep -a "$process_name" | grep -v grep > /dev/null 2>&1; then
+        tips="$Err 中止失败, 请检查!"
     fi
 }
 
@@ -349,18 +357,23 @@ Checkprocess() {
     local menu_tag=""
 
     if [ -f "$fullname" ] && crontab -l | grep -q "$fullname"; then
-        if ps x > /dev/null 2>&1; then
-            if  ps x | grep "$fullname" | grep -v grep > /dev/null 2>&1; then
-                menu_tag="$SETTAG"
-            else
-                menu_tag="$UNSETTAG"
-            fi
+        # if ps x > /dev/null 2>&1; then
+        #     if  ps x | grep "$fullname" | grep -v grep > /dev/null 2>&1; then
+        #         menu_tag="$SETTAG"
+        #     else
+        #         menu_tag="$UNSETTAG"
+        #     fi
+        # else
+        #     if ps | grep "$fullname" | grep -v grep > /dev/null 2>&1; then
+        #         menu_tag="$SETTAG"
+        #     else
+        #         menu_tag="$UNSETTAG"
+        #     fi
+        # fi
+        if pgrep -af "$fullname" | grep -v grep > /dev/null 2>&1; then
+            menu_tag="$SETTAG"
         else
-            if ps | grep "$fullname" | grep -v grep > /dev/null 2>&1; then
-                menu_tag="$SETTAG"
-            else
-                menu_tag="$UNSETTAG"
-            fi
+            menu_tag="$UNSETTAG"
         fi
     else
         menu_tag="$UNSETTAG"
@@ -509,19 +522,9 @@ validate_time_format() {
 }
 
 SetAutoUpdate() {
-    # if [ ! -z "$autoud_pid" ] && ps | grep -Eq "^\s*$autoud_pid\s" > /dev/null; then
-    if [ ! -z "$autoud_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$autoud_pid\s" > /dev/null; then
-                tips="$Err PID(x): $autoud_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$autoud_pid\s" > /dev/null; then
-                tips="$Err PID: $autoud_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$autoud_pid" ] && pgrep -a '' | grep -Eq "^\s*$autoud_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$autoud_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1272,19 +1275,9 @@ ShowContents() {
 
 # 发送测试
 test1() {
-    # if [ ! -z "$test1_pid" ] && ps | grep -Eq "^\s*$test1_pid\s" > /dev/null; then
-    if [ ! -z "$test1_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$test1_pid\s" > /dev/null; then
-                tips="$Err PID(x): $test1_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$test1_pid\s" > /dev/null; then
-                tips="$Err PID: $test1_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$test1_pid" ] && pgrep -a '' | grep -Eq "^\s*$test1_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$test1_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1318,19 +1311,9 @@ test1() {
 
 # 发送测试
 test() {
-    # if [ ! -z "$test_pid" ] && ps | grep -Eq "^\s*$test_pid\s" > /dev/null; then
-    if [ ! -z "$test_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$test_pid\s" > /dev/null; then
-                tips="$Err PID(x): $test_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$test_pid\s" > /dev/null; then
-                tips="$Err PID: $test_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$test_pid" ] && pgrep -a '' | grep -Eq "^\s*$test_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$test_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1379,19 +1362,9 @@ ModifyHostname() {
 
 # 设置开机通知
 SetupBoot_TG() {
-    # if [ ! -z "$boot_pid" ] && ps | grep -Eq "^\s*$boot_pid\s" > /dev/null; then
-    if [ ! -z "$boot_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$boot_pid\s" > /dev/null; then
-                tips="$Err PID(x): $boot_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$boot_pid\s" > /dev/null; then
-                tips="$Err PID: $boot_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$boot_pid" ] && pgrep -a '' | grep -Eq "^\s*$boot_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$boot_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1462,19 +1435,9 @@ EOF
 
 # 设置登陆通知
 SetupLogin_TG() {
-    # if [ ! -z "$login_pid" ] && ps | grep -Eq "^\s*$login_pid\s" > /dev/null; then
-    if [ ! -z "$login_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$login_pid\s" > /dev/null; then
-                tips="$Err PID(x): $login_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$login_pid\s" > /dev/null; then
-                tips="$Err PID: $login_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$login_pid" ] && pgrep -a '' | grep -Eq "^\s*$login_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$login_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1527,19 +1490,9 @@ EOF
 
 # 设置关机通知
 SetupShutdown_TG() {
-    # if [ ! -z "$shutdown_pid" ] && ps | grep -Eq "^\s*$shutdown_pid\s" > /dev/null; then
-    if [ ! -z "$shutdown_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$shutdown_pid\s" > /dev/null; then
-                tips="$Err PID(x): $shutdown_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$shutdown_pid\s" > /dev/null; then
-                tips="$Err PID: $shutdown_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$shutdown_pid" ] && pgrep -a '' | grep -Eq "^\s*$shutdown_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$shutdown_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1609,19 +1562,9 @@ EOF
 
 # 设置Dokcer通知
 SetupDocker_TG() {
-    # if [ ! -z "$docker_pid" ] && ps | grep -Eq "^\s*$docker_pid\s" > /dev/null; then
-    if [ ! -z "$docker_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$docker_pid\s" > /dev/null; then
-                tips="$Err PID(x): $docker_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$docker_pid\s" > /dev/null; then
-                tips="$Err PID: $docker_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$docker_pid" ] && pgrep -a '' | grep -Eq "^\s*$docker_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$docker_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if ! command -v docker &>/dev/null; then
         tips="$Err 未检测到 \"Docker\" 程序."
@@ -1818,19 +1761,9 @@ ratioandprogress() {
 
 # 设置CPU报警
 SetupCPU_TG() {
-    # if [ ! -z "$cpu_pid" ] && ps | grep -Eq "^\s*$cpu_pid\s" > /dev/null; then
-    if [ ! -z "$cpu_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$cpu_pid\s" > /dev/null; then
-                tips="$Err PID(x): $cpu_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$cpu_pid\s" > /dev/null; then
-                tips="$Err PID: $cpu_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$cpu_pid" ] && pgrep -a '' | grep -Eq "^\s*$cpu_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$cpu_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -1974,19 +1907,9 @@ EOF
 
 # 设置内存报警
 SetupMEM_TG() {
-    # if [ ! -z "$mem_pid" ] && ps | grep -Eq "^\s*$mem_pid\s" > /dev/null; then
-    if [ ! -z "$mem_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$mem_pid\s" > /dev/null; then
-                tips="$Err PID(x): $mem_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$mem_pid\s" > /dev/null; then
-                tips="$Err PID: $mem_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$mem_pid" ] && pgrep -a '' | grep -Eq "^\s*$mem_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$mem_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -2117,19 +2040,9 @@ EOF
 
 # 设置磁盘报警
 SetupDISK_TG() {
-    # if [ ! -z "$disk_pid" ] && ps | grep -Eq "^\s*$disk_pid\s" > /dev/null; then
-    if [ ! -z "$disk_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$disk_pid\s" > /dev/null; then
-                tips="$Err PID(x): $disk_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$disk_pid\s" > /dev/null; then
-                tips="$Err PID: $disk_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$disk_pid" ] && pgrep -a '' | grep -Eq "^\s*$disk_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$disk_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -2332,19 +2245,9 @@ sep_array() {
 
 # 设置流量报警
 SetupFlow_TG() {
-    # if [ ! -z "$flow_pid" ] && ps | grep -Eq "^\s*$flow_pid\s" > /dev/null; then
-    if [ ! -z "$flow_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$flow_pid\s" > /dev/null; then
-                tips="$Err PID(x): $flow_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$flow_pid\s" > /dev/null; then
-                tips="$Err PID: $flow_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$flow_pid" ] && pgrep -a '' | grep -Eq "^\s*$flow_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$flow_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -3107,18 +3010,9 @@ EOF
 }
 
 SetFlowReport_TG() {
-    if [ ! -z "$flrp_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$flrp_pid\s" > /dev/null; then
-                tips="$Err PID(x): $flrp_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$flrp_pid\s" > /dev/null; then
-                tips="$Err PID: $flrp_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$flrp_pid" ] && pgrep -a '' | grep -Eq "^\s*$flrp_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$flrp_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -3960,19 +3854,9 @@ EOF
 }
 
 SetupDDNS_TG() {
-    # if [ ! -z "$ddns_pid" ] && ps | grep -Eq "^\s*$ddns_pid\s" > /dev/null; then
-    if [ ! -z "$ddns_pid" ]; then
-        if ps x > /dev/null 2>&1; then
-            if ps x | grep -Eq "^\s*$ddns_pid\s" > /dev/null; then
-                tips="$Err PID(x): $ddns_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        else
-            if ps | grep -Eq "^\s*$ddns_pid\s" > /dev/null; then
-                tips="$Err PID: $ddns_pid 正在发送中,请稍后..."
-                return 1
-            fi
-        fi
+    if [ ! -z "$ddns_pid" ] && pgrep -a '' | grep -Eq "^\s*$ddns_pid\s" > /dev/null; then
+        tips="$Err PID(${GR}$ddns_pid${NC}) 正在发送中,请稍后..."
+        return 1
     fi
     if [[ -z "${TelgramBotToken}" || -z "${ChatID_1}" ]]; then
         tips="$Err 参数丢失, 请设置后再执行 (先执行 ${GR}0${NC} 选项)."
@@ -4495,7 +4379,7 @@ EOF
     addcrontab "@reboot nohup $FolderPath/tg_ddns.sh > $FolderPath/tg_ddns.log 2>&1 &"
 
     if [ "$CFDDNS_KEEPER" == "true"  ]; then
-        cat <<EOF > "$FolderPath/tg_ddnskp.sh"
+        cat > "$FolderPath/tg_ddnskp.sh" << EOF
 #!/bin/bash
 
 ####################################################################
@@ -4520,6 +4404,45 @@ EOF
         chmod +x $FolderPath/tg_ddnskp.sh
         delcrontab "$FolderPath/tg_ddnskp.sh"
         addcrontab "*/3 * * * * bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &"
+        cat > "$FolderPath/tg_ddkpnh.sh" << EOF
+#!/bin/bash
+
+$(declare -f addcrontab)
+
+while true; do
+    if ! crontab -l | grep -q "$FolderPath/tg_ddnskp.sh"; then
+        addcrontab "*/5 * * * * bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &"
+        /etc/init.d/cron restart > /dev/null 2>&1
+    fi
+    current_date=\$(date +"%Y.%m.%d %T")
+    echo "\$current_date : 已执行 DDNS 复活."
+    sleep 60
+done
+EOF
+        chmod +x $FolderPath/tg_ddkpnh.sh
+        killpid "tg_ddkpnh.sh"
+        nohup $FolderPath/tg_ddkpnh.sh > $FolderPath/tg_ddkpnh.log 2>&1 &
+#         cat > /etc/systemd/system/tg_ddnskp.service << EOF
+# [Unit]
+# Description=CheckAndStartService
+# After=network.target
+
+# [Service]
+# Type=oneshot
+# ExecStart=/bin/bash -c '/usr/bin/env bash <<SCRIPT
+# while true; do
+#     if ! pgrep -x "tg_ddkpnh.sh" >/dev/null; then
+#         nohup $FolderPath/tg_ddkpnh.sh &
+#     fi
+#     sleep 60
+# done
+# SCRIPT'
+
+# [Install]
+# WantedBy=multi-user.target
+# EOF
+#         systemctl daemon-reload
+#         systemctl enable tg_ddnskp.service > /dev/null
     fi
 
     if [ "$mute" == "false" ]; then
@@ -4625,6 +4548,11 @@ UN_SetupDDNS_TG() {
         killpid "tg_ddns.sh"
         crontab -l | grep -v "$FolderPath/tg_ddns.sh" | crontab -
         crontab -l | grep -v "$FolderPath/tg_ddnskp.sh" | crontab -
+        systemctl stop tg_ddnskp.service > /dev/null 2>&1
+        systemctl disable tg_ddnskp.service > /dev/null 2>&1
+        sleep 1
+        rm -f /etc/systemd/system/tg_ddnskp.service
+        killpid "tg_ddkpnh.sh"
         tips="$Tip CF-DDNS IP 变更通知 已经取消 / 删除."
     fi
 }
@@ -4639,19 +4567,9 @@ UN_SetAutoUpdate() {
 
 UN_ALL() {
     if [ "$autorun" == "false" ]; then
-        # if [ ! -z "$delall_pid" ] && ps | grep -Eq "^\s*$delall_pid\s" > /dev/null; then
-        if [ ! -z "$delall_pid" ]; then
-            if ps x > /dev/null 2>&1; then
-                if ps x | grep -Eq "^\s*$delall_pid\s" > /dev/null; then
-                    tips="$Err PID(x): $delall_pid 正在发送中,请稍后..."
-                    return 1
-                fi
-            else
-                if ps | grep -Eq "^\s*$delall_pid\s" > /dev/null; then
-                    tips="$Err PID: $delall_pid 正在发送中,请稍后..."
-                    return 1
-                fi
-            fi
+        if [ ! -z "$delall_pid" ] && pgrep -a '' | grep -Eq "^\s*$delall_pid\s" > /dev/null; then
+            tips="$Err PID(${GR}$delall_pid${NC}) 正在发送中,请稍后..."
+            return 1
         fi
         writeini "SHUTDOWN_RT" "false"
         writeini "ProxyURL" ""
@@ -5553,21 +5471,26 @@ case "$num" in
         OneKeydefault
     ;;
     c|C)
-        echo "卸载前:"
-        if ps x > /dev/null 2>&1; then
-            ps x | grep '[t]g_'
-        else
-            ps | grep '[t]g_'
-        fi
+        echo -e "${GRB}卸载前${NC}:"
+        # if ps x > /dev/null 2>&1; then
+        #     ps x | grep '[t]g_'
+        # else
+        #     ps | grep '[t]g_'
+        # fi
+        pgrep -af 'tg_' | grep -v grep
+        divline
         un_sendtag=true
         UN_ALL
         un_sendtag=false
-        echo "卸载后:"
-        if ps x > /dev/null 2>&1; then
-            ps x | grep '[t]g_'
-        else
-            ps | grep '[t]g_'
-        fi
+        echo -e "${GRB}卸载后${NC}:"
+        # if ps x > /dev/null 2>&1; then
+        #     ps x | grep '[t]g_'
+        # else
+        #     ps | grep '[t]g_'
+        # fi
+        pgrep -af 'tg_' | grep -v grep
+        divline
+        Pause
     ;;
     f|F)
         DELFOLDER
@@ -5601,15 +5524,17 @@ case "$num" in
         # 查看配置文件
         divline
         echo -e "${GRB}后台:${NC}"
-        if ps x > /dev/null 2>&1; then
-            # ps x | grep '[t]g_'
-            ps x | grep 'tg_' | grep -v grep
-            # ps x | grep 'tg_' | grep -v grep | awk '{print $1}'
-            # ps x | grep 'tg_' | grep -v grep | awk '{print $NF}'
-            # ps x | awk '/tg_/ && !/awk/ && !/grep/ {print "   " $1 "\t" $NF}'
-        else
-            ps | grep 'tg_' | grep -v grep
-        fi
+        # if ps x > /dev/null 2>&1; then
+        #     # ps x | grep '[t]g_'
+        #     ps x | grep 'tg_' | grep -v grep
+        #     # ps x | grep 'tg_' | grep -v grep | awk '{print $1}'
+        #     # ps x | grep 'tg_' | grep -v grep | awk '{print $NF}'
+        #     # ps x | awk '/tg_/ && !/awk/ && !/grep/ {print "   " $1 "\t" $NF}'
+        #     # pgrep -a 'tg_'
+        # else
+        #     ps | grep 'tg_' | grep -v grep
+        # fi
+        pgrep -af 'tg_' | grep -v grep
         divline
         Pause
     ;;
