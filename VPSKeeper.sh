@@ -2392,7 +2392,7 @@ SetupFlow_TG() {
             fi
             ((count++))
         done
-        echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活跃接口:"
+        echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}1,2${NC} 或 ${GR}回车自动检测${NC}活跃接口:"
         read -e -p "请输入统计接口编号: " choice
         # if [[ $choice == *0* ]]; then
         #     tips="$Err 接口编号中没有 0 选项"
@@ -3102,7 +3102,7 @@ SetFlowReport_TG() {
             fi
             ((count++))
         done
-        echo -e "请选择编号进行报告, 例如报告1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活跃接口:"
+        echo -e "请选择编号进行报告, 例如报告1项和2项可输入: ${GR}1,2${NC} 或 ${GR}回车自动检测${NC}活跃接口:"
         read -e -p "请输入统计接口编号: " choice
         # if [[ $choice == *0* ]]; then
         #     tips="$Err 接口编号中没有 0 选项"
@@ -4918,7 +4918,7 @@ T_NETSPEED() {
         ((count++))
     done
     echo -e "请输入对应的编号进行统计测速"
-    echo -en "例如: ${GR}1${NC} 或 ${GR}2${NC} 或 ${GR}12 (合计)${NC} 或 ${GR}回车 (自动检测活跃接口) ${NC}: "
+    echo -en "例如: ${GR}1${NC} 或 ${GR}2${NC} 或 ${GR}1,2 (合计)${NC} 或 ${GR}回车 (自动检测活跃接口) ${NC}: "
     read -er choice
     # if [[ $choice == *0* ]]; then
     #     tips="$Err 接口编号中没有 0 选项"
@@ -5027,6 +5027,7 @@ Err="\${RE}[错误]\${NC}:"
 Tip="\${GR}[提示]\${NC}:"
 
 $(declare -f Remove_B)
+$(declare -f Bytes_K_TGM)
 
 if [ ! -d "$FolderPath" ]; then
     mkdir -p "$FolderPath"
@@ -5060,6 +5061,16 @@ duration=0
 CLEAR_TAG=1
 CLEAR_TAG_OLD=\$CLEAR_TAG
 
+avg_count=0
+max_rx_speed_kb=0
+min_rx_speed_kb=9999999999999
+total_rx_speed_kb=0
+avg_rx_speed_kb=0
+max_tx_speed_kb=0
+min_tx_speed_kb=9999999999999
+total_tx_speed_kb=0
+avg_tx_speed_kb=0
+
 # 定义数组
 declare -A sp_prev_rx_bytes
 declare -A sp_prev_tx_bytes
@@ -5067,8 +5078,8 @@ declare -A sp_current_rx_bytes
 declare -A sp_current_tx_bytes
 
 clear
-echo "实时网速计算中..."
-echo "==========================================="
+echo " 实时网速计算中..."
+echo " =================================================="
 while true; do
 
     # 获取tt秒前数据
@@ -5097,9 +5108,9 @@ while true; do
         sleep_time=\$TT
     fi
     sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
-    echo "==========================================="
+    echo " =================================================="
     # echo -e "间隔: \$sleep_time 秒    时差: \$duration 秒  CLS: \$CLEAR_TAG"
-    echo -e "统计接口: \$show_interfaces"
+    # echo -e "统计接口: \$show_interfaces"
     echo
     echo -e "\${RE}按任意键退出\${NC}"
     sleep \$sleep_time
@@ -5121,28 +5132,62 @@ while true; do
     sp_ov_tx_diff_speed=\$((sp_ov_current_tx_bytes - sp_ov_prev_tx_bytes))
     # rx_speed=\$(awk "BEGIN { speed = \$sp_ov_rx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
     # tx_speed=\$(awk "BEGIN { speed = \$sp_ov_tx_diff_speed / (\$TT * 1024); if (speed >= 1024) { printf \"%.1fMB\", speed/1024 } else { printf \"%.1fKB\", speed } }")
-    rx_speed=\$(awk -v v1="\$sp_ov_rx_diff_speed" -v t1="\$TT" \
-        'BEGIN {
-            speed = v1 / (t1 * 1024)
-            if (speed >= (1024 * 1024)) {
-                printf "%.1fGB", speed/(1024 * 1024)
-            } else if (speed >= 1024) {
-                printf "%.1fMB", speed/1024
-            } else {
-                printf "%.1fKB", speed
-            }
-        }')
-    tx_speed=\$(awk -v v1="\$sp_ov_tx_diff_speed" -v t1="\$TT" \
-        'BEGIN {
-            speed = v1 / (t1 * 1024)
-            if (speed >= (1024 * 1024)) {
-                printf "%.1fGB", speed/(1024 * 1024)
-            } else if (speed >= 1024) {
-                printf "%.1fMB", speed/1024
-            } else {
-                printf "%.1fKB", speed
-            }
-        }')
+
+    ((avg_count++))
+
+    rx_speed_kb=\$(awk -v v1="\$sp_ov_rx_diff_speed" -v t1="\$TT" 'BEGIN { printf "%.1f", v1 / (t1 * 1024) }')
+    if (( \$(awk 'BEGIN {print ("'\$rx_speed_kb'" > "'\$max_rx_speed_kb'")}') )); then
+        max_rx_speed_kb=\$rx_speed_kb
+    fi
+    if (( \$(awk 'BEGIN {print ("'\$rx_speed_kb'" < "'\$min_rx_speed_kb'")}') )); then
+        min_rx_speed_kb=\$rx_speed_kb
+    fi
+    total_rx_speed_kb=\$(awk 'BEGIN {print "'\$total_rx_speed_kb'" + "'\$rx_speed_kb'"}')
+    avg_rx_speed_kb=\$(awk 'BEGIN {printf "%.1f", "'\$total_rx_speed_kb'" / "'\$avg_count'"}')
+
+    rx_speed=\$(Bytes_K_TGM "\$rx_speed_kb")
+    max_rx_speed=\$(Bytes_K_TGM "\$max_rx_speed_kb")
+    min_rx_speed=\$(Bytes_K_TGM "\$min_rx_speed_kb")
+    avg_rx_speed=\$(Bytes_K_TGM "\$avg_rx_speed_kb")
+
+    tx_speed_kb=\$(awk -v v1="\$sp_ov_tx_diff_speed" -v t1="\$TT" 'BEGIN { printf "%.1f", v1 / (t1 * 1024) }')
+    if (( \$(awk 'BEGIN {print ("'\$tx_speed_kb'" > "'\$max_tx_speed_kb'")}') )); then
+        max_tx_speed_kb=\$tx_speed_kb
+    fi
+    if (( \$(awk 'BEGIN {print ("'\$tx_speed_kb'" < "'\$min_tx_speed_kb'")}') )); then
+        min_tx_speed_kb=\$tx_speed_kb
+    fi
+    total_tx_speed_kb=\$(awk 'BEGIN {print "'\$total_tx_speed_kb'" + "'\$tx_speed_kb'"}')
+    avg_tx_speed_kb=\$(awk 'BEGIN {printf "%.1f", "'\$total_tx_speed_kb'" / "'\$avg_count'"}')
+
+    tx_speed=\$(Bytes_K_TGM "\$tx_speed_kb")
+    max_tx_speed=\$(Bytes_K_TGM "\$max_tx_speed_kb")
+    min_tx_speed=\$(Bytes_K_TGM "\$min_tx_speed_kb")
+    avg_tx_speed=\$(Bytes_K_TGM "\$avg_tx_speed_kb")
+
+    # rx_speed=\$(awk -v v1="\$sp_ov_rx_diff_speed" -v t1="\$TT" \
+    #     'BEGIN {
+    #         speed = v1 / (t1 * 1024)
+    #         if (speed >= (1024 * 1024)) {
+    #             printf "%.1fGB", speed/(1024 * 1024)
+    #         } else if (speed >= 1024) {
+    #             printf "%.1fMB", speed/1024
+    #         } else {
+    #             printf "%.1fKB", speed
+    #         }
+    #     }')
+    # tx_speed=\$(awk -v v1="\$sp_ov_tx_diff_speed" -v t1="\$TT" \
+    #     'BEGIN {
+    #         speed = v1 / (t1 * 1024)
+    #         if (speed >= (1024 * 1024)) {
+    #             printf "%.1fGB", speed/(1024 * 1024)
+    #         } else if (speed >= 1024) {
+    #             printf "%.1fMB", speed/1024
+    #         } else {
+    #             printf "%.1fKB", speed
+    #         }
+    #     }')
+
     rx_speed=\$(Remove_B "\$rx_speed")
     tx_speed=\$(Remove_B "\$tx_speed")
 
@@ -5150,15 +5195,43 @@ while true; do
         echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
         CLEAR_TAG=\$((CLEAR_TAG_OLD + 1))
         clear
-        echo -e "\${GRB}实时网速\${NC}                              (\${TT}s)"
-        echo "==========================================="
+        echo -e " \${GRB}实时网速\${NC}                              (\${TT}s)"
+        echo
+        # echo " =================================================="
     else
         echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
     fi
 
-    echo -e "接收: \${GR}\${rx_speed}\${NC} /s      发送: \${GR}\${tx_speed}\${NC} /s"
+    echo -e " 接收: \${GR}\${rx_speed}\${NC} /s          发送: \${GR}\${tx_speed}\${NC} /s"
+    echo " =================================================="
+    echo -e " 统计接口: \$show_interfaces"
+    echo " =================================================="
+
+    # echo "max_rx_speed: \$max_rx_speed  min_rx_speed: \$min_rx_speed  avg_rx_speed: \$avg_rx_speed"
+    # echo "max_tx_speed: \$max_tx_speed  min_tx_speed: \$min_tx_speed  avg_tx_speed: \$avg_tx_speed"
+
+    rmax="MAX: \${GR}\$max_rx_speed\${NC}"
+    rmin="MIN: \${GR}\$min_rx_speed\${NC}"
+    ravg="AVG: \${GR}\$avg_rx_speed\${NC}"
+
+    tmax="MAX: \${GR}\$max_tx_speed\${NC}"
+    tmin="MIN: \${GR}\$min_tx_speed\${NC}"
+    tavg="AVG: \${GR}\$avg_tx_speed\${NC}"
+
+    echo -e " \${GRB}下\${NC} \$rmax   \$rmin   \$ravg"
+    echo " --------------------------------------------------"
+    echo -e " \${GRB}上\${NC} \$tmax   \$tmin   \$tavg"
+
+    # printf " 下行: %-10s  %-10s  %-20s\n" "\$rmax" "\$rmin" "\$ravg"
+    # echo "--------------------------------------------"
+    # printf " 上行: %-10s  %-10s  %-20s\n" "\$tmax" "\$tmin" "\$tavg"
+
+    # printf "%-10s %-10s %-20s\n" "\${a/????/    }" "\$b" "\$c"
+    # printf "%-10s %-10s %-20s\n" "\$a" "\${b/????/    }" "\$c"
+    # printf "%-10s %-10s %-20s\n" "\$a" "\$b" "\${c/????/    }"
+
     echo "接收: \$rx_speed  发送: \$tx_speed" >> \$FolderPath/interface_re.txt
-    echo "===========================================" >> \$FolderPath/interface_re.txt
+    echo "==============================================" >> \$FolderPath/interface_re.txt
 
     CLEAR_TAG=\$((\$CLEAR_TAG - 1))
 done
