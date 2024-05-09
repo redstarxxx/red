@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.240508.2"
+sh_ver="1.240509.1"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
@@ -542,6 +542,7 @@ SetAutoUpdate() {
         fi
     fi
     if [ -z "$input_time" ]; then
+        echo
         input_time="$AutoUpdateTime_de"
     fi
     if [ $(validate_time_format "$input_time") = "invalid" ]; then
@@ -907,6 +908,7 @@ SetupIniFile() {
                         return 1
                     fi
                 else
+                    echo
                     writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
                     echo -e "$Tip 输入为空, 默认最大流量上限为: $FlowThresholdMAX_de"
                 fi
@@ -2264,6 +2266,7 @@ SetupFlow_TG() {
         fi
     fi
     if [ -z "$threshold" ]; then
+        echo
         tips="$Tip 输入为空, 跳过操作."
         return 1
     fi
@@ -2357,6 +2360,7 @@ SetupFlow_TG() {
             return 1
         fi
     else
+        echo
         writeini "FlowThresholdMAX" "$FlowThresholdMAX_de"
         echo -e "$Tip 输入为空, 默认最大流量上限为: $FlowThresholdMAX_de"
     fi
@@ -2390,28 +2394,51 @@ SetupFlow_TG() {
         done
         echo -e "请选择编号进行统计, 例如统计1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活跃接口:"
         read -e -p "请输入统计接口编号: " choice
-        if [[ $choice == *0* ]]; then
-            tips="$Err 接口编号中没有 0 选项"
-            return 1
-        fi
+        # if [[ $choice == *0* ]]; then
+        #     tips="$Err 接口编号中没有 0 选项"
+        #     return 1
+        # fi
         if [ ! -z "$choice" ]; then
-            choice="${choice//[, ]/}"
-            for (( i=0; i<${#choice}; i++ )); do
-            char="${choice:$i:1}"
-            if [[ "$char" =~ [0-9] ]]; then
-                choice_array+=("$char")
+            # choice="${choice//[, ]/}"
+            # for (( i=0; i<${#choice}; i++ )); do
+            # char="${choice:$i:1}"
+            # if [[ "$char" =~ [0-9] ]]; then
+            #     choice_array+=("$char")
+            # fi
+            # done
+            # # echo "解析后的接口编号数组: ${choice_array[@]}"
+            # for item in "${choice_array[@]}"; do
+            #     index=$((item - 1))
+            #     if [ -z "${columns_1_array[index]}" ]; then
+            #         tips="$Err 错误: 输入的编号 $item 无效或超出范围."
+            #         return 1
+            #     else
+            #         interfaces_ST+=("${columns_1_array[index]}")
+            #     fi
+            # done
+
+            if [ "$choice" == "0" ]; then
+                tips="$Err 输入错误, 没有0选择."
+                return 1
             fi
-            done
-            # echo "解析后的接口编号数组: ${choice_array[@]}"
+
+            if ! [[ "$choice" =~ ^[0-9,]+$ ]]; then
+                tips="$Err 输入的选项无效, 请输入有效的数字选项或使用逗号分隔多个数字选项."
+                return 1
+            fi
+
+            choice="${choice//[, ]/,}"  # 将所有逗号后的空格替换成单逗号
+            IFS=',' read -ra choice_array <<< "$choice"  # 使用逗号作为分隔符将输入拆分成数组
+
             for item in "${choice_array[@]}"; do
-                index=$((item - 1))
-                if [ -z "${columns_1_array[index]}" ]; then
-                    tips="$Err 错误: 输入的编号 $item 无效或超出范围."
+                if [ "$item" -eq 0 ] || [ "$item" -gt "${#interfaces_all[@]}" ]; then
+                    tips="$Err 输入错误, 输入的选项 $item 无效或超出范围。"
                     return 1
-                else
-                    interfaces_ST+=("${columns_1_array[index]}")
                 fi
+                index=$((item - 1))
+                interfaces_ST+=("${columns_1_array[index]}")
             done
+
             # for ((i = 0; i < ${#interfaces_ST[@]}; i++)); do
             #     w_interfaces_ST+="${interfaces_ST[$i]}"
             #     if ((i < ${#interfaces_ST[@]} - 1)); then
@@ -3077,28 +3104,51 @@ SetFlowReport_TG() {
         done
         echo -e "请选择编号进行报告, 例如报告1项和2项可输入: ${GR}12${NC} 或 ${GR}回车自动检测${NC}活跃接口:"
         read -e -p "请输入统计接口编号: " choice
-        if [[ $choice == *0* ]]; then
-            tips="$Err 接口编号中没有 0 选项"
-            return 1
-        fi
+        # if [[ $choice == *0* ]]; then
+        #     tips="$Err 接口编号中没有 0 选项"
+        #     return 1
+        # fi
         if [ ! -z "$choice" ]; then
-            choice="${choice//[, ]/}"
-            for (( i=0; i<${#choice}; i++ )); do
-            char="${choice:$i:1}"
-            if [[ "$char" =~ [0-9] ]]; then
-                choice_array+=("$char")
+            # choice="${choice//[, ]/}"
+            # for (( i=0; i<${#choice}; i++ )); do
+            # char="${choice:$i:1}"
+            # if [[ "$char" =~ [0-9] ]]; then
+            #     choice_array+=("$char")
+            # fi
+            # done
+            # # echo "解析后的接口编号数组: ${choice_array[@]}"
+            # for item in "${choice_array[@]}"; do
+            #     index=$((item - 1))
+            #     if [ -z "${columns_1_array[index]}" ]; then
+            #         tips="$Err 错误: 输入的编号 $item 无效或超出范围."
+            #         return 1
+            #     else
+            #         interfaces_RP+=("${columns_1_array[index]}")
+            #     fi
+            # done
+
+            if [ "$choice" == "0" ]; then
+                tips="$Err 输入错误, 没有0选择."
+                return 1
             fi
-            done
-            # echo "解析后的接口编号数组: ${choice_array[@]}"
+
+            if ! [[ "$choice" =~ ^[0-9,]+$ ]]; then
+                tips="$Err 输入的选项无效, 请输入有效的数字选项或使用逗号分隔多个数字选项."
+                return 1
+            fi
+
+            choice="${choice//[, ]/,}"  # 将所有逗号后的空格替换成单逗号
+            IFS=',' read -ra choice_array <<< "$choice"  # 使用逗号作为分隔符将输入拆分成数组
+
             for item in "${choice_array[@]}"; do
-                index=$((item - 1))
-                if [ -z "${columns_1_array[index]}" ]; then
-                    tips="$Err 错误: 输入的编号 $item 无效或超出范围."
+                if [ "$item" -eq 0 ] || [ "$item" -gt "${#interfaces_all[@]}" ]; then
+                    tips="$Err 输入错误, 输入的选项 $item 无效或超出范围。"
                     return 1
-                else
-                    interfaces_RP+=("${columns_1_array[index]}")
                 fi
+                index=$((item - 1))
+                interfaces_RP+=("${columns_1_array[index]}")
             done
+
             # for ((i = 0; i < ${#interfaces_RP[@]}; i++)); do
             #     w_interfaces_RP+="${interfaces_RP[$i]}"
             #     if ((i < ${#interfaces_RP[@]} - 1)); then
@@ -3865,20 +3915,20 @@ SetupDDNS_TG() {
     # if [ "$autorun" == "false" ]; then
     echo -en "请输入 DDNS 的 IP 格式: ${GR}4.${NC}IPv4 ${GR}6.${NC}IPv6 : "
     read -er input_iptype
-    if [ -z "$input_iptype" ]; then echo; fi
     if [ "$input_iptype" == "4" ]; then
         CFDDNS_IP_TYPE="A"
     elif [ "$input_iptype" == "6" ]; then
         CFDDNS_IP_TYPE="AAAA"
     else
+        echo
         tips="$Err 输入有误, 取消操作."
         return 1
     fi
     echo -en "请输入 CF 帐号名 (邮箱) : "
     read -er input_email
-    if [ -z "$input_email" ]; then echo; fi
     email_regex="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     if [ -z "$input_email" ] || [[ ! $input_email =~ $email_regex ]]; then
+        echo
         tips="$Err 输入有误, 取消操作."
         return 1
     else
@@ -3916,12 +3966,12 @@ SetupDDNS_TG() {
     echo -e "模式: ${GR}1.${NC}当自身IP发生变化时 ${GR}2.${NC}当与域名IP对比不匹配时"
     echo -en "请选择 DDNS 模式 ( 回车默认 1 ) : "
     read -er input_choice
-    if [ -z "$input_choice" ]; then echo; fi
     if [ "$input_choice" == "1" ] || [ -z "$input_choice" ]; then
         CFDDNS_MODE="1"
     elif [ "$input_choice" == "2" ]; then
         CFDDNS_MODE="2"
     else
+        echo
         tips="$Err 输入有误, 取消操作."
         return 1
     fi
@@ -3930,12 +3980,12 @@ SetupDDNS_TG() {
     echo -e "是否开启 DDNS 守护? ${GR}Y.${NC}开启 ${GR}N.${NC}不开启"
     echo -en "请选择 DDNS 模式 ( 回车默认 ${GR}开启${NC} ) : "
     read -er keeper_choice
-    if [ -z "$keeper_choice" ]; then echo; fi
     if [ "$keeper_choice" == "y" ] || [ "$keeper_choice" == "Y" ] || [ -z "$keeper_choice" ]; then
         CFDDNS_KEEPER="true"
     elif [ "$keeper_choice" == "n" ] || [ "$keeper_choice" == "N" ]; then
         CFDDNS_KEEPER="false"
     else
+        echo
         tips="$Err 输入有误, 取消操作."
         return 1
     fi
@@ -4870,28 +4920,51 @@ T_NETSPEED() {
     echo -e "请输入对应的编号进行统计测速"
     echo -en "例如: ${GR}1${NC} 或 ${GR}2${NC} 或 ${GR}12 (合计)${NC} 或 ${GR}回车 (自动检测活跃接口) ${NC}: "
     read -er choice
-    if [[ $choice == *0* ]]; then
-        tips="$Err 接口编号中没有 0 选项"
-        return 1
-    fi
+    # if [[ $choice == *0* ]]; then
+    #     tips="$Err 接口编号中没有 0 选项"
+    #     return 1
+    # fi
     if [ ! -z "$choice" ]; then
-        choice="${choice//[, ]/}"
-        for (( i=0; i<${#choice}; i++ )); do
-        char="${choice:$i:1}"
-        if [[ "$char" =~ [0-9] ]]; then
-            choice_array+=("$char")
+        # choice="${choice//[, ]/}"
+        # for (( i=0; i<${#choice}; i++ )); do
+        # char="${choice:$i:1}"
+        # if [[ "$char" =~ [0-9] ]]; then
+        #     choice_array+=("$char")
+        # fi
+        # done
+        # # echo "解析后的接口编号数组: ${choice_array[@]}"
+        # for item in "${choice_array[@]}"; do
+        #     index=$((item - 1))
+        #     if [ -z "${columns_1_array[index]}" ]; then
+        #         tips="$Err 错误: 输入的编号 $item 无效或超出范围."
+        #         return 1
+        #     else
+        #         interfaces_re+=("${columns_1_array[index]}")
+        #     fi
+        # done
+
+        if [ "$choice" == "0" ]; then
+            tips="$Err 输入错误, 没有0选择."
+            return 1
         fi
-        done
-        # echo "解析后的接口编号数组: ${choice_array[@]}"
+
+        if ! [[ "$choice" =~ ^[0-9,]+$ ]]; then
+            tips="$Err 输入的选项无效, 请输入有效的数字选项或使用逗号分隔多个数字选项."
+            return 1
+        fi
+
+        choice="${choice//[, ]/,}"  # 将所有逗号后的空格替换成单逗号
+        IFS=',' read -ra choice_array <<< "$choice"  # 使用逗号作为分隔符将输入拆分成数组
+
         for item in "${choice_array[@]}"; do
-            index=$((item - 1))
-            if [ -z "${columns_1_array[index]}" ]; then
-                tips="$Err 错误: 输入的编号 $item 无效或超出范围."
+            if [ "$item" -eq 0 ] || [ "$item" -gt "${#interfaces_all[@]}" ]; then
+                tips="$Err 输入错误, 输入的选项 $item 无效或超出范围。"
                 return 1
-            else
-                interfaces_re+=("${columns_1_array[index]}")
             fi
+            index=$((item - 1))
+            interfaces_re+=("${columns_1_array[index]}")
         done
+
         # for ((i = 0; i < ${#interfaces_re[@]}; i++)); do
         #     show_interfaces_re+="${interfaces_re[$i]}"
         #     if ((i < ${#interfaces_re[@]} - 1)); then
@@ -4902,6 +4975,7 @@ T_NETSPEED() {
         # echo "确认选择接口: interfaces_re: ${interfaces_re[@]}  show_interfaces_re: $show_interfaces_re"
         # Pause
     else
+        echo
         # interfaces_all=$(ip -br link | awk '{print $1}' | tr '\n' ' ')
         active_interfaces=()
         echo "检查网络接口流量情况..."
@@ -4933,6 +5007,7 @@ T_NETSPEED() {
     echo -en "请输入统计间隔时间 (回车默认 ${GR}2${NC} 秒) : "
     read -er inputtt
     if [ -z "$inputtt" ]; then
+        echo
         nstt=2
     else
         if [[ $inputtt =~ ^[0-9]+(\.[0-9])?$ ]]; then
@@ -5404,6 +5479,7 @@ else
 fi
 echo -en "请输入选项 [${GR}0-9${NC}|${GR}t${NC}|${GR}h${NC}|${GR}o${NC}|${GR}c${NC}|${GR}f${NC}|${GR}u${NC}|${GR}v${NC}|${GR}x${NC}] : "
 read -er num
+if [ -z "$num" ]; then echo; fi
 case "$num" in
     0)
         CheckAndCreateFolder
