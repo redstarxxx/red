@@ -4387,6 +4387,7 @@ EOF
 
 FolderPath="$FolderPath"
 $(declare -f getpid)
+$(declare -f addcrontab)
 
 for ((i=0; i<3; i++)); do
 
@@ -4396,6 +4397,11 @@ for ((i=0; i<3; i++)); do
         current_date=\$(date +"%Y.%m.%d %T")
         echo "\$current_date : 后台未检查到 tg_ddns.sh 进程, 正在启动中..."
         nohup \$FolderPath/tg_ddns.sh "re" > \$FolderPath/tg_ddns.log 2>&1 &
+    fi
+
+    if ! crontab -l | grep -q "$FolderPath/tg_ddnskp.sh"; then
+        addcrontab "*/5 * * * * bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &"
+        /etc/init.d/cron restart > /dev/null 2>&1
     fi
 
 sleep 3
@@ -4443,8 +4449,6 @@ EOF
 # EOF
 #         systemctl daemon-reload
 #         systemctl enable tg_ddnskp.service > /dev/null
-
-
         cat > /etc/systemd/system/tg_ddrun.service << EOF
 [Unit]
 Description=Your Script Description
