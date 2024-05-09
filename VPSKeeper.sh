@@ -5136,12 +5136,14 @@ while true; do
     ((avg_count++))
 
     rx_speed_kb=\$(awk -v v1="\$sp_ov_rx_diff_speed" -v t1="\$TT" 'BEGIN { printf "%.1f", v1 / (t1 * 1024) }')
-    if (( \$(awk 'BEGIN {print ("'\$rx_speed_kb'" > "'\$max_rx_speed_kb'")}') )); then
+
+    if (( \$(awk 'BEGIN {print ('\$rx_speed_kb' > '\$max_rx_speed_kb') ? "1" : "0"}') )); then
         max_rx_speed_kb=\$rx_speed_kb
     fi
-    if (( \$(awk 'BEGIN {print ("'\$rx_speed_kb'" < "'\$min_rx_speed_kb'")}') )); then
+    if (( \$(awk 'BEGIN {print ('\$rx_speed_kb' < '\$min_rx_speed_kb') ? "1" : "0"}') )); then
         min_rx_speed_kb=\$rx_speed_kb
     fi
+
     total_rx_speed_kb=\$(awk 'BEGIN {print "'\$total_rx_speed_kb'" + "'\$rx_speed_kb'"}')
     avg_rx_speed_kb=\$(awk 'BEGIN {printf "%.1f", "'\$total_rx_speed_kb'" / "'\$avg_count'"}')
 
@@ -5151,12 +5153,14 @@ while true; do
     avg_rx_speed=\$(Bytes_K_TGM "\$avg_rx_speed_kb")
 
     tx_speed_kb=\$(awk -v v1="\$sp_ov_tx_diff_speed" -v t1="\$TT" 'BEGIN { printf "%.1f", v1 / (t1 * 1024) }')
-    if (( \$(awk 'BEGIN {print ("'\$tx_speed_kb'" > "'\$max_tx_speed_kb'")}') )); then
+
+    if (( \$(awk 'BEGIN {print ('\$tx_speed_kb' > '\$max_tx_speed_kb') ? "1" : "0"}') )); then
         max_tx_speed_kb=\$tx_speed_kb
     fi
-    if (( \$(awk 'BEGIN {print ("'\$tx_speed_kb'" < "'\$min_tx_speed_kb'")}') )); then
+    if (( \$(awk 'BEGIN {print ('\$tx_speed_kb' < '\$min_tx_speed_kb') ? "1" : "0"}') )); then
         min_tx_speed_kb=\$tx_speed_kb
     fi
+
     total_tx_speed_kb=\$(awk 'BEGIN {print "'\$total_tx_speed_kb'" + "'\$tx_speed_kb'"}')
     avg_tx_speed_kb=\$(awk 'BEGIN {printf "%.1f", "'\$total_tx_speed_kb'" / "'\$avg_count'"}')
 
@@ -5190,6 +5194,12 @@ while true; do
 
     rx_speed=\$(Remove_B "\$rx_speed")
     tx_speed=\$(Remove_B "\$tx_speed")
+    max_rx_speed=\$(Remove_B "\$max_rx_speed")
+    min_rx_speed=\$(Remove_B "\$min_rx_speed")
+    avg_rx_speed=\$(Remove_B "\$avg_rx_speed")
+    max_tx_speed=\$(Remove_B "\$max_tx_speed")
+    min_tx_speed=\$(Remove_B "\$min_tx_speed")
+    avg_tx_speed=\$(Remove_B "\$avg_tx_speed")
 
     if [ \$CLEAR_TAG -eq 1 ]; then
         echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
@@ -5202,33 +5212,28 @@ while true; do
         echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
     fi
 
-    echo -e " 接收: \${GR}\${rx_speed}\${NC} /s          发送: \${GR}\${tx_speed}\${NC} /s"
+    echo -e " 接收: \${GR}\${rx_speed}\${NC} /s         发送: \${GR}\${tx_speed}\${NC} /s"
     echo " =================================================="
     echo -e " 统计接口: \$show_interfaces"
     echo " =================================================="
 
-    # echo "max_rx_speed: \$max_rx_speed  min_rx_speed: \$min_rx_speed  avg_rx_speed: \$avg_rx_speed"
-    # echo "max_tx_speed: \$max_tx_speed  min_tx_speed: \$min_tx_speed  avg_tx_speed: \$avg_tx_speed"
+    rmax="MAX: \${GR}\$max_rx_speed\${NC} /s"
+    rmin="MIN: \${GR}\$min_rx_speed\${NC} /s"
+    ravg="AVG: \${GR}\$avg_rx_speed\${NC} /s"
 
-    rmax="MAX: \${GR}\$max_rx_speed\${NC}"
-    rmin="MIN: \${GR}\$min_rx_speed\${NC}"
-    ravg="AVG: \${GR}\$avg_rx_speed\${NC}"
-
-    tmax="MAX: \${GR}\$max_tx_speed\${NC}"
-    tmin="MIN: \${GR}\$min_tx_speed\${NC}"
-    tavg="AVG: \${GR}\$avg_tx_speed\${NC}"
+    tmax="MAX: \${GR}\$max_tx_speed\${NC} /s"
+    tmin="MIN: \${GR}\$min_tx_speed\${NC} /s"
+    tavg="AVG: \${GR}\$avg_tx_speed\${NC} /s"
 
     echo -e " \${GRB}下\${NC} \$rmax   \$rmin   \$ravg"
     echo " --------------------------------------------------"
     echo -e " \${GRB}上\${NC} \$tmax   \$tmin   \$tavg"
 
-    # printf " 下行: %-10s  %-10s  %-20s\n" "\$rmax" "\$rmin" "\$ravg"
-    # echo "--------------------------------------------"
-    # printf " 上行: %-10s  %-10s  %-20s\n" "\$tmax" "\$tmin" "\$tavg"
+    echo " =================================================="
+    echo "验证:"
+    echo "max_rx_speed_kb: \$max_rx_speed_kb  min_rx_speed_kb: \$min_rx_speed_kb"
+    echo "max_tx_speed_kb: \$max_tx_speed_kb  min_tx_speed_kb: \$min_tx_speed_kb"
 
-    # printf "%-10s %-10s %-20s\n" "\${a/????/    }" "\$b" "\$c"
-    # printf "%-10s %-10s %-20s\n" "\$a" "\${b/????/    }" "\$c"
-    # printf "%-10s %-10s %-20s\n" "\$a" "\$b" "\${c/????/    }"
 
     echo "接收: \$rx_speed  发送: \$tx_speed" >> \$FolderPath/interface_re.txt
     echo "==============================================" >> \$FolderPath/interface_re.txt
