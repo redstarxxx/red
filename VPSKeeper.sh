@@ -5229,12 +5229,6 @@ while true; do
     echo " --------------------------------------------------"
     echo -e " \${GRB}上\${NC} \$tmax   \$tmin   \$tavg"
 
-    echo " =================================================="
-    echo "验证:"
-    echo "max_rx_speed_kb: \$max_rx_speed_kb  min_rx_speed_kb: \$min_rx_speed_kb"
-    echo "max_tx_speed_kb: \$max_tx_speed_kb  min_tx_speed_kb: \$min_tx_speed_kb"
-
-
     echo "接收: \$rx_speed  发送: \$tx_speed" >> \$FolderPath/interface_re.txt
     echo "==============================================" >> \$FolderPath/interface_re.txt
 
