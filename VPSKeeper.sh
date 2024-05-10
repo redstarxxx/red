@@ -456,8 +456,17 @@ CheckSetup() {
     disk_menu_tag=$(Checkprocess "tg_disk.sh")
     flow_menu_tag=$(Checkprocess "tg_flow.sh")
     flrp_menu_tag=$(Checkprocess "tg_flrp.sh")
-    ddns_menu_tag=$(Checkprocess "tg_ddns.sh")
+    # ddns_menu_tag=$(Checkprocess "tg_ddns.sh")
 
+    if [ -f $FolderPath/tg_ddns.sh ]; then
+        if pgrep -af "$FolderPath/tg_ddns.sh" | grep -v grep > /dev/null 2>&1; then
+            ddns_menu_tag="$SETTAG"
+        else
+            ddns_menu_tag="$UNSETTAG"
+        fi
+    else
+        ddns_menu_tag="$UNSETTAG"
+    fi
     if [ -f $FolderPath/tg_autoud.sh ]; then
         if crontab -l | grep -q "$FolderPath/tg_autoud.sh"; then
             autoud_menu_tag="$SETTAG"
