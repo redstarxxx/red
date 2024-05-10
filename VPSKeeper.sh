@@ -2195,9 +2195,10 @@ Bytes_M_TGK() {
     elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
         bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGB", value / 1024 }')
     elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue < 1) }'; then
-        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.0fKB", value * 1024 }')
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fKB", value * 1024 }')
     else
-        bitvalue="${bitvalue}MB"
+        # bitvalue="${bitvalue}MB"
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMB", value }')
     fi
     echo "$bitvalue"
 }
@@ -2211,7 +2212,8 @@ Bytes_K_TGM() {
     elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
         bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMB", value / 1024 }')
     else
-        bitvalue="${bitvalue}KB"
+        # bitvalue="${bitvalue}KB"
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fKB", value }')
     fi
     echo "$bitvalue"
 }
@@ -2225,7 +2227,8 @@ Bytes_K_TGMi() {
     elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
         bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMiB", value / 1024 }')
     else
-        bitvalue="${bitvalue}KiB"
+        # bitvalue="${bitvalue}KiB"
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fKiB", value }')
     fi
     echo "$bitvalue"
 }
@@ -2239,7 +2242,8 @@ Bit_K_TGMi() {
     elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
         bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMibit", value / 1024 }')
     else
-        bitvalue="${bitvalue}Kibit"
+        # bitvalue="${bitvalue}Kibit"
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fKibit", value }')
     fi
     echo "$bitvalue"
 }
