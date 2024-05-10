@@ -4867,6 +4867,42 @@ VIEWLOG() {
     fi
 }
 
+# 查看*.service文件
+VIEWSERVICE() {
+    if ! command -v systemd &>/dev/null; then
+        tips="$Err 系统未检测到 \"systemd\" 程序, 无法设置关机通知."
+        return 1
+    fi
+    ServiceFiles=( $(find /etc/systemd/system -name "tg_*") )
+    servicen=1
+    divline
+    echo -e "${GRB}查看service:${NC}"
+    for file in "${ServiceFiles[@]}"; do
+        # echo -e " ${GR}$servicen${NC} \t$file"
+        if ((servicen % 2 == 0)); then
+            echo -e " ${GR}$servicen \t$file${NC}"
+        else
+            echo -e " $servicen \t$file"
+        fi
+        ((servicen++))
+    done
+    divline
+    read -e -p "请输入要 [查看] 的文件序号 : " servicenum
+    if [[ "$servicenum" =~ ^[0-9]+$ ]]; then
+        if [[ -z "${ServiceFiles[$((servicenum-1))]}" ]] || [ "$servicenum" -eq 0 ]; then
+            tips="$Tip 输入有误 或 未找到对应的文件!"
+        else
+            divline
+            echo -e "${GR}${ServiceFiles[$((servicenum-1))]} 内容如下:${NC}"
+            cat ${ServiceFiles[$((servicenum-1))]}
+            divline
+            Pause
+        fi
+    else
+        tips="$Tip 必须输入对应的数字序号!"
+    fi
+}
+
 # 跟踪查看*.log文件
 T_VIEWLOG() {
     LogFiles=( $(find ${FolderPath} -name "*.log") )
@@ -5775,7 +5811,9 @@ case "$num" in
         echo -e "l     - 查看log日志文件"
         echo -e "lt    - 追踪查看log日志文件"
         echo -e "ld    - 删除log日志文件"
-        echo -e "ss    - 实时网速"
+        echo -e "vs    - 查看service文件"
+        echo -e "s     - 实时网速"
+        echo -e "ss    - 实时网速(科学统计)"
         echo -e "vb    - 查询后台执行中的 tg_"
         echo -e "vc    - 查询 crontab 中的 tg_"
         echo -e "ud    - 手动更新脚本 (国内先设置代理)"
@@ -5817,6 +5855,9 @@ case "$num" in
     ;;
     lt)
         T_VIEWLOG
+    ;;
+    vs)
+        VIEWSERVICE
     ;;
     s)
         ss_s=""
