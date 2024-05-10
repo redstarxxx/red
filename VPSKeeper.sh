@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.240509.2"
+sh_ver="1.240510.1"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
@@ -2203,6 +2203,34 @@ Bytes_K_TGM() {
         bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMB", value / 1024 }')
     else
         bitvalue="${bitvalue}KB"
+    fi
+    echo "$bitvalue"
+}
+
+Bytes_K_TGMi() {
+    bitvalue="$1"
+    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024 * 1024)) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fTiB", value / (1024 * 1024 * 1024) }')
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024)) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGiB", value / (1024 * 1024) }')
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMiB", value / 1024 }')
+    else
+        bitvalue="${bitvalue}KiB"
+    fi
+    echo "$bitvalue"
+}
+
+Bit_K_TGMi() {
+    bitvalue="$1"
+    if awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024 * 1024)) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fTibit", value / (1024 * 1024 * 1024) }')
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= (1024 * 1024)) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fGibit", value / (1024 * 1024) }')
+    elif awk -v bitvalue="$bitvalue" 'BEGIN { exit !(bitvalue >= 1024) }'; then
+        bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fMibit", value / 1024 }')
+    else
+        bitvalue="${bitvalue}Kibit"
     fi
     echo "$bitvalue"
 }
@@ -5029,6 +5057,13 @@ Tip="\${GR}[提示]\${NC}:"
 $(declare -f Remove_B)
 $(declare -f Bytes_K_TGM)
 
+ss_tag=""
+if [ "$ss_s" == "st" ]; then
+    ss_tag="st"
+    $(declare -f Bytes_K_TGMi)
+    $(declare -f Bit_K_TGMi)
+fi
+
 if [ ! -d "$FolderPath" ]; then
     mkdir -p "$FolderPath"
 fi
@@ -5152,6 +5187,24 @@ while true; do
     min_rx_speed=\$(Bytes_K_TGM "\$min_rx_speed_kb")
     avg_rx_speed=\$(Bytes_K_TGM "\$avg_rx_speed_kb")
 
+    if [ "\$ss_tag" == "st" ]; then
+
+        rx_speedi=\$(Bytes_K_TGMi "\$rx_speed_kb")
+        max_rx_speedi=\$(Bytes_K_TGMi "\$max_rx_speed_kb")
+        min_rx_speedi=\$(Bytes_K_TGMi "\$min_rx_speed_kb")
+        avg_rx_speedi=\$(Bytes_K_TGMi "\$avg_rx_speed_kb")
+        rx_speedb=\$(Bit_K_TGMi "\$(awk 'BEGIN {printf "%.1f", "'\$rx_speed_kb'" * 8}')")
+        max_rx_speedb=\$(Bit_K_TGMi "\$(awk 'BEGIN {printf "%.1f", "'\$max_rx_speed_kb'" * 8}')")
+        min_rx_speedb=\$(Bit_K_TGMi "\$(awk 'BEGIN {printf "%.1f", "'\$min_rx_speed_kb'" * 8}')")
+        avg_rx_speedb=\$(Bit_K_TGMi "\$(awk 'BEGIN {printf "%.1f", "'\$avg_rx_speed_kb'" * 8}')")
+
+    else
+        rx_speed=\$(Bytes_K_TGM "\$rx_speed_kb")
+        max_rx_speed=\$(Bytes_K_TGM "\$max_rx_speed_kb")
+        min_rx_speed=\$(Bytes_K_TGM "\$min_rx_speed_kb")
+        avg_rx_speed=\$(Bytes_K_TGM "\$avg_rx_speed_kb")
+    fi
+
     tx_speed_kb=\$(awk -v v1="\$sp_ov_tx_diff_speed" -v t1="\$TT" 'BEGIN { printf "%.1f", v1 / (t1 * 1024) }')
 
     if (( \$(awk 'BEGIN {print ('\$tx_speed_kb' > '\$max_tx_speed_kb') ? "1" : "0"}') )); then
@@ -5164,10 +5217,23 @@ while true; do
     total_tx_speed_kb=\$(awk 'BEGIN {print "'\$total_tx_speed_kb'" + "'\$tx_speed_kb'"}')
     avg_tx_speed_kb=\$(awk 'BEGIN {printf "%.1f", "'\$total_tx_speed_kb'" / "'\$avg_count'"}')
 
-    tx_speed=\$(Bytes_K_TGM "\$tx_speed_kb")
-    max_tx_speed=\$(Bytes_K_TGM "\$max_tx_speed_kb")
-    min_tx_speed=\$(Bytes_K_TGM "\$min_tx_speed_kb")
-    avg_tx_speed=\$(Bytes_K_TGM "\$avg_tx_speed_kb")
+    if [ "\$ss_tag" == "st" ]; then
+
+        tx_speedi=\$(Bytes_K_TGMi "\$tx_speed_kb")
+        max_tx_speedi=\$(Bytes_K_TGMi "\$max_tx_speed_kb")
+        min_tx_speedi=\$(Bytes_K_TGMi "\$min_tx_speed_kb")
+        avg_tx_speedi=\$(Bytes_K_TGMi "\$avg_tx_speed_kb")
+        tx_speedb=\$(Bit_K_TGMi "\$(awk 'BEGIN {printf "%.1f", "'\$tx_speed_kb'" * 8}')")
+        max_tx_speedb=\$(Bit_K_TGMi "\$(awk 'BEGIN {printf "%.1f", "'\$max_tx_speed_kb'" * 8}')")
+        min_tx_speedb=\$(Bit_K_TGMi "\$(awk 'BEGIN {printf "%.1f", "'\$min_tx_speed_kb'" * 8}')")
+        avg_tx_speedb=\$(Bit_K_TGMi "\$(awk 'BEGIN {printf "%.1f", "'\$avg_tx_speed_kb'" * 8}')")
+
+    else
+        tx_speed=\$(Bytes_K_TGM "\$tx_speed_kb")
+        max_tx_speed=\$(Bytes_K_TGM "\$max_tx_speed_kb")
+        min_tx_speed=\$(Bytes_K_TGM "\$min_tx_speed_kb")
+        avg_tx_speed=\$(Bytes_K_TGM "\$avg_tx_speed_kb")
+    fi
 
     # rx_speed=\$(awk -v v1="\$sp_ov_rx_diff_speed" -v t1="\$TT" \
     #     'BEGIN {
@@ -5192,45 +5258,57 @@ while true; do
     #         }
     #     }')
 
-    rx_speed=\$(Remove_B "\$rx_speed")
-    tx_speed=\$(Remove_B "\$tx_speed")
-    max_rx_speed=\$(Remove_B "\$max_rx_speed")
-    min_rx_speed=\$(Remove_B "\$min_rx_speed")
-    avg_rx_speed=\$(Remove_B "\$avg_rx_speed")
-    max_tx_speed=\$(Remove_B "\$max_tx_speed")
-    min_tx_speed=\$(Remove_B "\$min_tx_speed")
-    avg_tx_speed=\$(Remove_B "\$avg_tx_speed")
-
     if [ \$CLEAR_TAG -eq 1 ]; then
         echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
         CLEAR_TAG=\$((CLEAR_TAG_OLD + 1))
         clear
-        echo -e " \${GRB}实时网速\${NC}                              (\${TT}s)"
-        echo
-        # echo " =================================================="
+        echo -e " \${GRB}实时网速\${NC}                                 (\${TT}s)"
+        echo " =================================================="
     else
         echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
     fi
 
-    echo -e " 接收: \${GR}\${rx_speed}\${NC} /s         发送: \${GR}\${tx_speed}\${NC} /s"
-    echo " =================================================="
-    echo -e " 统计接口: \$show_interfaces"
-    echo " =================================================="
+    if [ "\$ss_tag" == "st" ]; then
+        echo -e "   接收: \${GR}\${rx_speedi}\${NC} /s   ( \${GR}\${rx_speedb}\${NC} /s )"
+        echo -e "   发送: \${GR}\${tx_speedi}\${NC} /s   ( \${GR}\${tx_speedb}\${NC} /s )"
+        echo " =================================================="
+        echo -e " 统计接口: \$show_interfaces"
+        echo " =================================================="
 
-    rmax="MAX: \${GR}\$max_rx_speed\${NC} /s"
-    rmin="MIN: \${GR}\$min_rx_speed\${NC} /s"
-    ravg="AVG: \${GR}\$avg_rx_speed\${NC} /s"
+        echo -e " \${GRB}下\${NC}"
+        echo -e "   MAX: \${GR}\$max_rx_speedi\${NC} /s   ( \${GR}\$max_rx_speedb\${NC} /s )"
+        echo -e "   MIN: \${GR}\$min_rx_speedi\${NC} /s   ( \${GR}\$min_rx_speedb\${NC} /s )"
+        echo -e "   AVG: \${GR}\$avg_rx_speedi\${NC} /s   ( \${GR}\$avg_rx_speedb\${NC} /s )"
+        echo " --------------------------------------------------"
+        echo -e " \${GRB}上\${NC}"
+        echo -e "   MAX: \${GR}\$max_tx_speedi\${NC} /s   ( \${GR}\$max_tx_speedb\${NC} /s )"
+        echo -e "   MIN: \${GR}\$min_tx_speedi\${NC} /s   ( \${GR}\$min_tx_speedb\${NC} /s )"
+        echo -e "   AVG: \${GR}\$avg_tx_speedi\${NC} /s   ( \${GR}\$avg_tx_speedb\${NC} /s )"
 
-    tmax="MAX: \${GR}\$max_tx_speed\${NC} /s"
-    tmin="MIN: \${GR}\$min_tx_speed\${NC} /s"
-    tavg="AVG: \${GR}\$avg_tx_speed\${NC} /s"
+        echo "接收: \$rx_speedi  发送: \$tx_speedi" >> \$FolderPath/interface_re.txt
+        echo "==============================================" >> \$FolderPath/interface_re.txt
+    else
+        rx_speed=\$(Remove_B "\$rx_speed")
+        tx_speed=\$(Remove_B "\$tx_speed")
+        max_rx_speed=\$(Remove_B "\$max_rx_speed")
+        min_rx_speed=\$(Remove_B "\$min_rx_speed")
+        avg_rx_speed=\$(Remove_B "\$avg_rx_speed")
+        max_tx_speed=\$(Remove_B "\$max_tx_speed")
+        min_tx_speed=\$(Remove_B "\$min_tx_speed")
+        avg_tx_speed=\$(Remove_B "\$avg_tx_speed")
 
-    echo -e " \${GRB}下\${NC} \$rmax   \$rmin   \$ravg"
-    echo " --------------------------------------------------"
-    echo -e " \${GRB}上\${NC} \$tmax   \$tmin   \$tavg"
+        echo -e " 接收: \${GR}\${rx_speed}\${NC} /s         发送: \${GR}\${tx_speed}\${NC} /s"
+        echo " =================================================="
+        echo -e " 统计接口: \$show_interfaces"
+        echo " =================================================="
 
-    echo "接收: \$rx_speed  发送: \$tx_speed" >> \$FolderPath/interface_re.txt
-    echo "==============================================" >> \$FolderPath/interface_re.txt
+        echo -e " \${GRB}下\${NC} MAX: \${GR}\$max_rx_speed\${NC} /s   MIN: \${GR}\$min_rx_speed\${NC} /s   AVG: \${GR}\$avg_rx_speed\${NC} /s"
+        echo " --------------------------------------------------"
+        echo -e " \${GRB}上\${NC} MAX: \${GR}\$max_tx_speed\${NC} /s   MIN: \${GR}\$min_tx_speed\${NC} /s   AVG: \${GR}\$avg_tx_speed\${NC} /s"
+
+        echo "接收: \$rx_speed  发送: \$tx_speed" >> \$FolderPath/interface_re.txt
+        echo "==============================================" >> \$FolderPath/interface_re.txt
+    fi
 
     CLEAR_TAG=\$((\$CLEAR_TAG - 1))
 done
@@ -5740,7 +5818,12 @@ case "$num" in
     lt)
         T_VIEWLOG
     ;;
+    s)
+        ss_s=""
+        T_NETSPEED
+    ;;
     ss)
+        ss_s="st"
         T_NETSPEED
     ;;
     ud)
