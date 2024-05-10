@@ -1352,6 +1352,7 @@ ModifyHostname() {
     echo "当前 主机名 : $hostname_show"
     read -e -p "请输入要修改的 主机名 (回车跳过): " name
     if [[ ! -z "${name}" ]]; then
+        hostname_show="$name"
         writeini "hostname_show" "$name"
         source $ConfigFile
         if command -v hostnamectl &>/dev/null; then
@@ -1361,8 +1362,8 @@ ModifyHostname() {
                 sed -i "s/$hostname_show/$name/g" /etc/hosts
                 echo -e "$name" > /etc/hostname
                 hostnamectl set-hostname $name
-                tips="$Tip 修改后 主机名 : $hostname_show  Hostname: $hostname_show"
             fi
+            tips="$Tip 修改后 主机名 : $hostname_show  Hostname: $(hostname)"
         else
             tips="$Tip 修改后 主机名: $hostname_show, 但未检测到 hostnamectl, 无法修改 Hostname."
         fi
@@ -5147,11 +5148,13 @@ CLEAR_TAG_OLD=\$CLEAR_TAG
 
 avg_count=0
 max_rx_speed_kb=0
-min_rx_speed_kb=9999999999999
+# min_rx_speed_kb=9999999999999
+min_rx_speed_kb=2147483647
 total_rx_speed_kb=0
 avg_rx_speed_kb=0
 max_tx_speed_kb=0
-min_tx_speed_kb=9999999999999
+# min_tx_speed_kb=9999999999999
+min_tx_speed_kb=2147483647
 total_tx_speed_kb=0
 avg_tx_speed_kb=0
 
