@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.240510.1"
+sh_ver="1.240511.1"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
@@ -40,6 +40,8 @@ FlowThreshold_de="3GB"
 FlowThresholdMAX_de="500GB"
 ReportTime_de="00:00"
 AutoUpdateTime_de="01:01"
+
+un_tag=false
 
 # 输出版本号
 # echo "脚本版本号: $sh_ver"
@@ -4585,7 +4587,7 @@ EOF
 
 # 卸载
 UN_SetupBoot_TG() {
-    if [ "$boot_menu_tag" == "$SETTAG" ]; then
+    # if [ "$boot_menu_tag" == "$SETTAG" ]; then
         systemctl stop tg_boot.service > /dev/null 2>&1
         systemctl disable tg_boot.service > /dev/null 2>&1
         sleep 1
@@ -4595,10 +4597,10 @@ UN_SetupBoot_TG() {
             rm -f /etc/init.d/tg_boot.sh
         fi
         tips="$Tip 机开通知 已经取消 / 删除."
-    fi
+    # fi
 }
 UN_SetupLogin_TG() {
-    if [ "$login_menu_tag" == "$SETTAG" ]; then
+    # if [ "$login_menu_tag" == "$SETTAG" ]; then
         if [ -f /etc/bash.bashrc ]; then
             sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/bash.bashrc
         fi
@@ -4606,10 +4608,10 @@ UN_SetupLogin_TG() {
             sed -i '/bash \/root\/.shfile\/tg_login.sh/d' /etc/profile
         fi
         tips="$Tip 登陆通知 已经取消 / 删除."
-    fi
+    # fi
 }
 UN_SetupShutdown_TG() {
-    if [ "$shutdown_menu_tag" == "$SETTAG" ]; then
+    # if [ "$shutdown_menu_tag" == "$SETTAG" ]; then
         systemctl stop tg_shutdown.service > /dev/null 2>&1
         systemctl disable tg_shutdown.service > /dev/null 2>&1
         sleep 1
@@ -4619,56 +4621,56 @@ UN_SetupShutdown_TG() {
             rm -f /etc/init.d/tg_shutdown.sh
         fi
         tips="$Tip 关机通知 已经取消 / 删除."
-    fi
+    # fi
 }
 UN_SetupCPU_TG() {
-    if [ "$cpu_menu_tag" == "$SETTAG" ]; then
+    # if [ "$cpu_menu_tag" == "$SETTAG" ]; then
         killpid "tg_cpu.sh"
         # pkill tg_cpu.sh > /dev/null 2>&1 &
         # pkill tg_cpu.sh > /dev/null 2>&1 &
         # kill $(ps | grep '[t]g_cpu.sh' | awk '{print $1}')
         crontab -l | grep -v "$FolderPath/tg_cpu.sh" | crontab -
         tips="$Tip CPU报警 已经取消 / 删除."
-    fi
+    # fi
 }
 UN_SetupMEM_TG() {
-    if [ "$mem_menu_tag" == "$SETTAG" ]; then
+    # if [ "$mem_menu_tag" == "$SETTAG" ]; then
         killpid "tg_mem.sh"
         crontab -l | grep -v "$FolderPath/tg_mem.sh" | crontab -
         tips="$Tip 内存报警 已经取消 / 删除."
-    fi
+    # fi
 }
 UN_SetupDISK_TG() {
-    if [ "$disk_menu_tag" == "$SETTAG" ]; then
+    # if [ "$disk_menu_tag" == "$SETTAG" ]; then
         killpid "tg_disk.sh"
         crontab -l | grep -v "$FolderPath/tg_disk.sh" | crontab -
         tips="$Tip 磁盘报警 已经取消 / 删除."
-    fi
+    # fi
 }
 UN_SetupFlow_TG() {
-    if [ "$flow_menu_tag" == "$SETTAG" ]; then
+    # if [ "$flow_menu_tag" == "$SETTAG" ]; then
         killpid "tg_flow.sh"
         crontab -l | grep -v "$FolderPath/tg_flow.sh" | crontab -
         tips="$Tip 流量报警 已经取消 / 删除."
-    fi
+    # fi
 }
 UN_SetFlowReport_TG() {
-    if [ "$flrp_menu_tag" == "$SETTAG" ]; then
+    # if [ "$flrp_menu_tag" == "$SETTAG" ]; then
         killpid "tg_flrp.sh"
         crontab -l | grep -v "$FolderPath/tg_flrp.sh" | crontab -
         tips="$Tip 流量定时报告 已经取消 / 删除."
-    fi
+    # fi
 
 }
 UN_SetupDocker_TG() {
-    if [ "$docker_menu_tag" == "$SETTAG" ]; then
+    # if [ "$docker_menu_tag" == "$SETTAG" ]; then
         killpid "tg_docker.sh"
         crontab -l | grep -v "$FolderPath/tg_docker.sh" | crontab -
         tips="$Tip Docker变更通知 已经取消 / 删除."
-    fi
+    # fi
 }
 UN_SetupDDNS_TG() {
-    if [ "$ddns_menu_tag" == "$SETTAG" ]; then
+    # if [ "$ddns_menu_tag" == "$SETTAG" ]; then
         killpid "tg_ddns.sh"
         crontab -l | grep -v "$FolderPath/tg_ddns.sh" | crontab -
         crontab -l | grep -v "$FolderPath/tg_ddnskp.sh" | crontab -
@@ -4682,15 +4684,15 @@ UN_SetupDDNS_TG() {
         rm -f /etc/systemd/system/tg_ddrun.service
         killpid "tg_ddkpnh.sh"
         tips="$Tip CF-DDNS IP 变更通知 已经取消 / 删除."
-    fi
+    # fi
 }
 UN_SetAutoUpdate() {
-    if [ "$autoud_menu_tag" == "$SETTAG" ]; then
+    # if [ "$autoud_menu_tag" == "$SETTAG" ]; then
         killpid "tg_autoud.sh"
         crontab -l | grep -v "$FolderPath/tg_autoud.sh" | crontab -
         crontab -l | grep -v "$FolderPath/VPSKeeper.sh" | crontab -
         tips="$Tip 自动更新已经取消."
-    fi
+    # fi
 }
 
 UN_ALL() {
@@ -4715,8 +4717,6 @@ UN_ALL() {
     UN_SetFlowReport_TG
     UN_SetupDocker_TG
     UN_SetAutoUpdate
-    
-    # killpid "tg_"
 
     # pkill -f 'tg_.+.sh' > /dev/null 2>&1 &
     # # ps | grep '[t]g_' | awk '{print $1}' | xargs kill
@@ -4728,9 +4728,11 @@ UN_ALL() {
     #     kill -9 $(ps | grep '[t]g_' | awk '{print $1}')
     # fi
 
-    crontab -l | grep -v "$FolderPath/tg_" | crontab -
     # if [ "$autorun" == "false" ]; then
-    if [ "$un_sendtag" == "true" ]; then
+    if [ "$un_tag" == "true" ]; then
+        killpid "tg_"
+        crontab -l | grep -v "$FolderPath/tg_" | crontab -
+        rm -f /etc/systemd/system/tg_*
         send_time=$(echo $(date +%s%N) | cut -c 16-)
         current_date_send=$(date +"%Y.%m.%d %T")
         message="已执行一键删除所有通知 ☎️"$'\n'
@@ -5801,9 +5803,9 @@ case "$num" in
         # fi
         pgrep -af 'tg_' | grep -v grep
         divline
-        un_sendtag=true
+        un_tag=true
         UN_ALL
-        un_sendtag=false
+        un_tag=false
         echo -e "${GRB}卸载后${NC}:"
         # if ps x > /dev/null 2>&1; then
         #     ps x | grep '[t]g_'
