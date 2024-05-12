@@ -1839,19 +1839,7 @@ case $choice in
                         while true; do
                             
                             ipv4_regex="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
-                            ipv6_regex="^(
-                                ([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|
-                                ([0-9a-fA-F]{1,4}:){1,7}:|
-                                ([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|
-                                ([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|
-                                ([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|
-                                ([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|
-                                ([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|
-                                [0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|
-                                :((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|
-                                ::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|
-                                ([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])
-                            )$"
+                            ipv6_regex="^[0-9a-fA-F:]*$"
 
                             read -e -p "请输入申请证书的域名: " domain
                             if [[ $domain == *.* ]]; then
@@ -1863,8 +1851,10 @@ case $choice in
                                     if [ -z "$input_address" ]; then echo; fi
                                     if [ "$input_address" == "4" ]; then
                                         IPType="4"
+                                        echo -e "IPType: IPv${GR}$IPType${NC}"
                                     elif [ "$input_address" == "6" ]; then
                                         IPType="6"
+                                        echo -e "IPType: IPv${GR}$IPType${NC}"
                                     else
                                         break
                                     fi
@@ -1872,8 +1862,10 @@ case $choice in
                                     echo "检测到 $domain 指定的 IP 地址: $ipaddress"
                                     if [[ $ipaddress =~ $ipv4_regex ]]; then
                                         IPType="4"
+                                        echo -e "IPType: IPv${GR}$IPType${NC}"
                                     elif [[ $ipaddress =~ $ipv6_regex ]]; then
                                         IPType="6"
+                                        echo -e "IPType: IPv${GR}$IPType${NC}"
                                     else
                                         echo -e "IP 地址: $ipaddress  检测到 IP 类型有误!"
                                         echo -en "请选择: ${GR}4${NC}.继续以IPv4申请  ${GR}6${NC}.继续以IPv6申请  ${GR}回车${NC}.中止 : "
