@@ -1785,6 +1785,7 @@ case $choice in
                 echo -e "2.  方法二: 采用 Nginx 验证方式申请 (需要安装Nginx)"
                 echo -e "3.  方法三: 采用 http 绝对路径方式验证申请"
                 echo -e "4.  方法四: 采用 cloudflare 的 API 验证方式申请"
+                echo -e "5.  切换申请服务器"
                 echo -e "${colored_text1}${NC}"
                 echo -e "r.  返回上层菜单"
                 echo -e "x.  退出脚本"
@@ -1836,12 +1837,61 @@ case $choice in
                         ;;
                     2|22)
                         while true; do
+                            
+                            ipv4_regex="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
+                            ipv6_regex="^(
+                                ([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|
+                                ([0-9a-fA-F]{1,4}:){1,7}:|
+                                ([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|
+                                ([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|
+                                ([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|
+                                ([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|
+                                ([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|
+                                [0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|
+                                :((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|
+                                ::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|
+                                ([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])
+                            )$"
+
                             read -e -p "请输入申请证书的域名: " domain
                             if [[ $domain == *.* ]]; then
+                                ipaddress=$(ping -c 1 "$domain" 2> /dev/null | awk '/^PING/{print $3}' | awk -F'[()]' '{print $2}')
+                                if [ -z "$ipaddress" ]; then
+                                    echo -e "未检测到 ${GR}$domain${NC} 指定的 IP 地址!"
+                                    echo -en "请选择: ${GR}4${NC}.继续以IPv4申请  ${GR}6${NC}.继续以IPv6申请  ${GR}回车${NC}.中止 : "
+                                    read -er $input_address
+                                    if [ -z "$input_address" ]; then echo; fi
+                                    if [ "$input_address" == "4" ]; then
+                                        IPType="4"
+                                    elif [ "$input_address" == "6" ]; then
+                                        IPType="6"
+                                    else
+                                        break
+                                    fi
+                                else
+                                    echo "检测到 $domain 指定的 IP 地址: $ipaddress"
+                                    if [[ $ipaddress =~ $ipv4_regex ]]; then
+                                        IPType="4"
+                                    elif [[ $ipaddress =~ $ipv6_regex ]]; then
+                                        IPType="6"
+                                    else
+                                        echo -e "IP 地址: $ipaddress  检测到 IP 类型有误!"
+                                        echo -en "请选择: ${GR}4${NC}.继续以IPv4申请  ${GR}6${NC}.继续以IPv6申请  ${GR}回车${NC}.中止 : "
+                                        read -er $input_address
+                                        if [ -z "$input_address" ]; then echo; fi
+                                        if [ "$input_address" == "4" ]; then
+                                            IPType="4"
+                                        elif [ "$input_address" == "6" ]; then
+                                            IPType="6"
+                                        else
+                                            break
+                                        fi
+                                    fi
+                                fi
                                 pids=$(lsof -t -i :80)
                                 if [ -n "$pids" ]; then
                                     for pid in $pids; do
-                                        kill -9 $pid
+                                        kill -9 $pid &> /dev/null
                                     done
                                 fi
                                 if ! command -v nginx &>/dev/null; then
@@ -1856,6 +1906,7 @@ case $choice in
                                 fi
                                 cp /etc/nginx/nginx.conf /etc/nginx/nginx_bak.conf
                                 write_conf() {
+                                    local IPType="${1}"
                                     echo "user www-data;
                                     events {
                                         worker_connections 768;
@@ -1872,7 +1923,15 @@ case $choice in
                                     systemctl start nginx
                                     stopfire
                                     $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
-                                    $user_path/.acme.sh/acme.sh --issue -d $domain --nginx
+                                    if [ "$IPType" == "4" ]; then
+                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx
+                                    elif [ "$IPType" == "6" ]; then
+                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx –-listen-v6
+                                    else
+                                        echo "请检查 IPType !"
+                                        # return 1
+                                        break
+                                    fi
                                     $user_path/.acme.sh/acme.sh --installcert -d $domain --key-file $user_path/cert/$domain.key --fullchain-file $user_path/cert/$domain.cer
                                     recoverfire
                                     if [[ -f "$user_path/cert/$domain.key" && -f "$user_path/cert/$domain.cer" ]]; then
@@ -1893,10 +1952,10 @@ case $choice in
                                 }
                                 if systemctl is-active --quiet nginx; then
                                     systemctl stop nginx
-                                    write_conf
+                                    write_conf "$IPType"
                                     systemctl restart nginx
                                 else
-                                    write_conf
+                                    write_conf "$IPType"
                                     systemctl stop nginx
                                 fi
                                 break
@@ -2030,6 +2089,23 @@ case $choice in
                                 echo "输入的域名不合法，请重新输入."
                             fi
                         done
+                        waitfor
+                        ;;
+                    5|55)
+                        echo -e "${GR}1${NC}.ZeroSSL 服务器  ${GR}2${NC}.Let's Encrypt 服务器  ${GR}3${NC}.Buypass 服务器"
+                        read -e -p "请选择申请服务器 ( 回车默认 1 ): " choice_num
+                        if [ -z "$choice_num" ] || [ "$choice_num" == "1" ]; then
+                            $user_path/.acme.sh/acme.sh --set-default-ca --server zerossl
+                            echo "已经切换 ZeroSSL 服务器."
+                        elif [ "$choice_num" == "2" ]; then
+                            $user_path/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+                            echo "已经切换 Let's Encrypt 服务器."
+                        elif [ "$choice_num" == "3" ]; then
+                            $user_path/.acme.sh/acme.sh --set-default-ca --server buypass
+                            echo "已经切换 Buypass 服务器."
+                        else
+                            echo "输入有误."
+                        fi
                         waitfor
                         ;;
                     r|R|rr|RR)
