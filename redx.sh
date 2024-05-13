@@ -89,12 +89,14 @@ stopfire() {
     sudo systemctl stop firewalld > /dev/null 2>&1
     iptables-save > firewall_rules_backup
     iptables -F > /dev/null 2>&1
+    ufw disable > /dev/null 2>&1
     # echo "尝试暂停防火墙, 请在操作后重新启动以恢复防火墙功能."
 }
 recoverfire(){
     sudo service iptables start > /dev/null 2>&1
     sudo systemctl start firewalld > /dev/null 2>&1
     iptables-restore < firewall_rules_backup
+    ufw enable > /dev/null 2>&1
 }
 get_random_color() {
     colors=($BL $RE $GR $YE $MA $CY $WH)
@@ -1847,7 +1849,7 @@ case $choice in
                                 if [ -z "$ipaddress" ]; then
                                     echo -e "未检测到 ${GR}$domain${NC} 指定的 IP 地址!"
                                     echo -en "请选择: ${GR}4${NC}.继续以IPv4申请  ${GR}6${NC}.继续以IPv6申请  ${GR}回车${NC}.中止 : "
-                                    read -er $input_address
+                                    read -er input_address
                                     if [ -z "$input_address" ]; then echo; fi
                                     if [ "$input_address" == "4" ]; then
                                         IPType="4"
@@ -1869,7 +1871,7 @@ case $choice in
                                     else
                                         echo -e "IP 地址: $ipaddress  检测到 IP 类型有误!"
                                         echo -en "请选择: ${GR}4${NC}.继续以IPv4申请  ${GR}6${NC}.继续以IPv6申请  ${GR}回车${NC}.中止 : "
-                                        read -er $input_address
+                                        read -er input_address
                                         if [ -z "$input_address" ]; then echo; fi
                                         if [ "$input_address" == "4" ]; then
                                             IPType="4"
@@ -1896,7 +1898,7 @@ case $choice in
                                 if [[ ! -f "/etc/nginx/nginx.redx" ]]; then
                                     cp /etc/nginx/nginx.conf /etc/nginx/nginx.redx
                                 fi
-                                cp /etc/nginx/nginx.conf /etc/nginx/nginx_bak.conf
+                                # cp /etc/nginx/nginx.conf /etc/nginx/nginx_bak.conf
                                 write_conf() {
                                     local IPType="${1}"
                                     echo "user www-data;
@@ -1911,14 +1913,15 @@ case $choice in
                                         index index.html index.htm index.nginx-debian.html;
                                         server_name $domain;
                                         }
-                                    }" > /etc/nginx/nginx.conf
-                                    systemctl start nginx
+                                    }" > /etc/nginx/nginx_ssl.conf
+                                    cat /etc/nginx/nginx_ssl.conf
+                                    # systemctl start nginx
                                     stopfire
                                     $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                                     if [ "$IPType" == "4" ]; then
-                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx
+                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx /etc/nginx/nginx_ssl.conf
                                     elif [ "$IPType" == "6" ]; then
-                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx –-listen-v6
+                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx /etc/nginx/nginx_ssl.conf --listen-v6
                                     else
                                         echo "请检查 IPType !"
                                         # return 1
@@ -1930,25 +1933,40 @@ case $choice in
                                         if [[ -s "$user_path/cert/$domain.key" && -s "$user_path/cert/$domain.cer" ]]; then
                                             echo "证书申请成功！"
                                             echo "证书已生成并保存到 $user_path/cert 目录下."
-                                            mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
+                                            # mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
                                         else
                                             rm $user_path/cert/$domain.key &>/dev/null
                                             rm $user_path/cert/$domain.cer &>/dev/null
                                             rm -rf $user_path/.acme.sh/${domain}_ecc &>/dev/null
                                             echo "申请失败：存在文件但文件大小为0，已删除空文件。"
-                                            mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
+                                            # mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
                                         fi
                                     else
                                         echo "申请失败：缺少证书文件。"
                                     fi
                                 }
-                                if systemctl is-active --quiet nginx; then
-                                    systemctl stop nginx
-                                    write_conf "$IPType"
-                                    systemctl restart nginx
-                                else
-                                    write_conf "$IPType"
-                                    systemctl stop nginx
+                                # if systemctl is-active --quiet nginx; then
+                                #     systemctl stop nginx
+                                #     write_conf "$IPType"
+                                #     systemctl restart nginx
+                                # else
+                                #     write_conf "$IPType"
+                                #     systemctl stop nginx
+                                # fi
+                                systemctl restart nginx > /dev/null 2>&1
+                                sleep 1
+                                for ((i=1; i<=5; i++)); do
+                                    if systemctl is-active --quiet nginx; then
+                                        echo "申请中..."
+                                        write_conf "$IPType"
+                                        donetag="true"
+                                        break
+                                    else
+                                        sleep 1
+                                    fi
+                                done
+                                if [ ! "$donetag" == "true" ]; then
+                                    echo "请检查 Nginx 是否正常运行."
                                 fi
                                 break
                             else
