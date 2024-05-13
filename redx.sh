@@ -1914,7 +1914,7 @@ case $choice in
                                         server_name $domain;
                                         }
                                     }" > /etc/nginx/nginx_ssl.conf
-                                    cat /etc/nginx/nginx_ssl.conf
+                                    # cat /etc/nginx/nginx_ssl.conf
                                     # systemctl start nginx
                                     stopfire
                                     $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
