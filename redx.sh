@@ -1802,6 +1802,43 @@ case $choice in
                         while true; do
                             read -e -p "请输入申请证书的域名: " domain
                             if [[ $domain == *.* ]]; then
+                                ipaddress=$(ping -c 1 "$domain" 2> /dev/null | awk '/^PING/{print $3}' | awk -F'[()]' '{print $2}')
+                                if [ -z "$ipaddress" ]; then
+                                    echo -e "未检测到 ${GR}$domain${NC} 指定的 IP 地址!"
+                                    echo -en "请选择: ${GR}4${NC}.继续以IPv4申请  ${GR}6${NC}.继续以IPv6申请  ${GR}回车${NC}.中止 : "
+                                    read -er input_address
+                                    if [ -z "$input_address" ]; then echo; fi
+                                    if [ "$input_address" == "4" ]; then
+                                        IPType="4"
+                                        echo -e "IPType: IPv${GR}$IPType${NC}"
+                                    elif [ "$input_address" == "6" ]; then
+                                        IPType="6"
+                                        echo -e "IPType: IPv${GR}$IPType${NC}"
+                                    else
+                                        break
+                                    fi
+                                else
+                                    echo "检测到 $domain 指定的 IP 地址: $ipaddress"
+                                    if [[ $ipaddress =~ $ipv4_regex ]]; then
+                                        IPType="4"
+                                        echo -e "IPType: IPv${GR}$IPType${NC}"
+                                    elif [[ $ipaddress =~ $ipv6_regex ]]; then
+                                        IPType="6"
+                                        echo -e "IPType: IPv${GR}$IPType${NC}"
+                                    else
+                                        echo -e "IP 地址: $ipaddress  检测到 IP 类型有误!"
+                                        echo -en "请选择: ${GR}4${NC}.继续以IPv4申请  ${GR}6${NC}.继续以IPv6申请  ${GR}回车${NC}.中止 : "
+                                        read -er input_address
+                                        if [ -z "$input_address" ]; then echo; fi
+                                        if [ "$input_address" == "4" ]; then
+                                            IPType="4"
+                                        elif [ "$input_address" == "6" ]; then
+                                            IPType="6"
+                                        else
+                                            break
+                                        fi
+                                    fi
+                                fi
                                 pids=$(lsof -t -i :80)
                                 if [ -n "$pids" ]; then
                                     for pid in $pids; do
@@ -1810,7 +1847,15 @@ case $choice in
                                 fi
                                 stopfire
                                 $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
-                                $user_path/.acme.sh/acme.sh --issue -d $domain --standalone
+                                if [ "$IPType" == "4" ]; then
+                                    $user_path/.acme.sh/acme.sh --issue -d $domain --standalone
+                                elif [ "$IPType" == "6" ]; then
+                                    $user_path/.acme.sh/acme.sh --issue -d $domain --standalone --listen-v6
+                                else
+                                    echo "请检查 IPType !"
+                                    # return 1
+                                    break
+                                fi
                                 $user_path/.acme.sh/acme.sh --installcert -d $domain --key-file $user_path/cert/$domain.key --fullchain-file $user_path/cert/$domain.cer
                                 recoverfire
                                 if [[ -f "$user_path/cert/$domain.key" && -f "$user_path/cert/$domain.cer" ]]; then
