@@ -1742,6 +1742,9 @@ case $choice in
         onlyone=0
         ;;
     2|22)
+        ipv4_regex="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
+        ipv6_regex="^[0-9a-fA-F:]*$"
+
         while true; do
         acmetag=""
         if [ -e "$user_path/.acme.sh/acme.sh" ]; then
@@ -1885,10 +1888,6 @@ case $choice in
                         ;;
                     2|22)
                         while true; do
-                            
-                            ipv4_regex="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
-                            ipv6_regex="^[0-9a-fA-F:]*$"
-
                             read -e -p "请输入申请证书的域名: " domain
                             if [[ $domain == *.* ]]; then
                                 ipaddress=$(ping -c 1 "$domain" 2> /dev/null | awk '/^PING/{print $3}' | awk -F'[()]' '{print $2}')
