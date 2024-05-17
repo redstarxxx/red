@@ -1941,6 +1941,8 @@ case $choice in
                                 echo "=================================================="
                                 echo -e "IPType: IPv${GR}$IPType${NC}"
                                 echo -e "Prot: ${GR}$port_ssl${NC}"
+                                echo -e "如果中途中止脚本可采用以下指令恢复 ${GR}nginx.conf${NC}"
+                                echo -e "${GR}mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf${NC}"
                                 echo "=================================================="
                                 pids=$(lsof -t -i :80)
                                 if [ -n "$pids" ]; then
@@ -1958,9 +1960,9 @@ case $choice in
                                 if [[ ! -f "/etc/nginx/nginx.redx" ]]; then
                                     cp /etc/nginx/nginx.conf /etc/nginx/nginx.redx
                                 fi
-                                # cp /etc/nginx/nginx.conf /etc/nginx/nginx_bak.conf
                                 write_conf() {
                                     local IPType="${1}"
+                                    cp /etc/nginx/nginx.conf /etc/nginx/nginx_bak.conf
                                     echo "user www-data;
                                     events {
                                         worker_connections 768;
@@ -1973,15 +1975,16 @@ case $choice in
                                         index index.html index.htm index.nginx-debian.html;
                                         server_name $domain;
                                         }
-                                    }" > /etc/nginx/nginx_ssl.conf
-                                    # cat /etc/nginx/nginx_ssl.conf
-                                    # systemctl start nginx
+                                    }" > /etc/nginx/nginx.conf
+                                    # cat /etc/nginx/nginx.conf
+                                    systemctl restart nginx > /dev/null 2>&1
+                                    sleep 1
                                     stopfire
                                     $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                                     if [ "$IPType" == "4" ]; then
-                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx /etc/nginx/nginx_ssl.conf
+                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx
                                     elif [ "$IPType" == "6" ]; then
-                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx /etc/nginx/nginx_ssl.conf --listen-v6
+                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx --listen-v6
                                     else
                                         echo "请检查 IPType !"
                                         # return 1
@@ -1993,17 +1996,16 @@ case $choice in
                                         if [[ -s "$user_path/cert/$domain.key" && -s "$user_path/cert/$domain.cer" ]]; then
                                             echo "证书申请成功！"
                                             echo "证书已生成并保存到 $user_path/cert 目录下."
-                                            # mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
                                         else
                                             rm $user_path/cert/$domain.key &>/dev/null
                                             rm $user_path/cert/$domain.cer &>/dev/null
                                             rm -rf $user_path/.acme.sh/${domain}_ecc &>/dev/null
                                             echo "申请失败：存在文件但文件大小为0，已删除空文件。"
-                                            # mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
                                         fi
                                     else
                                         echo "申请失败：缺少证书文件。"
                                     fi
+                                    mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
                                 }
                                 # if systemctl is-active --quiet nginx; then
                                 #     systemctl stop nginx
