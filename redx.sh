@@ -1909,10 +1909,8 @@ case $choice in
                                     echo "检测到 $domain 指定的 IP 地址: $ipaddress"
                                     if [[ $ipaddress =~ $ipv4_regex ]]; then
                                         IPType="4"
-                                        echo -e "IPType: IPv${GR}$IPType${NC}"
                                     elif [[ $ipaddress =~ $ipv6_regex ]]; then
                                         IPType="6"
-                                        echo -e "IPType: IPv${GR}$IPType${NC}"
                                     else
                                         echo -e "IP 地址: $ipaddress  检测到 IP 类型有误!"
                                         echo -en "请选择: ${GR}4${NC}.继续以IPv4申请  ${GR}6${NC}.继续以IPv6申请  ${GR}回车${NC}.中止 : "
@@ -1927,6 +1925,23 @@ case $choice in
                                         fi
                                     fi
                                 fi
+                                echo -en "是否自定义端口? ${GR}输入${NC}.端口号  ${GR}回车${NC}.80 (默认) : "
+                                read -er input_port
+                                if [ -z "$input_port" ]; then
+                                    echo
+                                    port_ssl=80
+                                else
+                                    if [[ $input_port =~ ^[0-9]+$ ]]; then
+                                        port_ssl="$input_port"
+                                    else
+                                        echo "$input_port 端口输入有误."
+                                        break
+                                    fi
+                                fi
+                                echo "=================================================="
+                                echo -e "IPType: IPv${GR}$IPType${NC}"
+                                echo -e "Prot: ${GR}$port_ssl${NC}"
+                                echo "=================================================="
                                 pids=$(lsof -t -i :80)
                                 if [ -n "$pids" ]; then
                                     for pid in $pids; do
@@ -1952,8 +1967,8 @@ case $choice in
                                     }
                                     http {
                                         server {
-                                        listen 80 default_server;
-                                        listen [::]:80 default_server;
+                                        listen $port_ssl default_server;
+                                        listen [::]:$port_ssl default_server;
                                         root /var/www/html;
                                         index index.html index.htm index.nginx-debian.html;
                                         server_name $domain;
