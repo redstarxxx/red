@@ -1942,8 +1942,8 @@ case $choice in
                                 echo "=================================================="
                                 echo -e "IPType: IPv${GR}$IPType${NC}"
                                 echo -e "Prot: ${GR}$port_ssl${NC}"
-                                echo -e "如果中途中止脚本可采用以下指令恢复 ${GR}nginx.conf${NC}"
-                                echo -e "${GR}mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf${NC}"
+                                # echo -e "如果中途中止脚本可采用以下指令恢复 ${GR}nginx.conf${NC}"
+                                # echo -e "${GR}mv /etc/nginx/nginx_ssl.conf /etc/nginx/nginx.conf${NC}"
                                 echo "=================================================="
                                 pids=$(lsof -t -i :80)
                                 if [ -n "$pids" ]; then
@@ -1961,9 +1961,9 @@ case $choice in
                                 if [[ ! -f "/etc/nginx/nginx.redx" ]]; then
                                     cp /etc/nginx/nginx.conf /etc/nginx/nginx.redx
                                 fi
-                                write_conf() {
+                                registerSSL() {
                                     local IPType="${1}"
-                                    cp /etc/nginx/nginx.conf /etc/nginx/nginx_bak.conf
+                                    cp /etc/nginx/nginx.conf /etc/nginx/nginx_ssl.conf
                                     echo "user www-data;
                                     events {
                                         worker_connections 768;
@@ -1980,6 +1980,7 @@ case $choice in
                                     # cat /etc/nginx/nginx.conf
                                     systemctl restart nginx > /dev/null 2>&1
                                     sleep 1
+                                    mv /etc/nginx/nginx_ssl.conf /etc/nginx/nginx.conf
                                     stopfire
                                     $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                                     if [ "$IPType" == "4" ]; then
@@ -2006,25 +2007,27 @@ case $choice in
                                     else
                                         echo "申请失败：缺少证书文件。"
                                     fi
-                                    mv /etc/nginx/nginx_bak.conf /etc/nginx/nginx.conf
+                                    # mv /etc/nginx/nginx_ssl.conf /etc/nginx/nginx.conf
                                 }
                                 # if systemctl is-active --quiet nginx; then
                                 #     systemctl stop nginx
-                                #     write_conf "$IPType"
+                                #     registerSSL "$IPType"
                                 #     systemctl restart nginx
                                 # else
-                                #     write_conf "$IPType"
+                                #     registerSSL "$IPType"
                                 #     systemctl stop nginx
                                 # fi
-                                systemctl restart nginx > /dev/null 2>&1
-                                sleep 1
-                                for ((i=1; i<=5; i++)); do
+                                # systemctl restart nginx > /dev/null 2>&1
+                                # sleep 1
+                                donetag="false"
+                                for ((i=1; i<=3; i++)); do
                                     if systemctl is-active --quiet nginx; then
                                         echo "申请中..."
-                                        write_conf "$IPType"
+                                        registerSSL "$IPType"
                                         donetag="true"
                                         break
                                     else
+                                        systemctl restart nginx > /dev/null 2>&1
                                         sleep 1
                                     fi
                                 done
@@ -2039,6 +2042,7 @@ case $choice in
                                 echo "输入的域名不合法, 请重新输入."
                             fi
                         done
+                        systemctl restart nginx > /dev/null 2>&1
                         waitfor
                         ;;
                     3|33)
@@ -3025,8 +3029,8 @@ case $choice in
         echo -e "     e. ${GR}QRENCODE工具, 用以生成二维码.${NC}"
         echo -e "★ 5. ${GR}本脚本临时文件处理如下:${NC}"
         echo -e "     a. ${GR}采用Nginx申请证书时系统会把原nginx.conf文件备份成nginx.redx文件,${NC}"
-        echo -e "        ${GR}除了上述备份, 系统会将nginx.conf文件临时改为nginx_bak.conf文件,${NC}"
-        echo -e "        ${GR}等待证书申请后, 不管成功与否, 系统都会将nginx_bak.conf文件改回nginx.conf文件.${NC}"
+        echo -e "        ${GR}除了上述备份, 系统会将nginx.conf文件临时改为nginx_ssl.conf文件,${NC}"
+        echo -e "        ${GR}等待证书申请后, 不管成功与否, 系统都会将nginx_ssl.conf文件改回nginx.conf文件.${NC}"
         echo -e "     b. ${GR}如果使用ACME申请证书失败时会产生0字节的.cer和.key或.pem文件, 本脚本会自动将其删除.${NC}"
         echo -e "★ 6. ${GR}本脚本仅供学习与研究, 如果由本脚本造成的各种法律问题由使用者个人承担.${NC}"
         echo
