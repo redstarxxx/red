@@ -96,6 +96,7 @@ recoverfire(){
     sudo service iptables start > /dev/null 2>&1
     sudo systemctl start firewalld > /dev/null 2>&1
     iptables-restore < firewall_rules_backup
+    rm -f firewall_rules_backup
     ufw enable > /dev/null 2>&1
 }
 get_random_color() {
