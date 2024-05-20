@@ -1256,7 +1256,6 @@ EOF
             ;;
         esac
     done
-   
 }
 
 # 用于显示内容（调试用）
@@ -5659,7 +5658,7 @@ echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 ${RE}[v${sh_ver}]${NC
 -- tse | vtse.eu.org | $release -- 
                         ${flowthm_menu_tag}             ${sd_rt_menu_tag} ${proxy_menu_tag} ${senduptime_menu_tag} ${sendip_menu_tag} ${sendprice_menu_tag}
  ${GR}0.${NC} 检查依赖 / 设置参数 \t$reset_menu_tag
-———————————————————————
+————————————————————————
  ${GR}1. ${NC} 设置 ${GR}[开机]${NC} TG 通知 \t\t\t$boot_menu_tag
  ${GR}2. ${NC} 设置 ${GR}[登陆]${NC} TG 通知 \t\t\t$login_menu_tag
  ${GR}3. ${NC} 设置 ${GR}[关机]${NC} TG 通知 \t\t\t$shutdown_menu_tag
@@ -5672,15 +5671,15 @@ echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 ${RE}[v${sh_ver}]${NC
  ${GR}10.${NC} 设置 ${GR}[CF-DDNS IP 变更]${NC} TG 通知 $ddnskp_menu_tag \t\t$ddns_menu_tag
  ————————————————————————————————————————————————————————
  ${GR}t.${NC} 测试 - 发送一条信息用以检验参数设置
- ——————————————————————————————————————
- ${GR}h.${NC} 修改 - 主机名 以此作为主机标记
- ——————————————————————————————————————
+ ————————————————————————————————————————————————————————
+ ${GR}h.${NC} 修改 - 主机名 以此作为主机标记 \t${GR}$hostname_show${NC}
+ ————————————————————————————————————————————————————————
  ${GR}o.${NC} ${GRB}一键${NC} ${GR}开启${NC} 所有通知
  ${GR}c.${NC} ${GRB}一键${NC} ${RE}取消 / 删除${NC} 所有通知
- ${GR}f.${NC} ${GRB}一键${NC} ${RE}删除${NC} 所有脚本子文件 \t${GR}$folder_menu_tag${NC}
- ———————————————————————————————————————————————
- ${GR}u.${NC} 设置自动更新脚本 \t$autoud_menu_tag
- ——————————————————————————————————————
+ ${GR}f.${NC} ${GRB}一键${NC} ${RE}删除${NC} 所有脚本子文件 \t\t${GR}$folder_menu_tag${NC}
+ ————————————————————————————————————————————————————————
+ ${GR}u.${NC} 设置自动更新脚本 \t\t\t$autoud_menu_tag
+ ————————————————————————————————————————————————————————
  ${GR}v.${NC} 查看配置文件 (及部分隐藏指令)
  ${GR}x.${NC} 退出脚本
 ————————————"
