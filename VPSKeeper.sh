@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.240511.1"
+sh_ver="1.240523.1"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
@@ -2626,6 +2626,19 @@ fi
 THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
 THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
 
+# sci_notation_regex='^[0-9]+(\.[0-9]+)?[eE][+-]?[0-9]+$'
+# if [[ \$THRESHOLD_BYTES =~ \$sci_notation_regex ]]; then
+#     THRESHOLD_BYTES=\$(printf "%.0f" \$THRESHOLD_BYTES)
+# fi
+# if [[ \$THRESHOLD_BYTES_MAX =~ \$sci_notation_regex ]]; then
+#     THRESHOLD_BYTES_MAX=\$(printf "%.0f" \$THRESHOLD_BYTES_MAX)
+# fi
+
+THRESHOLD_BYTES=\$(printf "%.0f" \$THRESHOLD_BYTES)
+THRESHOLD_BYTES_MAX=\$(printf "%.0f" \$THRESHOLD_BYTES_MAX)
+echo "==================================================================="
+echo "THRESHOLD_BYTES: \$THRESHOLD_BYTES  THRESHOLD_BYTES_MAX: \$THRESHOLD_BYTES_MAX"
+
 # interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces_all=\$(ip -br link | awk '{print \$1}' | tr '\n' ' ')
 # declare -a interfaces=(\$interfaces_get)
@@ -2875,6 +2888,9 @@ while true; do
         # 检查是否超过阈值
         if [ "\$StatisticsMode_ST" == "SE" ]; then
 
+            rx_diff_bytes=\$(printf "%.0f" \$rx_diff_bytes)
+            tx_diff_bytes=\$(printf "%.0f" \$tx_diff_bytes)
+
             # threshold_reached=\$(awk -v rx_diff="\$rx_diff" -v tx_diff="\$tx_diff" -v threshold="\$THRESHOLD_BYTES" 'BEGIN {print (rx_diff >= threshold) || (tx_diff >= threshold) ? 1 : 0}')
             # if [ "\$threshold_reached" -eq 1 ]; then
 
@@ -2954,6 +2970,9 @@ while true; do
         nline=\$((nline + 1))
     done
     if [ "\$StatisticsMode_ST" == "OV" ]; then
+
+        ov_rx_diff_bytes=\$(printf "%.0f" \$ov_rx_diff_bytes)
+        ov_tx_diff_bytes=\$(printf "%.0f" \$ov_tx_diff_bytes)
 
         if [ \$ov_rx_diff_bytes -ge \$THRESHOLD_BYTES ] || [ \$ov_tx_diff_bytes -ge \$THRESHOLD_BYTES ]; then
 
@@ -3299,6 +3318,9 @@ else
 fi
 
 THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
+THRESHOLD_BYTES_MAX=\$(printf "%.0f" \$THRESHOLD_BYTES_MAX)
+echo "==================================================================="
+echo "THRESHOLD_BYTES_MAX: \$THRESHOLD_BYTES_MAX"
 
 interfaces=()
 # interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
