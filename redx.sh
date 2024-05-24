@@ -1945,7 +1945,7 @@ case $choice in
                                 # echo -e "如果中途中止脚本可采用以下指令恢复 ${GR}nginx.conf${NC}"
                                 # echo -e "${GR}mv /etc/nginx/nginx_ssl.conf /etc/nginx/nginx.conf${NC}"
                                 echo "=================================================="
-                                pids=$(lsof -t -i :80)
+                                pids=$(lsof -t -i :$port_ssl)
                                 if [ -n "$pids" ]; then
                                     for pid in $pids; do
                                         kill -9 $pid &> /dev/null
@@ -1963,7 +1963,9 @@ case $choice in
                                 fi
                                 registerSSL() {
                                     local IPType="${1}"
-                                    cp /etc/nginx/nginx.conf /etc/nginx/nginx_ssl.conf
+                                    systemctl stop nginx.service > /dev/null 2>&1
+                                    pkill nginx > /dev/null 2>&1
+                                    # cp /etc/nginx/nginx.conf /etc/nginx/nginx_ssl.conf
                                     echo "user www-data;
                                     events {
                                         worker_connections 768;
@@ -1976,27 +1978,32 @@ case $choice in
                                         index index.html index.htm index.nginx-debian.html;
                                         server_name $domain;
                                         }
-                                    }" > /etc/nginx/nginx.conf
+                                    }" > /etc/nginx/nginx_ssl.conf
                                     # cat /etc/nginx/nginx.conf
-                                    systemctl restart nginx > /dev/null 2>&1
+                                    # systemctl restart nginx > /dev/null 2>&1
+                                    nginx -c /etc/nginx/nginx_ssl.conf
                                     sleep 1
-                                    mv /etc/nginx/nginx_ssl.conf /etc/nginx/nginx.conf
+                                    ss -untlp
                                     stopfire
                                     $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                                     if [ "$IPType" == "4" ]; then
-                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx
+                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx /etc/nginx/nginx_ssl.conf
                                     elif [ "$IPType" == "6" ]; then
-                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx --listen-v6
+                                        $user_path/.acme.sh/acme.sh --issue -d $domain --nginx /etc/nginx/nginx_ssl.conf --listen-v6
                                     else
                                         echo "请检查 IPType !"
                                         # return 1
                                         break
                                     fi
+                                    # mv /etc/nginx/nginx_ssl.conf /etc/nginx/nginx.conf
                                     $user_path/.acme.sh/acme.sh --installcert -d $domain --key-file $user_path/cert/$domain.key --fullchain-file $user_path/cert/$domain.cer
                                     recoverfire
                                     if [[ -f "$user_path/cert/$domain.key" && -f "$user_path/cert/$domain.cer" ]]; then
                                         if [[ -s "$user_path/cert/$domain.key" && -s "$user_path/cert/$domain.cer" ]]; then
                                             echo "证书申请成功！"
+                                            echo "==========================================================="
+                                            ls -l /root/cert
+                                            echo "==========================================================="
                                             echo "证书已生成并保存到 $user_path/cert 目录下."
                                         else
                                             rm $user_path/cert/$domain.key &>/dev/null
@@ -2042,6 +2049,8 @@ case $choice in
                                 echo "输入的域名不合法, 请重新输入."
                             fi
                         done
+                        systemctl stop nginx.service > /dev/null 2>&1
+                        pkill nginx > /dev/null 2>&1
                         systemctl restart nginx > /dev/null 2>&1
                         waitfor
                         ;;
@@ -2183,6 +2192,14 @@ case $choice in
                         else
                             echo "输入有误."
                         fi
+                        waitfor
+                        ;;
+                    v|V|vv|VV)
+                        echo "==========================================================="
+                        cat /etc/nginx/nginx.conf
+                        echo "==========================================================="
+                        ls -l /root/cert
+                        echo "==========================================================="
                         waitfor
                         ;;
                     r|R|rr|RR)
