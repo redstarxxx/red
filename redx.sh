@@ -1983,7 +1983,7 @@ case $choice in
                                     # systemctl restart nginx > /dev/null 2>&1
                                     nginx -c /etc/nginx/nginx_ssl.conf
                                     sleep 1
-                                    ss -untlp
+                                    # ss -untlp
                                     stopfire
                                     $user_path/.acme.sh/acme.sh --register-account -m $random@gmail.com
                                     if [ "$IPType" == "4" ]; then
