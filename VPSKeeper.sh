@@ -5430,7 +5430,7 @@ while true; do
 
         # 实时TCP/UDP连接数输出结果
         if [ "\$tu_show" == "true" ]; then
-            echo " --------------------------------------------------"
+            echo " =================================================="
             echo -e "   TCP本地连接数: \${GR}\$tcp_local_connections\${NC} / \$tcp_total"
             echo -e "   TCP外部连接数: \${GR}\$tcp_external_connections\${NC} / \$tcp_total"
             # if [[ \$tcp_external_connections -gt 0 ]]; then
