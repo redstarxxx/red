@@ -5119,13 +5119,15 @@ T_NETSPEED() {
             return
         fi
     fi
-    echo -en "显示外部 TCP/UDP 连接详情？ (y/${GR}N${NC}) : "
-    read -er input_tu
-    if [ ! "$input_tu" == "y" ] && [ ! "$input_tu" == "Y" ]; then
-        echo
-        tu_show="false"
-    else
-        tu_show="true"
+    if [ "$ss_s" == "st" ]; then
+        echo -en "显示外部 TCP/UDP 连接详情？ (y/${GR}N${NC}) : "
+        read -er input_tu
+        if [ ! "$input_tu" == "y" ] && [ ! "$input_tu" == "Y" ]; then
+            echo
+            tu_show="false"
+        else
+            tu_show="true"
+        fi
     fi
     # if [ ! -f $FolderPath/tg_interface_re.sh ]; then
         cat <<EOF > $FolderPath/tg_interface_re.sh
