@@ -5304,6 +5304,59 @@ while true; do
         min_tx_speedb=\$(Bit_K_TGMi "\$(awk 'BEGIN {printf "%.1f", "'\$min_tx_speed_kb'" * 8}')")
         avg_tx_speedb=\$(Bit_K_TGMi "\$(awk 'BEGIN {printf "%.1f", "'\$avg_tx_speed_kb'" * 8}')")
 
+        # 实时TCP/UDP连接数
+        # 获取tcp开头的行数，并将Foreign Address为本地IP地址和外部地址的连接数进行统计
+        tcp_connections=\$(netstat -auntlp | grep '^tcp')
+        tcp_local_connections=0
+        tcp_external_connections=0
+        tcp_external_details=()
+        tcp_total=0
+        udp_connections=\$(netstat -auntlp | grep '^udp')
+        udp_local_connections=0
+        udp_external_connections=0
+        udp_external_details=()
+        udp_total=0
+
+        # 定义本地IP地址范围
+        local_ip_ranges=("0.0.0.0" "127.0.0.1" ":::" "localhost" "192.168" "10." "172.16" "172.17" "172.18" "172.19" "172.20" "172.21" "172.22" "172.23" "172.24" "172.25" "172.26" "172.27" "172.28" "172.29" "172.30" "172.31")
+
+        while IFS= read -r line; do
+            foreign_address=\$(echo \$line | awk '{print \$5}')
+            is_local=0
+            for ip_range in "\${local_ip_ranges[@]}"; do
+                if [[ \$foreign_address == \$ip_range* ]]; then
+                    is_local=1
+                    break
+                fi
+            done
+            
+            if [[ \$is_local -eq 1 ]]; then
+                ((tcp_local_connections++))
+            else
+                ((tcp_external_connections++))
+                tcp_external_details+=("\$line")
+            fi
+            ((tcp_total++))
+        done <<< "\$tcp_connections"
+        while IFS= read -r line; do
+            foreign_address=\$(echo \$line | awk '{print \$5}')
+            is_local=0
+            for ip_range in "\${local_ip_ranges[@]}"; do
+                if [[ \$foreign_address == \$ip_range* ]]; then
+                    is_local=1
+                    break
+                fi
+            done
+            
+            if [[ \$is_local -eq 1 ]]; then
+                ((udp_local_connections++))
+            else
+                ((udp_external_connections++))
+                udp_external_details+=("\$line")
+            fi
+            ((udp_total++))
+        done <<< "\$udp_connections"
+
     else
         tx_speed=\$(Bytes_K_TGM "\$tx_speed_kb")
         max_tx_speed=\$(Bytes_K_TGM "\$max_tx_speed_kb")
@@ -5360,6 +5413,26 @@ while true; do
         echo -e "   MAX: \${GR}\$max_tx_speedi\${NC} /s   ( \${GR}\$max_tx_speedb\${NC} /s )"
         echo -e "   MIN: \${GR}\$min_tx_speedi\${NC} /s   ( \${GR}\$min_tx_speedb\${NC} /s )"
         echo -e "   AVG: \${GR}\$avg_tx_speedi\${NC} /s   ( \${GR}\$avg_tx_speedb\${NC} /s )"
+        echo " --------------------------------------------------"
+
+        # 实时TCP/UDP连接数输出结果
+        echo -e "   TCP本地连接数: \${GR}\$tcp_local_connections\${NC} / \$tcp_total"
+        echo -e "   TCP外部连接数: \${GR}\$tcp_external_connections\${NC} / \$tcp_total"
+        if [[ \$tcp_external_connections -gt 0 ]]; then
+            echo "   TCP外部连接详情:"
+            for detail in "\${tcp_external_details[@]}"; do
+                echo "\$detail"
+            done
+        fi
+        echo " --------------------------------------------------"
+        echo -e "   UDP本地连接数: \${GR}\$udp_local_connections\${NC} / \$udp_total"
+        echo -e "   UDP外部连接数: \${GR}\$udp_external_connections\${NC} / \$udp_total"
+        if [[ \$udp_external_connections -gt 0 ]]; then
+            echo "   UDP外部连接详情:"
+            for detail in "\${udp_external_details[@]}"; do
+                echo "\$detail"
+            done
+        fi
 
         echo "接收: \$rx_speedi  发送: \$tx_speedi" >> \$FolderPath/interface_re.txt
         echo "==============================================" >> \$FolderPath/interface_re.txt
