@@ -5329,42 +5329,44 @@ while true; do
         # 定义本地IP地址范围
         local_ip_ranges=("0.0.0.0" "127.0.0.1" ":::" "localhost" "192.168" "10." "172.16" "172.17" "172.18" "172.19" "172.20" "172.21" "172.22" "172.23" "172.24" "172.25" "172.26" "172.27" "172.28" "172.29" "172.30" "172.31")
 
-        while IFS= read -r line; do
-            foreign_address=\$(echo \$line | awk '{print \$5}')
-            is_local=0
-            for ip_range in "\${local_ip_ranges[@]}"; do
-                if [[ \$foreign_address == \$ip_range* ]]; then
-                    is_local=1
-                    break
+        if [[ ! -z "\$tcp_connections" ]]; then
+            while IFS= read -r line; do
+                foreign_address=\$(echo \$line | awk '{print \$5}')
+                is_local=0
+                for ip_range in "\${local_ip_ranges[@]}"; do
+                    if [[ \$foreign_address == \$ip_range* ]]; then
+                        is_local=1
+                        break
+                    fi
+                done
+                if [[ \$is_local -eq 1 ]]; then
+                    ((tcp_local_connections++))
+                else
+                    ((tcp_external_connections++))
+                    tcp_external_details+=("\$line")
                 fi
-            done
-            
-            if [[ \$is_local -eq 1 ]]; then
-                ((tcp_local_connections++))
-            else
-                ((tcp_external_connections++))
-                tcp_external_details+=("\$line")
-            fi
-            ((tcp_total++))
-        done <<< "\$tcp_connections"
-        while IFS= read -r line; do
-            foreign_address=\$(echo \$line | awk '{print \$5}')
-            is_local=0
-            for ip_range in "\${local_ip_ranges[@]}"; do
-                if [[ \$foreign_address == \$ip_range* ]]; then
-                    is_local=1
-                    break
+                ((tcp_total++))
+            done <<< "\$tcp_connections"
+        fi
+        if [[ ! -z "\$udp_connections" ]]; then
+            while IFS= read -r line; do
+                foreign_address=\$(echo \$line | awk '{print \$5}')
+                is_local=0
+                for ip_range in "\${local_ip_ranges[@]}"; do
+                    if [[ \$foreign_address == \$ip_range* ]]; then
+                        is_local=1
+                        break
+                    fi
+                done
+                if [[ \$is_local -eq 1 ]]; then
+                    ((udp_local_connections++))
+                else
+                    ((udp_external_connections++))
+                    udp_external_details+=("\$line")
                 fi
-            done
-            
-            if [[ \$is_local -eq 1 ]]; then
-                ((udp_local_connections++))
-            else
-                ((udp_external_connections++))
-                udp_external_details+=("\$line")
-            fi
-            ((udp_total++))
-        done <<< "\$udp_connections"
+                ((udp_total++))
+            done <<< "\$udp_connections"
+        fi
 
     else
         tx_speed=\$(Bytes_K_TGM "\$tx_speed_kb")
