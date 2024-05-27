@@ -5119,6 +5119,14 @@ T_NETSPEED() {
             return
         fi
     fi
+    echo -en "是否显示实时外部 TCP/UDP 连接？ (Y/回车默认 ${GR}N${NC} 秒) : "
+    read -er input_tu
+    if [ ! "$input_tu" == "y" ] && [ ! "$input_tu" == "Y" ]; then
+        echo
+        tu_show="false"
+    else
+        tu_show="true"
+    fi
     # if [ ! -f $FolderPath/tg_interface_re.sh ]; then
         cat <<EOF > $FolderPath/tg_interface_re.sh
 #!/bin/bash
@@ -5166,6 +5174,7 @@ for ((i = 0; i < \${#interfaces_r[@]}; i++)); do
 done
 
 TT=$nstt
+tu_show=$tu_show
 duration=0
 CLEAR_TAG=1
 CLEAR_TAG_OLD=\$CLEAR_TAG
@@ -5418,7 +5427,7 @@ while true; do
         # 实时TCP/UDP连接数输出结果
         echo -e "   TCP本地连接数: \${GR}\$tcp_local_connections\${NC} / \$tcp_total"
         echo -e "   TCP外部连接数: \${GR}\$tcp_external_connections\${NC} / \$tcp_total"
-        if [[ \$tcp_external_connections -gt 0 ]]; then
+        if [[ \$tcp_external_connections -gt 0 ]] && [ "\$tu_show" == "true" ]; then
             echo "   TCP外部连接详情:"
             for detail in "\${tcp_external_details[@]}"; do
                 echo "\$detail"
@@ -5427,7 +5436,7 @@ while true; do
         echo " --------------------------------------------------"
         echo -e "   UDP本地连接数: \${GR}\$udp_local_connections\${NC} / \$udp_total"
         echo -e "   UDP外部连接数: \${GR}\$udp_external_connections\${NC} / \$udp_total"
-        if [[ \$udp_external_connections -gt 0 ]]; then
+        if [[ \$udp_external_connections -gt 0 ]] && [ "\$tu_show" == "true" ]; then
             echo "   UDP外部连接详情:"
             for detail in "\${udp_external_details[@]}"; do
                 echo "\$detail"
