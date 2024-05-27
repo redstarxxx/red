@@ -5119,7 +5119,7 @@ T_NETSPEED() {
             return
         fi
     fi
-    echo -en "是否显示实时外部 TCP/UDP 连接？ (Y/回车默认 ${GR}N${NC} 秒) : "
+    echo -en "显示外部 TCP/UDP 连接详情？ (y/${GR}N${NC}) : "
     read -er input_tu
     if [ ! "$input_tu" == "y" ] && [ ! "$input_tu" == "Y" ]; then
         echo
