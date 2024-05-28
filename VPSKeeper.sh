@@ -5319,12 +5319,16 @@ while true; do
         tu_errtips=""
         if [ "\$tu_show" == "true" ]; then
             # 获取tcp开头的行数，并将Foreign Address为本地IP地址和外部地址的连接数进行统计
-            if command -v ss &>/dev/null; then
+            if command -v sss &>/dev/null; then
                 tcp_connections=\$(ss -t | tail -n +2)
                 tut_tool="ss"
+                ip_location=5 # 避免ss指令和netstat指令获取的值错位而添加，这里也可以省略(省略时注意下面代码)
             elif command -v netstat &>/dev/null; then
-                tcp_connections=\$(netstat -at | grep '^tcp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
+                # tcp_connections=\$(netstat -at | grep '^tcp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
+                # tcp_connections=\$(netstat -at | grep '^tcp' | grep -v 'LISTEN')
+                tcp_connections=\$(netstat -at | grep '^tcp' | grep -v 'LISTEN' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
                 tut_tool="netstat"
+                ip_location=5
             else
                 tu_errtips="\${RE}TCP/UDP 连接数获取失败!\${NC}"
             fi
@@ -5332,12 +5336,16 @@ while true; do
             tcp_external_connections=0
             tcp_external_details=()
             tcp_total=0
-            if command -v ss &>/dev/null; then
+            if command -v sss &>/dev/null; then
                 udp_connections=\$(ss -u | tail -n +2)
                 tuu_tool="ss"
+                ip_location=5
             elif command -v netstat &>/dev/null; then
-                udp_connections=\$(netstat -au | grep '^udp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
+                # udp_connections=\$(netstat -au | grep '^udp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
+                # udp_connections=\$(netstat -au | grep '^udp' | grep -v 'LISTEN')
+                udp_connections=\$(netstat -au | grep '^udp' | grep -v 'LISTEN' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
                 tuu_tool="netstat"
+                ip_location=5
             else
                 tu_errtips="\${RE}TCP/UDP 连接数获取失败!\${NC}"
             fi
@@ -5347,11 +5355,11 @@ while true; do
             udp_total=0
 
             # 定义本地IP地址范围
-            local_ip_ranges=("0.0.0.0" "127.0.0.1" "[::" "localhost" "192.168" "10." "172.16" "172.17" "172.18" "172.19" "172.20" "172.21" "172.22" "172.23" "172.24" "172.25" "172.26" "172.27" "172.28" "172.29" "172.30" "172.31")
+            local_ip_ranges=("0.0.0.0" "127.0.0.1" "[::" "fc" "fd" "fe" "localhost" "192.168" "10." "172.16" "172.17" "172.18" "172.19" "172.20" "172.21" "172.22" "172.23" "172.24" "172.25" "172.26" "172.27" "172.28" "172.29" "172.30" "172.31")
 
             if [[ ! -z "\$tcp_connections" ]]; then
                 while IFS= read -r line; do
-                    foreign_address=\$(echo \$line | awk '{print \$5}')
+                    foreign_address=\$(echo \$line | awk -v var=\$ip_location '{print \$var}')
                     is_local=0
                     for ip_range in "\${local_ip_ranges[@]}"; do
                         if [[ \$foreign_address == \$ip_range* ]]; then
@@ -5448,8 +5456,8 @@ while true; do
         # 实时TCP/UDP连接数输出结果
         if [ "\$tu_show" == "true" ]; then
             echo " =================================================="
-            echo -e "   TCP本地连接数(\$tut_tool): \${GR}\$tcp_local_connections\${NC} / \$tcp_total \$tu_errtips"
-            echo -e "   TCP外部连接数(\$tut_tool): \${GR}\$tcp_external_connections\${NC} / \$tcp_total \$tu_errtips"
+            echo -e " \${GRB}TCP\${NC} 内网连接(\$tut_tool): \${GR}\$tcp_local_connections\${NC}  / \$tcp_total \$tu_errtips"
+            echo -e " \${GRB}TCP\${NC} 外网连接(\$tut_tool): \${GR}\$tcp_external_connections\${NC}  / \$tcp_total \$tu_errtips"
             # if [[ \$tcp_external_connections -gt 0 ]]; then
             #     echo "   TCP外部连接详情:"
             #     for detail in "\${tcp_external_details[@]}"; do
@@ -5457,8 +5465,8 @@ while true; do
             #     done
             # fi
             echo " --------------------------------------------------"
-            echo -e "   UDP本地连接数(\$tuu_tool): \${GR}\$udp_local_connections\${NC} / \$udp_total \$tu_errtips"
-            echo -e "   UDP外部连接数(\$tuu_tool): \${GR}\$udp_external_connections\${NC} / \$udp_total \$tu_errtips"
+            echo -e " \${GRB}UDP\${NC} 内网连接(\$tuu_tool): \${GR}\$udp_local_connections\${NC}  / \$udp_total \$tu_errtips"
+            echo -e " \${GRB}UDP\${NC} 外网连接(\$tuu_tool): \${GR}\$udp_external_connections\${NC}  / \$udp_total \$tu_errtips"
             # if [[ \$udp_external_connections -gt 0 ]]; then
             #     echo "   UDP外部连接详情:"
             #     for detail in "\${udp_external_details[@]}"; do
