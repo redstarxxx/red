@@ -5366,8 +5366,8 @@ while true; do
             udp_external_connections=0
             udp_external_details=()
             udp_total=0
-            udp_num_estab_local=0
-            udp_num_estab_external=0
+            # udp_num_estab_local=0
+            # udp_num_estab_external=0
 
             # tcp_num_estab=\$(grep -c -E 'ESTABLISHED|ESTAB' <<< "\$tcp_connections")
             # udp_num_estab=\$(grep -c -E 'ESTABLISHED|ESTAB' <<< "\$udp_connections")
@@ -5415,14 +5415,14 @@ while true; do
                     done
                     if [[ \$is_local -eq 1 ]]; then
                         ((udp_local_connections++))
-                        if [[ \$line =~ ESTABLISHED|ESTAB ]]; then
-                            ((udp_num_estab_local++))
-                        fi
+                        # if [[ \$line =~ ESTABLISHED|ESTAB ]]; then
+                        #     ((udp_num_estab_local++))
+                        # fi
                     else
                         ((udp_external_connections++))
-                        if [[ \$line =~ ESTABLISHED|ESTAB ]]; then
-                            ((udp_num_estab_external++))
-                        fi
+                        # if [[ \$line =~ ESTABLISHED|ESTAB ]]; then
+                        #     ((udp_num_estab_external++))
+                        # fi
                         udp_external_details+=("\$line")
                     fi
                     ((udp_total++))
@@ -5430,8 +5430,8 @@ while true; do
             fi
             tcp_num_unusual_local=\$((tcp_local_connections - tcp_num_estab_local))
             tcp_num_unusual_external=\$((tcp_external_connections - tcp_num_estab_external))
-            udp_num_unusual_local=\$((udp_local_connections - udp_num_estab_local))
-            udp_num_unusual_external=\$((udp_external_connections - udp_num_estab_external))
+            # udp_num_unusual_local=\$((udp_local_connections - udp_num_estab_local))
+            # udp_num_unusual_external=\$((udp_external_connections - udp_num_estab_external))
         fi
     else
         tx_speed=\$(Bytes_K_TGM "\$tx_speed_kb")
@@ -5506,8 +5506,8 @@ while true; do
             echo " --------------------------------------------------"
             # echo -e " \${GRB}UDP\${NC} 内网连接(\$tuu_tool): \${GR}\$udp_local_connections\${NC}  / \$udp_total \$tuu_errtips"
             # echo -e " \${GRB}UDP\${NC} 外网连接(\$tuu_tool): \${GR}\$udp_external_connections\${NC}  / \$udp_total \$tuu_errtips"
-            echo -e " \${GRB}UDP\${NC} 内网连接(\$tuu_tool): \${GR}\$udp_num_estab_local\${NC}  / \${RE}\$udp_num_unusual_local\${NC}  / \$udp_total \$tuu_errtips"
-            echo -e " \${GRB}UDP\${NC} 外网连接(\$tuu_tool): \${GR}\$udp_num_estab_external\${NC}  / \${RE}\$udp_num_unusual_external\${NC}  / \$udp_total \$tuu_errtips"
+            echo -e " \${GRB}UDP\${NC} 内网连接(\$tuu_tool): \${GR}\$udp_local_connections\${NC}  / \$udp_total \$tuu_errtips"
+            echo -e " \${GRB}UDP\${NC} 外网连接(\$tuu_tool): \${GR}\$udp_external_connections\${NC}  / \$udp_total \$tuu_errtips"
             # if [[ \$udp_external_connections -gt 0 ]]; then
             #     echo "   UDP外部连接详情:"
             #     for detail in "\${udp_external_details[@]}"; do
@@ -5515,7 +5515,7 @@ while true; do
             #     done
             # fi
             echo " --------------------------------------------------"
-            echo -e " 数值说明: \${GR}正常连接\${NC}  / \${RE}非正常连接\${NC}  / 总连接"
+            echo -e " 数值说明: \${GR}正常连接\${NC}  / \${RE}非正常连接(TCP)\${NC}  / 总连接"
         fi
         echo "接收: \$rx_speedi  发送: \$tx_speedi" >> \$FolderPath/interface_re.txt
         echo "==============================================" >> \$FolderPath/interface_re.txt
