@@ -5226,18 +5226,16 @@ while true; do
 
         # duration=\$(awk "BEGIN {print \$time_diff_ms/1000}")
         duration=\$(awk 'BEGIN { printf "%.3f", '"\$time_diff_ms"' / 1000 }')
-        # sleep_time=\$(awk -v v1=\$TT -v v2=\$duration 'BEGIN { printf "%.3f", v1 - v2 }')
         sleep_time=\$(awk -v v1="\$TT" -v v2="\$duration" 'BEGIN { printf "%.3f", v1 - v2 }')
     else
-        # sleep_time=\$TT
-        sleep_time=\$(awk -v v1="\$TT" 'BEGIN { printf "%.3f", v1 }')
+        sleep_time=\$TT
     fi
     sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
     echo " =================================================="
     # se_state=\$(awk 'BEGIN {if ('"\$sleep_time"' <= 0) print "\${REB}不正常\${NC}"; else print "\${GRB}正常\${NC}"}')
     se_state=\$(awk -v reb="\${REB}" -v grb="\${GRB}" -v nc="\${NC}" 'BEGIN {if ('"\$sleep_time"' <= 0) print reb "不正常" nc; else print grb "正常" nc}')
-    sleep_time=\$(awk -v v1="\$sleep_time" 'BEGIN { printf "%.3f", v1 }')
-    echo -e " 间隔: \$sleep_time 秒    时差: \$duration 秒     状态: \$se_state"
+    sleep_time_show=\$(awk -v v1="\$sleep_time" 'BEGIN { printf "%.3f", v1 }')
+    echo -e " 间隔: \$sleep_time_show 秒    时差: \$duration 秒     状态: \$se_state"
     # echo -e "统计接口: \$show_interfaces"
     echo
     date +"%Y.%m.%d %T"
