@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.240527.2"
+sh_ver="1.240528.1"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
@@ -5319,7 +5319,7 @@ while true; do
         tu_errtips=""
         if [ "\$tu_show" == "true" ]; then
             # 获取tcp开头的行数，并将Foreign Address为本地IP地址和外部地址的连接数进行统计
-            if command -v sss &>/dev/null; then
+            if command -v ss &>/dev/null; then
                 tcp_connections=\$(ss -t | tail -n +2)
                 tut_tool="ss"
                 ip_location=5 # 避免ss指令和netstat指令获取的值错位而添加，这里也可以省略(省略时注意下面代码)
@@ -5336,7 +5336,7 @@ while true; do
             tcp_external_connections=0
             tcp_external_details=()
             tcp_total=0
-            if command -v sss &>/dev/null; then
+            if command -v ss &>/dev/null; then
                 udp_connections=\$(ss -u | tail -n +2)
                 tuu_tool="ss"
                 ip_location=5
