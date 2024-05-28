@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.240528.1"
+sh_ver="1.240528.2"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
@@ -5224,16 +5224,23 @@ while true; do
         # 输出执行FOR所花费时间
         # echo "上一个 FOR循环 所执行时间 \$time_diff_ms 毫秒."
 
-        duration=\$(awk "BEGIN {print \$time_diff_ms/1000}")
-        sleep_time=\$(awk -v v1=\$TT -v v2=\$duration 'BEGIN { printf "%.3f", v1 - v2 }')
+        # duration=\$(awk "BEGIN {print \$time_diff_ms/1000}")
+        duration=\$(awk 'BEGIN { printf "%.3f", '"\$time_diff_ms"' / 1000 }')
+        # sleep_time=\$(awk -v v1=\$TT -v v2=\$duration 'BEGIN { printf "%.3f", v1 - v2 }')
+        sleep_time=\$(awk -v v1="\$TT" -v v2="\$duration" 'BEGIN { printf "%.3f", v1 - v2 }')
     else
-        sleep_time=\$TT
+        # sleep_time=\$TT
+        sleep_time=\$(awk -v v1="\$TT" 'BEGIN { printf "%.3f", v1 }')
     fi
     sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
     echo " =================================================="
-    # echo -e "间隔: \$sleep_time 秒    时差: \$duration 秒  CLS: \$CLEAR_TAG"
+    # se_state=\$(awk 'BEGIN {if ('"\$sleep_time"' <= 0) print "\${REB}不正常\${NC}"; else print "\${GRB}正常\${NC}"}')
+    se_state=\$(awk -v reb="\${REB}" -v grb="\${GRB}" -v nc="\${NC}" 'BEGIN {if ('"\$sleep_time"' <= 0) print reb "不正常" nc; else print grb "正常" nc}')
+    sleep_time=\$(awk -v v1="\$sleep_time" 'BEGIN { printf "%.3f", v1 }')
+    echo -e " 间隔: \$sleep_time 秒    时差: \$duration 秒     状态: \$se_state"
     # echo -e "统计接口: \$show_interfaces"
     echo
+    date +"%Y.%m.%d %T"
     echo -e "\${RE}按任意键退出\${NC}"
     sleep \$sleep_time
     start_time=\$(date +%s%N)
