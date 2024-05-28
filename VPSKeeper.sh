@@ -5329,7 +5329,7 @@ while true; do
                 # tcp_connections=\$(ss -t | tail -n +2)
                 tcp_connections=\$(ss -t | tail -n +2 | sed -e 's/\[\(::ffff:\)\?//g' -e 's/\]//g')
                 tut_tool="ss"
-                tcp_ip_location=5 # 避免ss指令和netstat指令获取的值错位而添加，这里也可以省略(省略时注意下面代码)
+                tcp_ip_location=5
             elif command -v netstat &>/dev/null; then
                 # tcp_connections=\$(netstat -ant | grep '^tcp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
                 # tcp_connections=\$(netstat -ant | grep '^tcp' | grep -v 'LISTEN')
