@@ -5233,8 +5233,8 @@ while true; do
     sleep_time=\$(awk "BEGIN {print (\$sleep_time < 0 ? 0 : \$sleep_time)}")
     echo " =================================================="
     # se_state=\$(awk 'BEGIN {if ('"\$sleep_time"' <= 0) print "\${REB}不正常\${NC}"; else print "\${GRB}正常\${NC}"}')
-    se_state=\$(awk -v reb="\${REB}" -v grb="\${GRB}" -v nc="\${NC}" 'BEGIN {if ('"\$sleep_time"' <= 0) print reb "不正常" nc; else print grb "正常" nc}')
     sleep_time_show=\$(awk -v v1="\$sleep_time" 'BEGIN { printf "%.3f", v1 }')
+    se_state=\$(awk -v reb="\${REB}" -v grb="\${GRB}" -v nc="\${NC}" 'BEGIN {if ('"\$sleep_time"' < '"\$duration"') print reb "不正常" nc; else print grb "正常" nc}')
     echo -e " 间隔: \$sleep_time_show 秒    时差: \$duration 秒     状态: \$se_state"
     # echo -e "统计接口: \$show_interfaces"
     echo
