@@ -5326,7 +5326,7 @@ while true; do
             elif command -v netstat &>/dev/null; then
                 # tcp_connections=\$(netstat -at | grep '^tcp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
                 # tcp_connections=\$(netstat -at | grep '^tcp' | grep -v 'LISTEN')
-                tcp_connections=\$(netstat -at | grep '^tcp' | grep -v 'LISTEN' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
+                tcp_connections=\$(netstat -at | grep '^tcp' | grep -v 'LISTEN' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*' | grep -v ':::*')
                 tut_tool="netstat"
                 ip_location=5
             else
@@ -5343,7 +5343,7 @@ while true; do
             elif command -v netstat &>/dev/null; then
                 # udp_connections=\$(netstat -au | grep '^udp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
                 # udp_connections=\$(netstat -au | grep '^udp' | grep -v 'LISTEN')
-                udp_connections=\$(netstat -au | grep '^udp' | grep -v 'LISTEN' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
+                udp_connections=\$(netstat -au | grep '^udp' | grep -v 'LISTEN' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*' | grep -v ':::*')
                 tuu_tool="netstat"
                 ip_location=5
             else
