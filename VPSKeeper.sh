@@ -5316,7 +5316,8 @@ while true; do
         avg_tx_speedb=\$(Bit_K_TGMi "\$(awk 'BEGIN {printf "%.1f", "'\$avg_tx_speed_kb'" * 8}')")
 
         # 实时TCP/UDP连接数
-        tu_errtips=""
+        tut_errtips=""
+        tuu_errtips=""
         if [ "\$tu_show" == "true" ]; then
             # 获取tcp开头的行数，并将Foreign Address为本地IP地址和外部地址的连接数进行统计
             if command -v ss &>/dev/null; then
@@ -5330,7 +5331,7 @@ while true; do
                 tut_tool="netstat"
                 ip_location=5
             else
-                tu_errtips="\${RE}TCP/UDP 连接数获取失败!\${NC}"
+                tut_errtips="\${RE}TCP 连接数获取失败!\${NC}"
             fi
             tcp_local_connections=0
             tcp_external_connections=0
@@ -5347,12 +5348,19 @@ while true; do
                 tuu_tool="netstat"
                 ip_location=5
             else
-                tu_errtips="\${RE}TCP/UDP 连接数获取失败!\${NC}"
+                tuu_errtips="\${RE}UDP 连接数获取失败!\${NC}"
             fi
             udp_local_connections=0
             udp_external_connections=0
             udp_external_details=()
             udp_total=0
+            tcp_num_estab_local=0
+            tcp_num_estab_external=0
+            udp_num_estab_local=0
+            udp_num_estab_external=0
+
+            # tcp_num_estab=\$(grep -c -E 'ESTABLISHED|ESTAB' <<< "\$tcp_connections")
+            # udp_num_estab=\$(grep -c -E 'ESTABLISHED|ESTAB' <<< "\$udp_connections")
 
             # 定义本地IP地址范围
             local_ip_ranges=("0.0.0.0" "127.0.0.1" "[::" "fc" "fd" "fe" "localhost" "192.168" "10." "172.16" "172.17" "172.18" "172.19" "172.20" "172.21" "172.22" "172.23" "172.24" "172.25" "172.26" "172.27" "172.28" "172.29" "172.30" "172.31")
@@ -5369,8 +5377,14 @@ while true; do
                     done
                     if [[ \$is_local -eq 1 ]]; then
                         ((tcp_local_connections++))
+                        if [[ \$line =~ ESTABLISHED|ESTAB ]]; then
+                            ((tcp_num_estab_local++))
+                        fi
                     else
                         ((tcp_external_connections++))
+                        if [[ \$line =~ ESTABLISHED|ESTAB ]]; then
+                            ((tcp_num_estab_external++))
+                        fi
                         tcp_external_details+=("\$line")
                     fi
                     ((tcp_total++))
@@ -5378,6 +5392,9 @@ while true; do
             fi
             if [[ ! -z "\$udp_connections" ]]; then
                 while IFS= read -r line; do
+                    if [[ \$line =~ ESTABLISHED|ESTAB ]]; then
+                        ((udp_num_estab++))
+                    fi
                     foreign_address=\$(echo \$line | awk '{print \$5}')
                     is_local=0
                     for ip_range in "\${local_ip_ranges[@]}"; do
@@ -5388,13 +5405,23 @@ while true; do
                     done
                     if [[ \$is_local -eq 1 ]]; then
                         ((udp_local_connections++))
+                        if [[ \$line =~ ESTABLISHED|ESTAB ]]; then
+                            ((udp_num_estab_local++))
+                        fi
                     else
                         ((udp_external_connections++))
+                        if [[ \$line =~ ESTABLISHED|ESTAB ]]; then
+                            ((udp_num_estab_external++))
+                        fi
                         udp_external_details+=("\$line")
                     fi
                     ((udp_total++))
                 done <<< "\$udp_connections"
             fi
+            tcp_num_unusual_local=\$((tcp_local_connections - tcp_num_estab_local))
+            tcp_num_unusual_external=\$((tcp_external_connections - tcp_num_estab_external))
+            udp_num_unusual_local=\$((udp_local_connections - udp_num_estab_local))
+            udp_num_unusual_external=\$((udp_external_connections - udp_num_estab_external))
         fi
     else
         tx_speed=\$(Bytes_K_TGM "\$tx_speed_kb")
@@ -5456,8 +5483,10 @@ while true; do
         # 实时TCP/UDP连接数输出结果
         if [ "\$tu_show" == "true" ]; then
             echo " =================================================="
-            echo -e " \${GRB}TCP\${NC} 内网连接(\$tut_tool): \${GR}\$tcp_local_connections\${NC}  / \$tcp_total \$tu_errtips"
-            echo -e " \${GRB}TCP\${NC} 外网连接(\$tut_tool): \${GR}\$tcp_external_connections\${NC}  / \$tcp_total \$tu_errtips"
+            # echo -e " \${GRB}TCP\${NC} 内网连接(\$tut_tool): \${GR}\$tcp_local_connections\${NC}  / \$tcp_total \$tut_errtips"
+            # echo -e " \${GRB}TCP\${NC} 外网连接(\$tut_tool): \${GR}\$tcp_external_connections\${NC}  / \$tcp_total \$tut_errtips"
+            echo -e " \${GRB}TCP\${NC} 内网连接(\$tut_tool): \${GR}\$tcp_num_estab_local\${NC}  / \${RE}\$tcp_num_unusual_local\${NC}  / \$tcp_total \$tut_errtips"
+            echo -e " \${GRB}TCP\${NC} 外网连接(\$tut_tool): \${GR}\$tcp_num_estab_external\${NC}  / \${RE}\$tcp_num_unusual_external\${NC}  / \$tcp_total \$tut_errtips"
             # if [[ \$tcp_external_connections -gt 0 ]]; then
             #     echo "   TCP外部连接详情:"
             #     for detail in "\${tcp_external_details[@]}"; do
@@ -5465,14 +5494,18 @@ while true; do
             #     done
             # fi
             echo " --------------------------------------------------"
-            echo -e " \${GRB}UDP\${NC} 内网连接(\$tuu_tool): \${GR}\$udp_local_connections\${NC}  / \$udp_total \$tu_errtips"
-            echo -e " \${GRB}UDP\${NC} 外网连接(\$tuu_tool): \${GR}\$udp_external_connections\${NC}  / \$udp_total \$tu_errtips"
+            # echo -e " \${GRB}UDP\${NC} 内网连接(\$tuu_tool): \${GR}\$udp_local_connections\${NC}  / \$udp_total \$tuu_errtips"
+            # echo -e " \${GRB}UDP\${NC} 外网连接(\$tuu_tool): \${GR}\$udp_external_connections\${NC}  / \$udp_total \$tuu_errtips"
+            echo -e " \${GRB}UDP\${NC} 内网连接(\$tuu_tool): \${GR}\$udp_num_estab_local\${NC}  / \${RE}\$udp_num_unusual_local\${NC}  / \$udp_total \$tuu_errtips"
+            echo -e " \${GRB}UDP\${NC} 外网连接(\$tuu_tool): \${GR}\$udp_num_estab_external\${NC}  / \${RE}\$udp_num_unusual_external\${NC}  / \$udp_total \$tuu_errtips"
             # if [[ \$udp_external_connections -gt 0 ]]; then
             #     echo "   UDP外部连接详情:"
             #     for detail in "\${udp_external_details[@]}"; do
             #         echo "\$detail"
             #     done
             # fi
+            echo " --------------------------------------------------"
+            echo -e " 数值说明: \${GR}正常连接\${NC}  / \${RE}非正常连接\${NC}  / 总连接"
         fi
         echo "接收: \$rx_speedi  发送: \$tx_speedi" >> \$FolderPath/interface_re.txt
         echo "==============================================" >> \$FolderPath/interface_re.txt
