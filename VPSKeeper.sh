@@ -5326,9 +5326,9 @@ while true; do
                 tut_tool="ss"
                 ip_location=5 # 避免ss指令和netstat指令获取的值错位而添加，这里也可以省略(省略时注意下面代码)
             elif command -v netstat &>/dev/null; then
-                # tcp_connections=\$(netstat -at | grep '^tcp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
-                # tcp_connections=\$(netstat -at | grep '^tcp' | grep -v 'LISTEN')
-                tcp_connections=\$(netstat -at | grep '^tcp' | grep -v 'LISTEN' | sed -e 's/\(::ffff:\)\?//g' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*' | grep -v ':::*' | grep -v 'localhost')
+                # tcp_connections=\$(netstat -ant | grep '^tcp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
+                # tcp_connections=\$(netstat -ant | grep '^tcp' | grep -v 'LISTEN')
+                tcp_connections=\$(netstat -ant | grep '^tcp' | grep -v 'LISTEN' | sed -e 's/\(::ffff:\)\?//g' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*' | grep -v ':::*' | grep -v 'localhost')
                 tut_tool="netstat"
                 ip_location=5
             else
@@ -5341,9 +5341,9 @@ while true; do
                 tuu_tool="ss"
                 ip_location=5
             elif command -v netstat &>/dev/null; then
-                # udp_connections=\$(netstat -au | grep '^udp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
-                # udp_connections=\$(netstat -au | grep '^udp' | grep -v 'LISTEN')
-                udp_connections=\$(netstat -au | grep '^udp' | grep -v 'LISTEN' | sed -e 's/\(::ffff:\)\?//g' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*' | grep -v ':::*' | grep -v 'localhost')
+                # udp_connections=\$(netstat -anu | grep '^udp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
+                # udp_connections=\$(netstat -anu | grep '^udp' | grep -v 'LISTEN')
+                udp_connections=\$(netstat -anu | grep '^udp' | grep -v 'LISTEN' | sed -e 's/\(::ffff:\)\?//g' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*' | grep -v ':::*' | grep -v 'localhost')
                 tuu_tool="netstat"
                 ip_location=5
             else
