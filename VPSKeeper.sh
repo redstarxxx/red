@@ -5329,13 +5329,13 @@ while true; do
                 # tcp_connections=\$(ss -t | tail -n +2)
                 tcp_connections=\$(ss -t | tail -n +2 | sed -e 's/\[\(::ffff:\)\?//g' -e 's/\]//g')
                 tut_tool="ss"
-                ip_location=5 # 避免ss指令和netstat指令获取的值错位而添加，这里也可以省略(省略时注意下面代码)
+                tcp_ip_location=5 # 避免ss指令和netstat指令获取的值错位而添加，这里也可以省略(省略时注意下面代码)
             elif command -v netstat &>/dev/null; then
                 # tcp_connections=\$(netstat -ant | grep '^tcp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
                 # tcp_connections=\$(netstat -ant | grep '^tcp' | grep -v 'LISTEN')
                 tcp_connections=\$(netstat -ant | grep '^tcp' | grep -v 'LISTEN' | sed -e 's/\(::ffff:\)\?//g' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*' | grep -v ':::*' | grep -v 'localhost')
                 tut_tool="netstat"
-                ip_location=5
+                tcp_ip_location=5
             else
                 tut_errtips="\${RE}TCP 连接数获取失败!\${NC}"
             fi
@@ -5344,13 +5344,13 @@ while true; do
                 # udp_connections=\$(ss -u | tail -n +2)
                 udp_connections=\$(ss -u | tail -n +2 | sed -e 's/\[\(::ffff:\)\?//g' -e 's/\]//g')
                 tuu_tool="ss"
-                ip_location=5
+                udp_ip_location=4
             elif command -v netstat &>/dev/null; then
                 # udp_connections=\$(netstat -anu | grep '^udp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
                 # udp_connections=\$(netstat -anu | grep '^udp' | grep -v 'LISTEN')
                 udp_connections=\$(netstat -anu | grep '^udp' | grep -v 'LISTEN' | sed -e 's/\(::ffff:\)\?//g' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*' | grep -v ':::*' | grep -v 'localhost')
                 tuu_tool="netstat"
-                ip_location=5
+                udp_ip_location=5
             else
                 tuu_errtips="\${RE}UDP 连接数获取失败!\${NC}"
             fi
@@ -5377,7 +5377,7 @@ while true; do
 
             if [[ ! -z "\$tcp_connections" ]]; then
                 while IFS= read -r line; do
-                    foreign_address=\$(echo \$line | awk -v var=\$ip_location '{print \$var}')
+                    foreign_address=\$(echo \$line | awk -v var=\$tcp_ip_location '{print \$var}')
                     is_local=0
                     for ip_range in "\${local_ip_ranges[@]}"; do
                         if [[ \$foreign_address == \$ip_range* ]]; then
@@ -5405,7 +5405,7 @@ while true; do
                     if [[ \$line =~ ESTABLISHED|ESTAB ]]; then
                         ((udp_num_estab++))
                     fi
-                    foreign_address=\$(echo \$line | awk '{print \$5}')
+                    foreign_address=\$(echo \$line | awk -v var=\$udp_ip_location '{print \$var}')
                     is_local=0
                     for ip_range in "\${local_ip_ranges[@]}"; do
                         if [[ \$foreign_address == \$ip_range* ]]; then
