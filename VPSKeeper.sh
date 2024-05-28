@@ -5333,10 +5333,7 @@ while true; do
             else
                 tut_errtips="\${RE}TCP 连接数获取失败!\${NC}"
             fi
-            tcp_local_connections=0
-            tcp_external_connections=0
-            tcp_external_details=()
-            tcp_total=0
+
             if command -v ss &>/dev/null; then
                 udp_connections=\$(ss -u | tail -n +2)
                 tuu_tool="ss"
@@ -5350,12 +5347,18 @@ while true; do
             else
                 tuu_errtips="\${RE}UDP 连接数获取失败!\${NC}"
             fi
+
+            tcp_local_connections=0
+            tcp_external_connections=0
+            tcp_external_details=()
+            tcp_total=0
+            tcp_num_estab_local=0
+            tcp_num_estab_external=0
+
             udp_local_connections=0
             udp_external_connections=0
             udp_external_details=()
             udp_total=0
-            tcp_num_estab_local=0
-            tcp_num_estab_external=0
             udp_num_estab_local=0
             udp_num_estab_external=0
 
