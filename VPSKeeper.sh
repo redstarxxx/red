@@ -5321,7 +5321,8 @@ while true; do
         if [ "\$tu_show" == "true" ]; then
             # 获取tcp开头的行数，并将Foreign Address为本地IP地址和外部地址的连接数进行统计
             if command -v ss &>/dev/null; then
-                tcp_connections=\$(ss -t | tail -n +2)
+                # tcp_connections=\$(ss -t | tail -n +2)
+                tcp_connections=\$(ss -t | tail -n +2 | sed -e 's/\[\(::ffff:\)\?//g' -e 's/\]//g')
                 tut_tool="ss"
                 ip_location=5 # 避免ss指令和netstat指令获取的值错位而添加，这里也可以省略(省略时注意下面代码)
             elif command -v netstat &>/dev/null; then
@@ -5335,7 +5336,8 @@ while true; do
             fi
 
             if command -v ss &>/dev/null; then
-                udp_connections=\$(ss -u | tail -n +2)
+                # udp_connections=\$(ss -u | tail -n +2)
+                udp_connections=\$(ss -u | tail -n +2 | sed -e 's/\[\(::ffff:\)\?//g' -e 's/\]//g')
                 tuu_tool="ss"
                 ip_location=5
             elif command -v netstat &>/dev/null; then
