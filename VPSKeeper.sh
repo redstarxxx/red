@@ -5327,7 +5327,8 @@ while true; do
             # 获取tcp开头的行数，并将Foreign Address为本地IP地址和外部地址的连接数进行统计
             if command -v ss &>/dev/null; then
                 # tcp_connections=\$(ss -t | tail -n +2)
-                tcp_connections=\$(ss -t | tail -n +2 | sed -e 's/\[\(::ffff:\)\?//g' -e 's/\]//g')
+                # tcp_connections=\$(ss -t | tail -n +2 | sed -e 's/\[\(::ffff:\)\?//g' -e 's/\]//g')
+                tcp_connections=\$(ss -at | tail -n +2 | sed -e 's/\[\(::ffff:\)\?//g' -e 's/\]//g' | grep -v 'LISTEN' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*' | grep -v '*:*' | grep -v 'localhost')
                 tut_tool="ss"
                 tcp_ip_location=5
             elif command -v netstat &>/dev/null; then
@@ -5342,9 +5343,10 @@ while true; do
 
             if command -v ss &>/dev/null; then
                 # udp_connections=\$(ss -u | tail -n +2)
-                udp_connections=\$(ss -u | tail -n +2 | sed -e 's/\[\(::ffff:\)\?//g' -e 's/\]//g')
+                # udp_connections=\$(ss -u | tail -n +2 | sed -e 's/\[\(::ffff:\)\?//g' -e 's/\]//g') # 注意 udp_ip_location 为4还是5?
+                udp_connections=\$(ss -au | tail -n +2 | sed -e 's/\[\(::ffff:\)\?//g' -e 's/\]//g' | grep -v 'LISTEN' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*' | grep -v '*:*' | grep -v 'localhost')
                 tuu_tool="ss"
-                udp_ip_location=4
+                udp_ip_location=5
             elif command -v netstat &>/dev/null; then
                 # udp_connections=\$(netstat -anu | grep '^udp' | grep -v '0.0.0.0:*' | grep -v '\[::\]:*')
                 # udp_connections=\$(netstat -anu | grep '^udp' | grep -v 'LISTEN')
