@@ -383,6 +383,17 @@ Checkprocess() {
     echo "$menu_tag"
 }
 
+Checkpara() {
+    local para=$1
+    local default_value=$2
+    local value
+    eval value=\$$para
+
+    if [ -z "$value" ]; then
+        eval $para=\"$default_value\"
+    fi
+}
+
 # 检测设置标记
 CheckSetup() {
     echo "检测中..."
@@ -1386,13 +1397,26 @@ SetupBoot_TG() {
     cat <<EOF > $FolderPath/tg_boot.sh
 #!/bin/bash
 
+$(declare -f Checkpara)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+# if [ -z \$hostname_show ]; then
+#     hostname_show=$hostname_show
+# fi
+Checkpara "hostname_show" "$hostname_show"
+
 current_date_send=\$(date +"%Y.%m.%d %T")
-message="$hostname_show 已启动❗️"$'\n'
+message="\$hostname_show 已启动❗️"$'\n'
 message+="服务器时间: \$current_date_send"
 
-# curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-#     -d chat_id="$ChatID_1" -d text="\$message"
-$FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+# curl -s -X POST "https://api.telegram.org/bot\$TelgramBotToken/sendMessage" \
+#     -d chat_id="\$ChatID_1" -d text="\$message"
+\$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
 EOF
     chmod +x $FolderPath/tg_boot.sh
     if command -v systemd &>/dev/null; then
@@ -1414,17 +1438,27 @@ EOF
         cat <<EOF > /etc/init.d/tg_boot.sh
 #!/bin/sh /etc/rc.common
 
+$(declare -f Checkpara)
+
 START=99
 STOP=15
 
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "hostname_show" "$hostname_show"
+
 start() {
     current_date_send=\$(date +"%Y.%m.%d %T")
-    message="$hostname_show 已启动❗️"$'\n'
+    message="\$hostname_show 已启动❗️"$'\n'
     message+="服务器时间: \$current_date_send"
 
-    # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-    #     -d chat_id="$ChatID_1" -d text="\$message"
-    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+    # curl -s -X POST "https://api.telegram.org/bot\$TelgramBotToken/sendMessage" \
+    #     -d chat_id="\$ChatID_1" -d text="\$message"
+    \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
 }
 EOF
         chmod +x /etc/init.d/tg_boot.sh
@@ -1459,13 +1493,23 @@ SetupLogin_TG() {
     cat <<EOF > $FolderPath/tg_login.sh
 #!/bin/bash
 
+$(declare -f Checkpara)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "hostname_show" "$hostname_show"
+
 current_date_send=\$(date +"%Y.%m.%d %T")
-message="$hostname_show \$(id -nu) 用户登陆成功❗️"$'\n'
+message="\$hostname_show \$(id -nu) 用户登陆成功❗️"$'\n'
 message+="服务器时间: \$current_date_send"
 
-# curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-#             -d chat_id="$ChatID_1" -d text="\$message"
-$FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+# curl -s -X POST "https://api.telegram.org/bot\$TelgramBotToken/sendMessage" \
+#             -d chat_id="\$ChatID_1" -d text="\$message"
+\$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
 EOF
     chmod +x $FolderPath/tg_login.sh
     if [ -f /etc/bash.bashrc ] && [ "$release" != "openwrt" ]; then
@@ -1514,13 +1558,23 @@ SetupShutdown_TG() {
     cat <<EOF > $FolderPath/tg_shutdown.sh
 #!/bin/bash
 
+$(declare -f Checkpara)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "hostname_show" "$hostname_show"
+
 current_date_send=\$(date +"%Y.%m.%d %T")
-message="$hostname_show \$(id -nu) 正在执行关机...❗️"$'\n'
+message="\$hostname_show \$(id -nu) 正在执行关机...❗️"$'\n'
 message+="服务器时间: \$current_date_send"
 
-# curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-#             -d chat_id="$ChatID_1" -d text="\$message"
-$FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+# curl -s -X POST "https://api.telegram.org/bot\$TelgramBotToken/sendMessage" \
+#             -d chat_id="\$ChatID_1" -d text="\$message"
+\$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
 EOF
     chmod +x $FolderPath/tg_shutdown.sh
     if command -v systemd &>/dev/null; then
@@ -1543,16 +1597,26 @@ EOF
         cat <<EOF > /etc/init.d/tg_shutdown.sh
 #!/bin/sh /etc/rc.common
 
+$(declare -f Checkpara)
+
 STOP=15
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "hostname_show" "$hostname_show"
 
 stop() {
     current_date_send=\$(date +"%Y.%m.%d %T")
-    message="$hostname_show \$(id -nu) 正在执行关机...❗️"$'\n'
+    message="\$hostname_show \$(id -nu) 正在执行关机...❗️"$'\n'
     message+="服务器时间: \$current_date_send"
 
-    # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-    #     -d chat_id="$ChatID_1" -d text="\$message"
-    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+    # curl -s -X POST "https://api.telegram.org/bot\$TelgramBotToken/sendMessage" \
+    #     -d chat_id="\$ChatID_1" -d text="\$message"
+    \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
 }
 EOF
         chmod +x /etc/init.d/tg_shutdown.sh
@@ -1590,6 +1654,16 @@ SetupDocker_TG() {
     cat <<EOF > $FolderPath/tg_docker.sh
 #!/bin/bash
 
+$(declare -f Checkpara)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "hostname_show" "$hostname_show"
+
 old_message=""
 while true; do
     # new_message=\$(docker ps --format '{{.Names}}' | tr '\n' "\n" | sed 's/|$//')
@@ -1598,13 +1672,13 @@ while true; do
         current_date_send=\$(date +"%Y.%m.%d %T")
         old_message=\$new_message
         message="DOCKER 列表变更❗️"$'\n'
-        message+="主机名: $hostname_show"$'\n'
+        message+="主机名: \$hostname_show"$'\n'
         message+="───────────────"$'\n'
         message+="\$new_message"$'\n'
         message+="服务器时间: \$current_date_send"
-        # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-        #     -d chat_id="$ChatID_1" -d text="\$message"
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+        # curl -s -X POST "https://api.telegram.org/bot\$TelgramBotToken/sendMessage" \
+        #     -d chat_id="\$ChatID_1" -d text="\$message"
+        \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
     fi
     sleep 10
 done
@@ -1826,6 +1900,16 @@ $(declare -f CheckCPU_$CPUTools)
 $(declare -f GetInfo_now)
 $(declare -f create_progress_bar)
 $(declare -f ratioandprogress)
+$(declare -f Checkpara)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "hostname_show" "$hostname_show"
+
 progress=""
 ratio=""
 count=0
@@ -1869,7 +1953,7 @@ while true; do
 
         current_date_send=\$(date +"%Y.%m.%d %T")
         message="CPU 使用率超过阈值 > \$CPUThreshold%❗️"$'\n'
-        message+="主机名: $hostname_show"$'\n'
+        message+="主机名: \$hostname_show"$'\n'
         message+="CPU: \$cpu_usage_progress \$cpu_usage_ratio"$'\n'
         message+="内存: \$mem_use_progress \$mem_use_ratio"$'\n'
         message+="交换: \$swap_use_progress \$swap_use_ratio"$'\n'
@@ -1879,9 +1963,9 @@ while true; do
         message+="🟠  \$cpu_h2"$'\n'
         message+="检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"$'\n'
         message+="服务器时间: \$current_date_send"
-        # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-        #     -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+        # curl -s -X POST "https://api.telegram.org/bot\$TelgramBotToken/sendMessage" \
+        #     -d chat_id="\$ChatID_1" -d text="\$message" > /dev/null
+        \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
         echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
         sleep \$SleepTime   # 发送后等待SleepTime分钟后再检测
@@ -1970,6 +2054,16 @@ $(declare -f CheckCPU_$CPUTools)
 $(declare -f GetInfo_now)
 $(declare -f create_progress_bar)
 $(declare -f ratioandprogress)
+$(declare -f Checkpara)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "hostname_show" "$hostname_show"
+
 progress=""
 ratio=""
 count=0
@@ -2009,7 +2103,7 @@ while true; do
 
         current_date_send=\$(date +"%Y.%m.%d %T")
         message="内存 使用率超过阈值 > \$MEMThreshold%❗️"$'\n'
-        message+="主机名: $hostname_show"$'\n'
+        message+="主机名: \$hostname_show"$'\n'
         message+="CPU: \$cpu_usage_progress \$cpu_usage_ratio"$'\n'
         message+="内存: \$mem_use_progress \$mem_use_ratio"$'\n'
         message+="交换: \$swap_use_progress \$swap_use_ratio"$'\n'
@@ -2019,9 +2113,9 @@ while true; do
         message+="🟠  \$cpu_h2"$'\n'
         message+="检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"$'\n'
         message+="服务器时间: \$current_date_send"
-        # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-        #     -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+        # curl -s -X POST "https://api.telegram.org/bot\$TelgramBotToken/sendMessage" \
+        #     -d chat_id="\$ChatID_1" -d text="\$message" > /dev/null
+        \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
         echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
         sleep \$SleepTime   # 发送后等待SleepTime分钟后再检测
@@ -2103,6 +2197,16 @@ $(declare -f CheckCPU_$CPUTools)
 $(declare -f GetInfo_now)
 $(declare -f create_progress_bar)
 $(declare -f ratioandprogress)
+$(declare -f Checkpara)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "hostname_show" "$hostname_show"
+
 progress=""
 ratio=""
 count=0
@@ -2144,7 +2248,7 @@ while true; do
 
         current_date_send=\$(date +"%Y.%m.%d %T")
         message="磁盘 使用率超过阈值 > \$DISKThreshold%❗️"$'\n'
-        message+="主机名: $hostname_show"$'\n'
+        message+="主机名: \$hostname_show"$'\n'
         message+="CPU: \$cpu_usage_progress \$cpu_usage_ratio"$'\n'
         message+="内存: \$mem_use_progress \$mem_use_ratio"$'\n'
         message+="交换: \$swap_use_progress \$swap_use_ratio"$'\n'
@@ -2154,9 +2258,9 @@ while true; do
         message+="🟠  \$cpu_h2"$'\n'
         message+="检测工具: \$CPUTools 休眠: \$((SleepTime / 60))分钟"$'\n'
         message+="服务器时间: \$current_date_send"
-        # curl -s -X POST "https://api.telegram.org/bot$TelgramBotToken/sendMessage" \
-        #     -d chat_id="$ChatID_1" -d text="\$message" > /dev/null
-        $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+        # curl -s -X POST "https://api.telegram.org/bot\$TelgramBotToken/sendMessage" \
+        #     -d chat_id="\$ChatID_1" -d text="\$message" > /dev/null
+        \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
         echo "报警信息已发出..."
         count=0  # 发送警告后重置计数器
         sleep \$SleepTime   # 发送后等待SleepTime分钟后再检测
@@ -2262,6 +2366,21 @@ Bytes_B_TGMK() {
         bitvalue=$(awk -v value="$bitvalue" 'BEGIN { printf "%.1fKB", value / 1024 }')
     else
         bitvalue="${bitvalue}bB"
+    fi
+    echo "$bitvalue"
+}
+
+TG_M_removeXB() {
+    bitvalue="$1"
+    if [[ $bitvalue == *MB ]]; then
+        bitvalue=${bitvalue%MB}
+        bitvalue=$(awk -v value=$bitvalue 'BEGIN { printf "%.1f", value }')
+    elif [[ $bitvalue == *GB ]]; then
+        bitvalue=${bitvalue%GB}
+        bitvalue=$(awk -v value=$bitvalue 'BEGIN { printf "%.1f", value * 1024 }')
+    elif [[ $bitvalue == *TB ]]; then
+        bitvalue=${bitvalue%TB}
+        bitvalue=$(awk -v value=$bitvalue 'BEGIN { printf "%.1f", value * 1024 * 1024 }')
     fi
     echo "$bitvalue"
 }
@@ -2592,39 +2711,66 @@ $(declare -f ratioandprogress)
 progress=""
 ratio=""
 $(declare -f Bytes_B_TGMK)
+$(declare -f TG_M_removeXB)
 $(declare -f Remove_B)
 $(declare -f redup_array)
 $(declare -f clear_array)
 $(declare -f sep_array)
+$(declare -f Checkpara)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "hostname_show" "$hostname_show"
+Checkpara "ProxyURL" "$ProxyURL"
+Checkpara "StatisticsMode_ST" "$StatisticsMode_ST"
+Checkpara "SendUptime" "$SendUptime"
+Checkpara "SendIP" "$SendIP"
+Checkpara "GetIP46" "$GetIP46"
+Checkpara "GetIPURL" "$GetIPURL"
+Checkpara "SendPrice" "$SendPrice"
+Checkpara "GetPriceType" "$GetPriceType"
+Checkpara "FlowThreshold" "$FlowThreshold"
+Checkpara "FlowThresholdMAX" "$FlowThresholdMAX"
+Checkpara "interfaces_ST" "$interfaces_ST"
+
+FlowThreshold_U=\$(Remove_B "\$FlowThreshold")
+FlowThreshold=\$(TG_M_removeXB "\$FlowThreshold")
+FlowThresholdMAX_U=\$(Remove_B "\$FlowThresholdMAX")
+FlowThresholdMAX=\$(TG_M_removeXB "\$FlowThresholdMAX")
 
 get_price() {
-    local url="${ProxyURL}https://api.coingecko.com/api/v3/simple/price?ids=\${1}&vs_currencies=usd"
+    local url="\${ProxyURL}https://api.coingecko.com/api/v3/simple/price?ids=\${1}&vs_currencies=usd"
     local price=\$(curl -s "\$url" | sed 's/[^0-9.]*//g')
     echo "\$price"
 }
 
 tt=10
 duration=0
-StatisticsMode_ST="$StatisticsMode_ST"
+StatisticsMode_ST="\$StatisticsMode_ST"
 
-if [ "$SendUptime" == "true" ]; then
+if [ "\$SendUptime" == "true" ]; then
     SendUptime="true"
 else
     SendUptime="false"
 fi
-if [ "$SendIP" == "true" ]; then
+if [ "\$SendIP" == "true" ]; then
     SendIP="true"
 else
     SendIP="false"
 fi
-if [ "$SendPrice" == "true" ]; then
+if [ "\$SendPrice" == "true" ]; then
     SendPrice="true"
 else
     SendPrice="false"
 fi
 
-THRESHOLD_BYTES=$(awk "BEGIN {print $FlowThreshold * 1024 * 1024}")
-THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
+echo "FlowThreshold: \$FlowThreshold  FlowThresholdMAX: \$FlowThresholdMAX"
+THRESHOLD_BYTES=\$(awk "BEGIN {print \$FlowThreshold * 1024 * 1024}")
+THRESHOLD_BYTES_MAX=\$(awk "BEGIN {print \$FlowThresholdMAX * 1024 * 1024}")
 
 # sci_notation_regex='^[0-9]+(\.[0-9]+)?[eE][+-]?[0-9]+$'
 # if [[ \$THRESHOLD_BYTES =~ \$sci_notation_regex ]]; then
@@ -2642,11 +2788,12 @@ echo "THRESHOLD_BYTES: \$THRESHOLD_BYTES  THRESHOLD_BYTES_MAX: \$THRESHOLD_BYTES
 # interfaces_up=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces_all=\$(ip -br link | awk '{print \$1}' | tr '\n' ' ')
 # declare -a interfaces=(\$interfaces_get)
-# IFS=',' read -ra interfaces <<< "$interfaces_ST"
+# IFS=',' read -ra interfaces <<< "\$interfaces_ST"
 # 去重并且分割字符串为数组
-# IFS=',' read -ra interfaces <<< "$(echo "$interfaces_ST" | tr ',' '\n' | sort -u | tr '\n' ',')"
+# IFS=',' read -ra interfaces <<< "\$(echo "\$interfaces_ST" | tr ',' '\n' | sort -u | tr '\n' ',')"
 # 去重并且保持原有顺序，分割字符串为数组
-IFS=',' read -ra interfaces <<< "$(echo "$interfaces_ST" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
+# IFS=',' read -ra interfaces <<< "$(echo "$interfaces_ST" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
+IFS=',' read -ra interfaces <<< "\$(echo "\$interfaces_ST" | awk -v RS=, '!a[\$1]++ {if (NR>1) printf ",%s", \$0; else printf "%s", \$0}')"
 
 
 echo "统计接口: \${interfaces[@]}"
@@ -2696,7 +2843,7 @@ declare -A INTERFACE_RT_RX_B
 declare -A INTERFACE_RT_TX_B
 
 # 初始化接口流量数据
-source $ConfigFile
+source \$ConfigFile &>/dev/null
 for interface in "\${interfaces[@]}"; do
     interface_nodot=\${interface//./_}
     INTERFACE_RT_RX_B[\$interface_nodot]=\${INTERFACE_RT_RX_B[\$interface_nodot]}
@@ -2709,6 +2856,24 @@ done
 sendtag=true
 tt_prev=false
 while true; do
+
+    source \$ConfigFile &>/dev/null
+    Checkpara "hostname_show" "$hostname_show"
+    Checkpara "ProxyURL" "$ProxyURL"
+    Checkpara "StatisticsMode_ST" "$StatisticsMode_ST"
+    Checkpara "SendUptime" "$SendUptime"
+    Checkpara "SendIP" "$SendIP"
+    Checkpara "GetIP46" "$GetIP46"
+    Checkpara "GetIPURL" "$GetIPURL"
+    Checkpara "SendPrice" "$SendPrice"
+    Checkpara "GetPriceType" "$GetPriceType"
+    Checkpara "FlowThreshold" "$FlowThreshold"
+    Checkpara "FlowThresholdMAX" "$FlowThresholdMAX"
+
+    FlowThreshold_U=\$(Remove_B "\$FlowThreshold")
+    FlowThreshold=\$(TG_M_removeXB "\$FlowThreshold")
+    FlowThresholdMAX_U=\$(Remove_B "\$FlowThresholdMAX")
+    FlowThresholdMAX=\$(TG_M_removeXB "\$FlowThresholdMAX")
 
     # 获取tt秒前数据
 
@@ -2925,7 +3090,7 @@ while true; do
                 # 获取IP输出
                 if \$SendIP; then
                     # lanIP=\$(ip a | grep -E "inet.*brd" | awk '{print \$2}' | awk -F '/' '{print \$1}' | tr '\n' ' ')
-                    wanIP=\$(curl -s -"$GetIP46" "$GetIPURL")
+                    wanIP=\$(curl -s -"\$GetIP46" "\$GetIPURL")
                     wanIPshow="网络IP地址: \$wanIP"
                 else
                     wanIPshow=""
@@ -2933,7 +3098,7 @@ while true; do
                 echo "wanIPshow: \$wanIPshow"
                 # 获取货币报价
                 if \$SendPrice; then
-                    priceshow=\$(get_price "$GetPriceType")
+                    priceshow=\$(get_price "\$GetPriceType")
                     if [[ -z \$priceshow || \$priceshow == *"429"* ]]; then
                         # 如果priceshow为空或包含"429"，则表示获取失败
                         priceshow=""
@@ -2943,12 +3108,12 @@ while true; do
                 fi
                 echo "priceshow: \$priceshow"
 
-                message="流量到达阈值🧭 > ${FlowThreshold_U}❗️  \$priceshow"$'\n'
-                message+="主机名: $hostname_show 接口: \$interface"$'\n'
+                message="流量到达阈值🧭 > \${FlowThreshold_U}❗️  \$priceshow"$'\n'
+                message+="主机名: \$hostname_show 接口: \$interface"$'\n'
                 message+="已接收: \${rx_diff}  已发送: \${tx_diff}"$'\n'
                 message+="───────────────"$'\n'
                 message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
-                message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                message+="设置流量上限: \${FlowThresholdMAX_U}🔒"$'\n'
                 message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
                 message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
                 message+="网络⬇️: \${rx_speed}/s  网络⬆️: \${tx_speed}/s"$'\n'
@@ -2960,7 +3125,7 @@ while true; do
                 fi
                 message+="服务器时间: \$current_date_send"
 
-                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+                \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
                 echo "报警信息已发出..."
 
                 # 更新前一个状态的流量数据
@@ -3005,7 +3170,7 @@ while true; do
             # 获取IP输出
             if \$SendIP; then
                 # lanIP=\$(ip a | grep -E "inet.*brd" | awk '{print \$2}' | awk -F '/' '{print \$1}' | tr '\n' ' ')
-                wanIP=\$(curl -s -"$GetIP46" "$GetIPURL")
+                wanIP=\$(curl -s -"\$GetIP46" "\$GetIPURL")
                 wanIPshow="网络IP地址: \$wanIP"
             else
                 wanIPshow=""
@@ -3013,7 +3178,7 @@ while true; do
             echo "wanIPshow: \$wanIPshow"
             # 获取货币报价
             if \$SendPrice; then
-                priceshow=\$(get_price "$GetPriceType")
+                priceshow=\$(get_price "\$GetPriceType")
                 if [[ -z \$priceshow || \$priceshow == *"429"* ]]; then
                     # 如果priceshow为空或包含"429"，则表示获取失败
                     priceshow=""
@@ -3023,12 +3188,12 @@ while true; do
             fi
             echo "priceshow: \$priceshow"
 
-            message="流量到达阈值🧭 > ${FlowThreshold_U}❗️  \$priceshow"$'\n'
-            message+="主机名: $hostname_show 接口: \$show_interfaces"$'\n'
+            message="流量到达阈值🧭 > \${FlowThreshold_U}❗️  \$priceshow"$'\n'
+            message+="主机名: \$hostname_show 接口: \$show_interfaces"$'\n'
             message+="已接收: \${ov_rx_diff}  已发送: \${ov_tx_diff}"$'\n'
             message+="───────────────"$'\n'
             message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
-            message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+            message+="设置流量上限: \${FlowThresholdMAX_U}🔒"$'\n'
             message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
             message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
             message+="网络⬇️: \${rx_speed}/s  网络⬆️: \${tx_speed}/s"$'\n'
@@ -3040,7 +3205,7 @@ while true; do
             fi
             message+="服务器时间: \$current_date_send"
 
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+            \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
             echo "报警信息已发出..."
 
             # 更新前一个状态的流量数据
@@ -3303,21 +3468,46 @@ $(declare -f ratioandprogress)
 progress=""
 ratio=""
 $(declare -f Bytes_B_TGMK)
+$(declare -f TG_M_removeXB)
 $(declare -f Remove_B)
-StatisticsMode_RP="$StatisticsMode_RP"
+$(declare -f Checkpara)
 
-if [ "$SendUptime" == "true" ]; then
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "hostname_show" "$hostname_show"
+Checkpara "ProxyURL" "$ProxyURL"
+Checkpara "StatisticsMode_RP" "$StatisticsMode_RP"
+Checkpara "SendUptime" "$SendUptime"
+Checkpara "SendIP" "$SendIP"
+Checkpara "GetIP46" "$GetIP46"
+Checkpara "GetIPURL" "$GetIPURL"
+Checkpara "SendPrice" "$SendPrice"
+Checkpara "GetPriceType" "$GetPriceType"
+Checkpara "FlowThreshold" "$FlowThreshold"
+Checkpara "FlowThresholdMAX" "$FlowThresholdMAX"
+Checkpara "interfaces_RP" "$interfaces_RP"
+
+FlowThreshold_U=\$(Remove_B "\$FlowThreshold")
+FlowThreshold=\$(TG_M_removeXB "\$FlowThreshold")
+FlowThresholdMAX_U=\$(Remove_B "\$FlowThresholdMAX")
+FlowThresholdMAX=\$(TG_M_removeXB "\$FlowThresholdMAX")
+
+if [ "\$SendUptime" == "true" ]; then
     SendUptime="true"
 else
     SendUptime="false"
 fi
-if [ "$SendIP" == "true" ]; then
+if [ "\$SendIP" == "true" ]; then
     SendIP="true"
 else
     SendIP="false"
 fi
 
-THRESHOLD_BYTES_MAX=$(awk "BEGIN {print $FlowThresholdMAX * 1024 * 1024}")
+THRESHOLD_BYTES_MAX=\$(awk "BEGIN {print \$FlowThresholdMAX * 1024 * 1024}")
 THRESHOLD_BYTES_MAX=\$(printf "%.0f" \$THRESHOLD_BYTES_MAX)
 echo "==================================================================="
 echo "THRESHOLD_BYTES_MAX: \$THRESHOLD_BYTES_MAX"
@@ -3325,11 +3515,12 @@ echo "THRESHOLD_BYTES_MAX: \$THRESHOLD_BYTES_MAX"
 interfaces=()
 # interfaces=\$(ip -br link | awk '\$2 == "UP" {print \$1}' | grep -v "lo")
 # interfaces_all=\$(ip -br link | awk '{print \$1}' | tr '\n' ' ')
-# IFS=',' read -ra interfaces <<< "$interfaces_RP"
+# IFS=',' read -ra interfaces <<< "\$interfaces_RP"
 # 去重并且分割字符串为数组
-# IFS=',' read -ra interfaces <<< "$(echo "$interfaces_RP" | tr ',' '\n' | sort -u | tr '\n' ',')"
+# IFS=',' read -ra interfaces <<< "\$(echo "\$interfaces_RP" | tr ',' '\n' | sort -u | tr '\n' ',')"
 # 去重并且保持原有顺序，分割字符串为数组
-IFS=',' read -ra interfaces <<< "$(echo "$interfaces_RP" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
+# IFS=',' read -ra interfaces <<< "$(echo "$interfaces_RP" | awk -v RS=, '!a[$1]++ {if (NR>1) printf ",%s", $0; else printf "%s", $0}')"
+IFS=',' read -ra interfaces <<< "\$(echo "\$interfaces_RP" | awk -v RS=, '!a[\$1]++ {if (NR>1) printf ",%s", \$0; else printf "%s", \$0}')"
 
 echo "统计接口: \${interfaces[@]}"
 for ((i = 0; i < \${#interfaces[@]}; i++)); do
@@ -3366,7 +3557,7 @@ declare -A current_tx_bytes
 declare -A INTERFACE_RT_RX_B
 declare -A INTERFACE_RT_TX_B
 
-source $ConfigFile
+source \$ConfigFile &>/dev/null
 for interface in "\${interfaces[@]}"; do
     interface_nodot=\${interface//./_}
     INTERFACE_RT_RX_B[\$interface_nodot]=\${INTERFACE_RT_RX_B[\$interface_nodot]}
@@ -3390,6 +3581,24 @@ year_sendtag=true
 
 echo "runing..."
 while true; do
+
+    source \$ConfigFile &>/dev/null
+    Checkpara "hostname_show" "$hostname_show"
+    Checkpara "ProxyURL" "$ProxyURL"
+    Checkpara "StatisticsMode_RP" "$StatisticsMode_RP"
+    Checkpara "SendUptime" "$SendUptime"
+    Checkpara "SendIP" "$SendIP"
+    Checkpara "GetIP46" "$GetIP46"
+    Checkpara "GetIPURL" "$GetIPURL"
+    Checkpara "SendPrice" "$SendPrice"
+    Checkpara "GetPriceType" "$GetPriceType"
+    Checkpara "FlowThreshold" "$FlowThreshold"
+    Checkpara "FlowThresholdMAX" "$FlowThresholdMAX"
+
+    FlowThreshold_U=\$(Remove_B "\$FlowThreshold")
+    FlowThreshold=\$(TG_M_removeXB "\$FlowThreshold")
+    FlowThresholdMAX_U=\$(Remove_B "\$FlowThresholdMAX")
+    FlowThresholdMAX=\$(TG_M_removeXB "\$FlowThresholdMAX")
 
     # 获取tt秒前数据
     ov_prev_rx_bytes=0
@@ -3617,7 +3826,7 @@ while true; do
                 # 获取IP输出
                 if \$SendIP; then
                     # lanIP=\$(ip a | grep -E "inet.*brd" | awk '{print \$2}' | awk -F '/' '{print \$1}' | tr '\n' ' ')
-                    wanIP=\$(curl -s -"$GetIP46" "$GetIPURL")
+                    wanIP=\$(curl -s -"\$GetIP46" "\$GetIPURL")
                     wanIPshow="网络IP地址: \$wanIP"
                 else
                     wanIPshow=""
@@ -3653,11 +3862,11 @@ while true; do
                     diff_tx_day=\$(Remove_B "\$diff_tx_day")
 
                     message="\${yesterday}🌞流量报告 📈"$'\n'
-                    message+="主机名: $hostname_show 接口: \$interface"$'\n'
+                    message+="主机名: \$hostname_show 接口: \$interface"$'\n'
                     message+="🌞接收: \${diff_rx_day}  🌞发送: \${diff_tx_day}"$'\n'
                     message+="───────────────"$'\n'
                     message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
-                    message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                    message+="设置流量上限: \${FlowThresholdMAX_U}🔒"$'\n'
                     message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
                     message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
                     if [[ -n "\$uptimeshow" ]]; then
@@ -3668,7 +3877,7 @@ while true; do
                     fi
                     message+="服务器时间: \$current_date_send"
 
-                    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+                    \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
                     echo "报告信息已发出..."
                     echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
                     echo "----------------------------------------------------------------"
@@ -3697,11 +3906,11 @@ while true; do
                     diff_tx_month=\$(Remove_B "\$diff_tx_month")
 
                     message="\${last_month}🌙总流量报告 📈"$'\n'
-                    message+="主机名: $hostname_show 接口: \$interface"$'\n'
+                    message+="主机名: \$hostname_show 接口: \$interface"$'\n'
                     message+="🌙接收: \${diff_rx_month}  🌙发送: \${diff_tx_month}"$'\n'
                     message+="───────────────"$'\n'
                     message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
-                    message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                    message+="设置流量上限: \${FlowThresholdMAX_U}🔒"$'\n'
                     message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
                     message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
                     if [[ -n "\$uptimeshow" ]]; then
@@ -3712,7 +3921,7 @@ while true; do
                     fi
                     message+="服务器时间: \$current_date_send"
 
-                    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+                    \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
                     echo "报告信息已发出..."
                     echo "时间: \$current_date, 活动接口: \$interface, 月接收: \$diff_rx_day, 月发送: \$diff_tx_day"
                     echo "----------------------------------------------------------------"
@@ -3736,11 +3945,11 @@ while true; do
                     diff_tx_year=\$(Remove_B "\$diff_tx_year")
 
                     message="\${last_year}年🧧总流量报告 📈"$'\n'
-                    message+="主机名: $hostname_show 接口: \$interface"$'\n'
+                    message+="主机名: \$hostname_show 接口: \$interface"$'\n'
                     message+="🧧接收: \${diff_rx_year}  🧧发送: \${diff_tx_year}"$'\n'
                     message+="───────────────"$'\n'
                     message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
-                    message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                    message+="设置流量上限: \${FlowThresholdMAX_U}🔒"$'\n'
                     message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
                     message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
                     if [[ -n "\$uptimeshow" ]]; then
@@ -3751,7 +3960,7 @@ while true; do
                     fi
                     message+="服务器时间: \$current_date_send"
 
-                    $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+                    \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
                     echo "报告信息已发出..."
                     echo "年报告信息:"
                     echo "时间: \$current_date, 活动接口: \$interface, 年接收: \$diff_rx_year, 年发送: \$diff_tx_year"
@@ -3792,7 +4001,7 @@ while true; do
             # 获取IP输出
             if \$SendIP; then
                 # lanIP=\$(ip a | grep -E "inet.*brd" | awk '{print \$2}' | awk -F '/' '{print \$1}' | tr '\n' ' ')
-                wanIP=\$(curl -s -"$GetIP46" "$GetIPURL")
+                wanIP=\$(curl -s -"\$GetIP46" "\$GetIPURL")
                 wanIPshow="网络IP地址: \$wanIP"
             else
                 wanIPshow=""
@@ -3828,11 +4037,11 @@ while true; do
                 ov_diff_tx_day=\$(Remove_B "\$ov_diff_tx_day")
 
                 message="\${yesterday}🌞流量报告 📈"$'\n'
-                message+="主机名: $hostname_show 接口: \$show_interfaces"$'\n'
+                message+="主机名: \$hostname_show 接口: \$show_interfaces"$'\n'
                 message+="🌞接收: \${ov_diff_rx_day}  🌞发送: \${ov_diff_tx_day}"$'\n'
                 message+="───────────────"$'\n'
                 message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
-                message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                message+="设置流量上限: \${FlowThresholdMAX_U}🔒"$'\n'
                 message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
                 message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
                 if [[ -n "\$uptimeshow" ]]; then
@@ -3843,7 +4052,7 @@ while true; do
                 fi
                 message+="服务器时间: \$current_date_send"
 
-                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+                \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
                 echo "报告信息已发出..."
                 echo "时间: \$current_date, 活动接口: \$interface, 日接收: \$diff_rx_day, 日发送: \$diff_tx_day"
                 echo "----------------------------------------------------------------"
@@ -3872,11 +4081,11 @@ while true; do
                 ov_diff_tx_month=\$(Remove_B "\$ov_diff_tx_month")
 
                 message="\${last_month}🌙总流量报告 📈"$'\n'
-                message+="主机名: $hostname_show 接口: \$show_interfaces"$'\n'
+                message+="主机名: \$hostname_show 接口: \$show_interfaces"$'\n'
                 message+="🌙接收: \${ov_diff_rx_month}  🌙发送: \${ov_diff_tx_month}"$'\n'
                 message+="───────────────"$'\n'
                 message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
-                message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                message+="设置流量上限: \${FlowThresholdMAX_U}🔒"$'\n'
                 message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
                 message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
                 if [[ -n "\$uptimeshow" ]]; then
@@ -3887,7 +4096,7 @@ while true; do
                 fi
                 message+="服务器时间: \$current_date_send"
 
-                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+                \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
                 echo "报告信息已发出..."
                 echo "时间: \$current_date, 活动接口: \$interface, 月接收: \$diff_rx_day, 月发送: \$diff_tx_day"
                 echo "----------------------------------------------------------------"
@@ -3911,11 +4120,11 @@ while true; do
                 ov_diff_tx_year=\$(Remove_B "\$ov_diff_tx_year")
 
                 message="\${last_year}年🧧总流量报告 📈"$'\n'
-                message+="主机名: $hostname_show 接口: \$show_interfaces"$'\n'
+                message+="主机名: \$hostname_show 接口: \$show_interfaces"$'\n'
                 message+="🧧接收: \${ov_diff_rx_year}  🧧发送: \${ov_diff_tx_year}"$'\n'
                 message+="───────────────"$'\n'
                 message+="总接收: \${all_rx}  总发送: \${all_tx}"$'\n'
-                message+="设置流量上限: ${FlowThresholdMAX_U}🔒"$'\n'
+                message+="设置流量上限: \${FlowThresholdMAX_U}🔒"$'\n'
                 message+="使用⬇️: \$all_rx_progress \$all_rx_ratio"$'\n'
                 message+="使用⬆️: \$all_tx_progress \$all_tx_ratio"$'\n'
                 if [[ -n "\$uptimeshow" ]]; then
@@ -3926,7 +4135,7 @@ while true; do
                 fi
                 message+="服务器时间: \$current_date_send"
 
-                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+                \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
                 echo "报告信息已发出..."
                 echo "年报告信息:"
                 echo "时间: \$current_date, 活动接口: \$interface, 年接收: \$diff_rx_year, 年发送: \$diff_tx_year"
@@ -4070,6 +4279,16 @@ ddns_mode="$CFDDNS_MODE"
 ttls="1" # TTL: 1为自动, 60为1分钟, 120为2分钟
 proxysw="false" # 是否开启小云朵(CF代理)( true 或 false )
 ####################################################################
+
+$(declare -f Checkpara)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "hostname_show" "$hostname_show"
 
 action() {
     local iptype_lo="\${1}"
@@ -4292,7 +4511,7 @@ while true; do
                 else
                     message="首次执行 DDNS \$show_ddns_mode"$'\n'
                 fi
-                message+="主机名: $hostname_show"$'\n'
+                message+="主机名: \$hostname_show"$'\n'
                 message+="URL: \$record_name.\$domain"$'\n'
                 # if [ "\$ddns_mode" == "1" ]; then
                 #     message+="更新前IP地址: \$O_IPV4"$'\n'
@@ -4304,8 +4523,8 @@ while true; do
                 message+="───────────────"$'\n'
                 message+="GETIP 地址: \$GETURL"$'\n'
                 message+="服务器时间: \$current_date_send"
-                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
-                echo \$N_IPV4 >> $FolderPath/IP4_history.txt
+                \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
+                echo \$N_IPV4 >> \$FolderPath/IP4_history.txt
             fi
             only_onece="false"
         fi
@@ -4330,7 +4549,7 @@ while true; do
             echo "\${record_name}.\${domain} - \$N_URL_IPV4"
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! \$show_ddns_mode"$'\n'
-            message+="主机名: $hostname_show"$'\n'
+            message+="主机名: \$hostname_show"$'\n'
             message+="URL: \$record_name.\$domain"$'\n'
             if [ "\$ddns_mode" == "1" ]; then
                 message+="更新前IP地址: \$O_IPV4"$'\n'
@@ -4357,10 +4576,10 @@ while true; do
                 message+="GETIP 地址: \$GETURL"$'\n'
             fi
             message+="服务器时间: \$current_date_send"
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+            \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
             O_IPV4=\$N_IPV4
             O_URL_IPV4=\$N_URL_IPV4
-            echo \$N_IPV4 >> $FolderPath/IP4_history.txt
+            echo \$N_IPV4 >> \$FolderPath/IP4_history.txt
             sleep_send="true"
         else
             echo -e "更新后: \$N_IPV4   GET: \$GETURL     更新前: \$O_IPV4"
@@ -4392,7 +4611,7 @@ while true; do
                 else
                     message="首次执行 DDNS \$show_ddns_mode"$'\n'
                 fi
-                message+="主机名: $hostname_show"$'\n'
+                message+="主机名: \$hostname_show"$'\n'
                 message+="URL: \$record_name.\$domain"$'\n'
                 # if [ "\$ddns_mode" == "1" ]; then
                 #     message+="更新前IP地址: \$O_IPV6"$'\n'
@@ -4404,8 +4623,8 @@ while true; do
                 message+="───────────────"$'\n'
                 message+="GETIP 地址: \$GETURL"$'\n'
                 message+="服务器时间: \$current_date_send"
-                $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
-                echo \$N_IPV6 >> $FolderPath/IP6_history.txt
+                \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
+                echo \$N_IPV6 >> \$FolderPath/IP6_history.txt
             fi
             only_onece="false"
         fi
@@ -4430,7 +4649,7 @@ while true; do
             echo "\${record_name}.\${domain} - \$N_URL_IPV6"
             current_date_send=\$(date +"%Y.%m.%d %T")
             message="IP 已变更! \$show_ddns_mode"$'\n'
-            message+="主机名: $hostname_show"$'\n'
+            message+="主机名: \$hostname_show"$'\n'
             message+="URL: \$record_name.\$domain"$'\n'
             if [ "\$ddns_mode" == "1" ]; then
                 message+="更新前IP地址: \$O_IPV6"$'\n'
@@ -4457,10 +4676,10 @@ while true; do
                 message+="GETIP 地址: \$GETURL"$'\n'
             fi
             message+="服务器时间: \$current_date_send"
-            $FolderPath/send_tg.sh "$TelgramBotToken" "$ChatID_1" "\$message"
+            \$FolderPath/send_tg.sh "\$TelgramBotToken" "\$ChatID_1" "\$message"
             O_IPV6=\$N_IPV6
             O_URL_IPV6=\$N_URL_IPV6
-            echo \$N_IPV6 >> $FolderPath/IP6_history.txt
+            echo \$N_IPV6 >> \$FolderPath/IP6_history.txt
             sleep_send="true"
         else
             echo -e "更新后: \$N_IPV6   GET: \$GETURL     更新前: \$O_IPV6"
@@ -4473,7 +4692,7 @@ while true; do
     current_date_send=\$(date +"%Y.%m.%d %T")
     echo "\$current_date_send     LOG: \$dellog_tag / \$dellog_max"
     if [ "\$dellog_tag" -ge "\$dellog_max" ]; then
-        > $FolderPath/tg_ddns.log
+        > \$FolderPath/tg_ddns.log
         dellog_tag=0
     fi
     ((dellog_tag++))
@@ -4500,9 +4719,13 @@ EOF
 ####################################################################
 # DDNS 守护脚本
 
-FolderPath="$FolderPath"
 $(declare -f getpid)
 $(declare -f addcrontab)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
 
 for ((i=0; i<3; i++)); do
 
@@ -4514,8 +4737,8 @@ for ((i=0; i<3; i++)); do
         nohup \$FolderPath/tg_ddns.sh "re" > \$FolderPath/tg_ddns.log 2>&1 &
     fi
 
-    if ! crontab -l | grep -q "$FolderPath/tg_ddnskp.sh"; then
-        addcrontab "*/5 * * * * bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &"
+    if ! crontab -l | grep -q "\$FolderPath/tg_ddnskp.sh"; then
+        addcrontab "*/5 * * * * bash \$FolderPath/tg_ddnskp.sh >> \$FolderPath/tg_ddnskp.log 2>&1 &"
         /etc/init.d/cron restart > /dev/null 2>&1
     fi
 
@@ -4530,9 +4753,14 @@ EOF
 
 $(declare -f addcrontab)
 
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+
 while true; do
-    if ! crontab -l | grep -q "$FolderPath/tg_ddnskp.sh"; then
-        addcrontab "*/5 * * * * bash $FolderPath/tg_ddnskp.sh >> $FolderPath/tg_ddnskp.log 2>&1 &"
+    if ! crontab -l | grep -q "\$FolderPath/tg_ddnskp.sh"; then
+        addcrontab "*/5 * * * * bash \$FolderPath/tg_ddnskp.sh >> \$FolderPath/tg_ddnskp.log 2>&1 &"
         /etc/init.d/cron restart > /dev/null 2>&1
     fi
     current_date=\$(date +"%Y.%m.%d %T")
@@ -5141,17 +5369,17 @@ Tip="\${GR}[提示]\${NC}:"
 $(declare -f Remove_B)
 $(declare -f Bytes_K_TGM)
 
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+
 ss_tag=""
 if [ "$ss_s" == "st" ]; then
     ss_tag="st"
     $(declare -f Bytes_K_TGMi)
     $(declare -f Bit_K_TGMi)
 fi
-
-if [ ! -d "$FolderPath" ]; then
-    mkdir -p "$FolderPath"
-fi
-FolderPath="$FolderPath"
 
 # 统计接口网速（只统所有接口）
 # interfaces=(\$(ip -br link | awk '{print \$1}' | tr '\n' ' '))
@@ -5636,28 +5864,38 @@ fi
 cat <<EOF > $FolderPath/send_tg.sh
 #!/bin/bash
 
+$(declare -f Checkpara)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "ProxyURL" "$ProxyURL"
+
 declare -A send_tg=()
 declare -A message_id=()
 
 if [ ! -z "\${6}" ] && [ ! -z "\${7}" ]; then
-    curl -s -X POST "${ProxyURL}https://api.telegram.org/bot\${1}/sendMessage" \
-        -d chat_id="\${2}" -d text="\${3}" -d parse_mode="\${6}" -d entities="\${7}" > $FolderPath/send_tg[\${4}\${5}].log 2>&1 &
+    curl -s -X POST "\${ProxyURL}https://api.telegram.org/bot\${1}/sendMessage" \
+        -d chat_id="\${2}" -d text="\${3}" -d parse_mode="\${6}" -d entities="\${7}" > \$FolderPath/send_tg[\${4}\${5}].log 2>&1 &
 else
-    curl -s -X POST "${ProxyURL}https://api.telegram.org/bot\${1}/sendMessage" \
-        -d chat_id="\${2}" -d text="\${3}" > $FolderPath/send_tg[\${4}\${5}].log 2>&1 &
+    curl -s -X POST "\${ProxyURL}https://api.telegram.org/bot\${1}/sendMessage" \
+        -d chat_id="\${2}" -d text="\${3}" > \$FolderPath/send_tg[\${4}\${5}].log 2>&1 &
 fi
 
 send_status=${?}
 
 if [ ! -z "\${4}" ] && [ \$send_status -eq 0 ]; then
     sleep 6
-    touch $FolderPath/send_tg[\${4}\${5}].log
-    message_id[\${4}\${5}]=\$(grep -o '"message_id":[0-9]*' $FolderPath/send_tg[\${4}\${5}].log | grep -o '[0-9]*')
-    rm -f "$FolderPath/send_tg[].log"
-    rm -f "$FolderPath/send_tg[\${5}].log"
-    rm -f "$FolderPath/send_tg[\${4}\${5}].log"
+    touch \$FolderPath/send_tg[\${4}\${5}].log
+    message_id[\${4}\${5}]=\$(grep -o '"message_id":[0-9]*' \$FolderPath/send_tg[\${4}\${5}].log | grep -o '[0-9]*')
+    rm -f "\$FolderPath/send_tg[].log"
+    rm -f "\$FolderPath/send_tg[\${5}].log"
+    rm -f "\$FolderPath/send_tg[\${4}\${5}].log"
     if [ ! -z "\${message_id[\${4}\${5}]}" ]; then
-        echo "message_id[\${4}\${5}]=\${message_id[\${4}\${5}]}" > "$FolderPath/message_id[\${4}\${5}].txt"
+        echo "message_id[\${4}\${5}]=\${message_id[\${4}\${5}]}" > "\$FolderPath/message_id[\${4}\${5}].txt"
     fi
 fi
 EOF
@@ -5665,14 +5903,24 @@ chmod +x $FolderPath/send_tg.sh
 cat <<EOF > $FolderPath/del_lm_tg.sh
 #!/bin/bash
 
+$(declare -f Checkpara)
+
+FolderPath="$FolderPath"
+if [ ! -d "\$FolderPath" ]; then
+    mkdir -p "\$FolderPath"
+fi
+ConfigFile="$ConfigFile"
+source \$ConfigFile &>/dev/null
+Checkpara "ProxyURL" "$ProxyURL"
+
 declare -A message_id=()
 
-if [ -f $FolderPath/message_id[\${3}\${4}].txt ]; then
-    source "$FolderPath/message_id[\${3}\${4}].txt"
-    rm -f "$FolderPath/message_id[\${3}\${4}].txt"
+if [ -f \$FolderPath/message_id[\${3}\${4}].txt ]; then
+    source "\$FolderPath/message_id[\${3}\${4}].txt"
+    rm -f "\$FolderPath/message_id[\${3}\${4}].txt"
 fi
 
-curl -s -X POST "${ProxyURL}https://api.telegram.org/bot\${1}/deleteMessage" \
+curl -s -X POST "\${ProxyURL}https://api.telegram.org/bot\${1}/deleteMessage" \
     -d chat_id="\${2}" -d message_id="\${message_id[\${3}\${4}]}" > /dev/null 2>&1 &
 EOF
 chmod +x $FolderPath/del_lm_tg.sh
