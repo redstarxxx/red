@@ -28,7 +28,7 @@ else
 fi
 
 # 基本参数
-sh_ver="1.240528.2"
+sh_ver="1.240609.1"
 FolderPath="/root/.shfile"
 ConfigFile="/root/.shfile/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
@@ -5366,6 +5366,7 @@ Inf="\${GR}[信息]\${NC}:"
 Err="\${RE}[错误]\${NC}:"
 Tip="\${GR}[提示]\${NC}:"
 
+$(declare -f CLS)
 $(declare -f Remove_B)
 $(declare -f Bytes_K_TGM)
 
@@ -5427,7 +5428,7 @@ declare -A sp_prev_tx_bytes
 declare -A sp_current_rx_bytes
 declare -A sp_current_tx_bytes
 
-clear
+CLS
 echo " 实时网速计算中..."
 echo " =================================================="
 while true; do
@@ -5696,7 +5697,7 @@ while true; do
     if [ \$CLEAR_TAG -eq 1 ]; then
         echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
         CLEAR_TAG=\$((CLEAR_TAG_OLD + 1))
-        clear
+        CLS
         echo -e " \${GRB}实时网速\${NC}                                 (\${TT}s)"
         echo " =================================================="
     else
